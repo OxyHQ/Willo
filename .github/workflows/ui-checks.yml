@@ -34,6 +34,8 @@ jobs:
       - run: bun run typecheck
       - name: Export the real Expo web app
         working-directory: packages/frontend
+        env:
+          EXPO_PUBLIC_OXY_API_URL: https://oxy-preview.invalid
         run: bunx expo export --platform web
       - name: Install isolated browser QA tooling
         run: |

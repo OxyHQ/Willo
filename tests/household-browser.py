@@ -32,17 +32,25 @@ SCREENS = {
     'maintenance': 'Maintenance', 'expenses': 'Bills & shared expenses', 'meals': 'Meals',
 }
 results, errors = [], []
+expect.set_options(timeout=15000)
 try:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={'width': 1440, 'height': 1000})
         page.on('pageerror', lambda error: errors.append(str(error)))
+        # The optional identity provider needs a base URL; no real Oxy service is used.
+        page.route('https://oxy-preview.invalid/**', lambda route: route.fulfill(status=401, content_type='application/json', body='{}'))
         page.set_default_timeout(20000)
         for width, height in [(390, 844), (834, 1112), (1440, 1000)]:
             page.set_viewport_size({'width': width, 'height': height})
             for section, title in SCREENS.items():
                 page.goto(f'{BASE}/household/{section}')
-                expect(page.get_by_role('heading', name=title, exact=True)).to_be_visible()
+                try:
+                    expect(page.get_by_role('heading', name=title, exact=True)).to_be_visible()
+                except AssertionError:
+                    page.screenshot(path=str(OUTPUT / 'failure.png'))
+                    (OUTPUT / 'failure.html').write_text(page.content())
+                    raise
                 page.wait_for_timeout(250)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'), (section, width, 'horizontal overflow')
                 assert not errors, errors
