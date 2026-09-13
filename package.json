@@ -1,6 +1,6 @@
 {
-  "name": "warren",
-  "description": "Warren — smart home control by Oxy",
+  "name": "willo",
+  "description": "Willo — smart home control by Oxy",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",

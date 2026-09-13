@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './storage';
 import * as Linking from 'expo-linking';
 
 const Container = styled.SafeAreaView``;
