@@ -69,7 +69,7 @@ export default async function connect({
   const { access_token: accessToken } = data;
 
   const ws = new WebSocket(
-    `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.hostname}/api/websocket`
+    `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.host}/api/websocket`
   );
 
   let id = 1;
