@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { assets } from '../data/assets';
 import { useHome } from '../state/home-context';
-import { Icon, Label } from '@willo/ui';
+import { Icon } from '@willo/ui';
+import { Label } from '@willo/ui';
 export function CameraCard({ garden = false, height = 194, showNest = true, label, width }: { garden?: boolean; height?: number; showNest?: boolean; label?: string; width?: number }) {
   const { setSheet } = useHome();
   const [muted, setMuted] = useState(true);
