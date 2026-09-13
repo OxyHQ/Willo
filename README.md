@@ -1,5 +1,16 @@
-Tado app clone created with React Native. It integrates with Home Assistant.
+# Warren
 
-Built with Expo.
+Smart home control by Oxy. Connects to a Home Assistant instance and gives you a fast, native-feeling view over your climate and light entities.
 
-Demo video at https://twitter.com/FezVrasta/status/1077340760238899200
+Built with Expo (React Native).
+
+## Origin
+
+Warren started as a modernization of [FezVrasta/tado-clone](https://github.com/FezVrasta/tado-clone), a Home Assistant thermostat UI, upgraded to current Expo/React Native and rebranded for Oxy.
+
+## Development
+
+```sh
+bun install
+bun start
+```

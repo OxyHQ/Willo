@@ -1,5 +1,5 @@
 import React from 'react';
-import { SecureStore } from 'expo';
+import * as SecureStore from 'expo-secure-store';
 import ThermostatView from './ThermostatView';
 import connect from './connect';
 import LoginView from './LoginView';
@@ -30,22 +30,28 @@ export default class App extends React.Component {
 
   onAuthSucceeded = async ({ instanceUrl }) => {
     const authCode = await SecureStore.getItemAsync('authCode');
-    await connect({
+    const clientId = await SecureStore.getItemAsync('clientId');
+    this.setTemperature = await connect({
       instanceUrl,
       authCode,
-      onTemperatureChange: this.onTemperatureChange,
+      clientId,
+      getEntities: this.getEntities,
+      getUpdatedState: this.getUpdatedState,
+      getConfig: this.getConfig,
     });
   };
 
   async componentDidMount() {
     const authCode = await SecureStore.getItemAsync('authCode');
     const instanceUrl = await SecureStore.getItemAsync('instanceUrl');
-    if (!authCode || !instanceUrl) {
+    const clientId = await SecureStore.getItemAsync('clientId');
+    if (!authCode || !instanceUrl || !clientId) {
       return this.setState({ unauthenticated: true });
     }
     this.setTemperature = await connect({
       authCode,
       instanceUrl,
+      clientId,
       getEntities: this.getEntities,
       getUpdatedState: this.getUpdatedState,
       getConfig: this.getConfig,

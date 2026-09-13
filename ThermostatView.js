@@ -1,19 +1,16 @@
 import React from 'react';
 import {
-  StyleSheet,
   Text,
   View,
-  Dimensions,
   StatusBar,
   TouchableWithoutFeedback,
   TouchableOpacity,
 } from 'react-native';
-import { LinearGradient } from 'expo';
+import { LinearGradient } from 'expo-linear-gradient';
 import styled, { css } from '@emotion/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { State } from 'react-powerplug';
-import posed, { Transition } from 'react-native-pose';
-import memoize from 'memoizee';
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
+import { MotiView, MotiText, AnimatePresence, motify } from 'moti';
+import { Easing } from 'react-native-reanimated';
 import { getGradient, getPrimaryColor, getSecondaryColor } from './colors';
 import { Degree, Percentage, LabelBox, Label } from './styles';
 import Level from './components/Level';
@@ -30,17 +27,17 @@ const Safe = styled.SafeAreaView`
   align-items: stretch;
 `;
 
-const AnimatedBox = posed.View({
+const BOX_POSES = {
   collapsed: { height: BOX_SIZE, top: 0 },
   expanded: { height: EXPANDED_BOX_SIZE, top: 20 },
   confirming: { height: LARGE_BOX_SIZE, top: 0 },
-});
+};
 
 const Box = styled(({ style, onPress, pose, children }) => (
   <TouchableWithoutFeedback onPress={onPress}>
-    <AnimatedBox style={style} pose={pose}>
+    <MotiView style={style} animate={BOX_POSES[pose]}>
       {children}
-    </AnimatedBox>
+    </MotiView>
   </TouchableWithoutFeedback>
 ))`
   display: flex;
@@ -54,11 +51,6 @@ const Box = styled(({ style, onPress, pose, children }) => (
   padding: 20px;
 `;
 
-const AnimatedBoxLabel = posed.Text({
-  visible: { opacity: 1 },
-  hidden: { opacity: 0 },
-});
-
 const boxLabel = (temp, current, open) => {
   let text;
   const t = Math.round(temp);
@@ -70,36 +62,31 @@ const boxLabel = (temp, current, open) => {
     text = 'Heating to';
   }
   return (
-    <AnimatedBoxLabel
-      pose={open ? 'hidden' : 'visible'}
+    <MotiText
+      animate={{ opacity: open ? 0 : 1 }}
       style={css`
         color: #fefefe;
         margin-bottom: auto;
       `}
     >
       {text}
-    </AnimatedBoxLabel>
+    </MotiText>
   );
 };
 
-const Temp = styled(
-  posed.Text({
-    collapsed: { top: 0, fontSize: 90 },
-    expanded: { top: -350, fontSize: 70 },
-    confirming: { top: -80, fontSize: 90 },
-  })
-)`
+const TEMP_POSES = {
+  collapsed: { top: 0, fontSize: 90 },
+  expanded: { top: -350, fontSize: 70 },
+  confirming: { top: -80, fontSize: 90 },
+};
+
+const Temp = styled(MotiText)`
   color: #fefefe;
   margin-right: -35px;
   margin-bottom: auto;
 `;
 
-const Header = styled(
-  posed.View({
-    visible: { top: 0 },
-    hidden: { top: -100 },
-  })
-)`
+const Header = styled(MotiView)`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -113,12 +100,7 @@ const Title = styled.Text`
   font-size: 18px;
 `;
 
-const Footer = styled(
-  posed.View({
-    visible: { bottom: 0 },
-    hidden: { bottom: -300 },
-  })
-)`
+const Footer = styled(MotiView)`
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -175,12 +157,9 @@ class TimerLogic extends React.Component {
   }
 }
 
-const TimerAnim = posed(TimerLogic)({
-  exit: { width: 0, transition: { duration: 0 } },
-  enter: { width: BOX_SIZE, transition: { duration: 5000, ease: 'linear' } },
-});
+const MotiTimerLogic = motify(TimerLogic)();
 
-const Timer = styled(TimerAnim)`
+const Timer = styled(MotiTimerLogic)`
   position: absolute;
   top: 0;
   left: 0;
@@ -188,12 +167,15 @@ const Timer = styled(TimerAnim)`
   background-color: ${props => getSecondaryColor(props.temp)};
 `;
 
-const AnimatedCancel = posed(TouchableOpacity)({
-  exit: { opacity: 0, transition: { duration: 100 } },
-  enter: { opacity: 1 },
-});
+const MotiCancelButton = motify(TouchableOpacity)();
 const Cancel = styled(props => (
-  <AnimatedCancel {...props}>
+  <MotiCancelButton
+    from={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    exitTransition={{ type: 'timing', duration: 100 }}
+    {...props}
+  >
     <Text
       style={css`
         color: #000;
@@ -201,7 +183,7 @@ const Cancel = styled(props => (
     >
       {props.children}
     </Text>
-  </AnimatedCancel>
+  </MotiCancelButton>
 ))`
   z-index: 1;
   margin-top: auto;
@@ -259,7 +241,7 @@ export default class ThermostatView extends React.Component {
         <Container colors={getGradient(temp)}>
           <StatusBar barStyle="light-content" />
           <Safe>
-            <Header pose={state.open ? 'hidden' : 'visible'}>
+            <Header animate={{ top: state.open ? -100 : 0 }}>
               <Icon
                 name="close-circle"
                 onPress={onClose}
@@ -287,7 +269,9 @@ export default class ThermostatView extends React.Component {
               }
             >
               {boxLabel(temp, attrs.current_temperature, state.open)}
-              {<Temp pose={pose}>{temp}°</Temp>}
+              {
+                <Temp animate={TEMP_POSES[pose]}>{temp}°</Temp>
+              }
               <Level
                 temp={temp}
                 pose={pose}
@@ -295,9 +279,17 @@ export default class ThermostatView extends React.Component {
                   this.setState({ tempUserOverride: temp, timeout: true });
                 }}
               >
-                <Transition>
+                <AnimatePresence>
                   {pose === 'confirming' && (
                     <Timer
+                      from={{ width: 0 }}
+                      animate={{ width: BOX_SIZE }}
+                      exit={{ width: 0 }}
+                      transition={{
+                        type: 'timing',
+                        duration: 5000,
+                        easing: Easing.linear,
+                      }}
                       onPoseCompleted={() => {
                         this.setState({ timeout: null });
                         setTemperature(temp);
@@ -320,11 +312,11 @@ export default class ThermostatView extends React.Component {
                       Cancel
                     </Cancel>
                   )}
-                </Transition>
+                </AnimatePresence>
               </Level>
             </Box>
 
-            <Footer pose={state.open ? 'hidden' : 'visible'}>
+            <Footer animate={{ bottom: state.open ? -300 : 0 }}>
               <OperationMode>{attrs.operation_mode}</OperationMode>
               <View
                 style={css`

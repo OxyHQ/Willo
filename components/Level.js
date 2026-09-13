@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, PanResponder } from 'react-native';
-import posed from 'react-native-pose';
+import { MotiView } from 'moti';
 import styled, { css } from '@emotion/native';
-import { decycle } from 'json-decycle';
 import { getGradient, getPrimaryColor } from '../colors';
 import { BOX_SIZE, EXPANDED_BOX_SIZE, LARGE_BOX_SIZE } from '../constants';
 
@@ -31,7 +30,7 @@ const ActionWrapper = styled.View`
   height: ${String(LARGE_BOX_SIZE / 2)}px;
 `;
 
-const Value = styled(posed.View(config))`
+const Value = styled(MotiView)`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -43,12 +42,7 @@ const Value = styled(posed.View(config))`
   background-color: #ffffff;
 `;
 
-const Handle = styled(
-  posed.View({
-    collapsed: { scale: 0 },
-    expanded: { scale: 1 },
-  })
-)`
+const Handle = styled(MotiView)`
   height: 6px;
   width: 24%;
   border-radius: 10px;
@@ -61,10 +55,10 @@ const Level = styled(props => {
     <View ref={props.innRef} {...props}>
       <Value
         pointerEvents="none"
-        pose={props.pose === 'expanded' ? props.temp : props.pose}
+        animate={config[props.pose === 'expanded' ? props.temp : props.pose]}
       >
         <Handle
-          pose={props.pose === 'expanded' ? 'expanded' : 'collapsed'}
+          animate={{ scale: props.pose === 'expanded' ? 1 : 0 }}
           temp={props.temp}
         />
       </Value>
