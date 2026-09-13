@@ -7,6 +7,7 @@ export type EntityAttributes = {
   operation_mode?: string;
   current_humidity?: number;
   rgb_color?: [number, number, number];
+  brightness?: number;
 };
 
 export type Entity = {
