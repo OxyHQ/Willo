@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from '@emotion/native';
-import { AuthSession, SecureStore } from 'expo';
-import { CLIENT_ID } from './constants';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as SecureStore from 'expo-secure-store';
+import * as Linking from 'expo-linking';
 
 const Container = styled.SafeAreaView``;
 const Margin = styled.View`
@@ -36,15 +38,22 @@ export default class LoginView extends React.Component {
 
   handlePress = async () => {
     const { instanceUrl } = this.state;
-    console.log(
-      `${instanceUrl}/auth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUrl}`
-    );
-    const redirectUrl = AuthSession.getRedirectUrl();
-    const result = await AuthSession.startAsync({
-      authUrl: `${instanceUrl}/auth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirectUrl}`,
-    });
-    await SecureStore.setItemAsync('authCode', result.params.code);
+    const redirectUrl = AuthSession.makeRedirectUri();
+    // Home Assistant accepts any client_id whose scheme+host match the
+    // redirect_uri (see homeassistant/components/auth/indieauth.py), so using
+    // the redirect URI itself as the client_id needs no external hosting.
+    const clientId = redirectUrl;
+    const authUrl = `${instanceUrl}/auth/authorize?${new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUrl,
+    })}`;
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+    if (result.type !== 'success') return;
+
+    const { queryParams } = Linking.parse(result.url);
+    await SecureStore.setItemAsync('authCode', queryParams.code);
     await SecureStore.setItemAsync('instanceUrl', instanceUrl);
+    await SecureStore.setItemAsync('clientId', clientId);
     this.props.onAuthSucceeded({ instanceUrl });
   };
 

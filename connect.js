@@ -1,4 +1,3 @@
-import { CLIENT_ID } from './constants';
 import URL from 'url-parse';
 import YAML from 'yaml';
 const j = JSON.stringify;
@@ -6,6 +5,7 @@ const j = JSON.stringify;
 export default async ({
   instanceUrl,
   authCode,
+  clientId,
   getEntities,
   getUpdatedState,
   getConfig,
@@ -15,11 +15,11 @@ export default async ({
   const res = await fetch(`${instanceUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: JSON.stringify({
+    body: new URLSearchParams({
       grant_type: 'authorization_code',
       code: authCode,
-      client_id: CLIENT_ID,
-    }),
+      client_id: clientId,
+    }).toString(),
   });
 
   const data = await res.json();

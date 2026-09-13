@@ -5,6 +5,7 @@ import {
   TouchableWithoutFeedback,
   Text,
   SafeAreaView,
+  Modal as RNModal,
 } from 'react-native';
 import styled, { css } from '@emotion/native';
 import Color from 'color';
@@ -53,7 +54,7 @@ const Title = styled.View`
   color: #000;
 `;
 
-const Modal = styled.Modal``;
+const Modal = styled(RNModal)``;
 
 const entityBox = css`
   width: ${String(entityWidth)}px;
