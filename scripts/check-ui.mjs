@@ -31,17 +31,33 @@ const modulePath = process.env.PLAYWRIGHT_MODULE;
 assert.ok(modulePath, 'Set PLAYWRIGHT_MODULE to an installed playwright/index.mjs');
 const { chromium } = await import(pathToFileURL(modulePath).href);
 const browser = await chromium.launch();
+const page = await browser.newPage();
 const results = [];
+const errors = [];
+const diagnostics = [];
+page.on('pageerror', error => {
+  errors.push(error.message);
+  console.error('Browser exception:', error.stack ?? error.message);
+});
+page.on('console', message => {
+  if (['warning', 'error'].includes(message.type())) {
+    diagnostics.push({ type: message.type(), text: message.text() });
+    console.log(`Browser ${message.type()}:`, message.text());
+  }
+});
+page.on('requestfailed', request => {
+  const failure = { url: request.url(), error: request.failure()?.errorText };
+  diagnostics.push(failure);
+  console.log('Request failed:', JSON.stringify(failure));
+});
 let failure;
 try {
-  const page = await browser.newPage();
-  const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
   const routes = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency', 'favorites', 'devices', 'routines', 'timeline', 'settings', 'favorites-assistant'];
   const noTabs = new Set(['assistant', 'composer', 'emergency']);
   for (const [width, height] of [[390, 844], [834, 1194], [1024, 768], [1440, 900]]) {
     await page.setViewportSize({ width, height });
     for (const route of routes) {
+      console.log(`Checking ${route} at ${width}x${height}`);
       const before = errors.length;
       const response = await page.goto(`${origin}/${route}`);
       assert.equal(response?.status(), 200, route);
@@ -91,7 +107,17 @@ try {
   results.push({ status: 'passed', check: 'Temperature, categories, routing and draft preservation on resize' });
 } catch (error) {
   failure = error;
-  results.push({ status: 'failed', error: String(error) });
+  const dom = await page.evaluate(() => ({
+    text: document.body.innerText.slice(0, 8000),
+    elements: [...document.querySelectorAll('#root, #root > *, [data-testid]')].slice(0, 40).map(el => {
+      const box = el.getBoundingClientRect();
+      return { id: el.id, testId: el.getAttribute('data-testid'), className: el.className, width: box.width, height: box.height, display: getComputedStyle(el).display };
+    }),
+  })).catch(() => null);
+  console.error('Failure diagnostics:', JSON.stringify({ url: page.url(), errors, diagnostics, dom }, null, 2));
+  await page.screenshot({ path: join(artifacts, 'failure.png') }).catch(() => {});
+  await writeFile(join(artifacts, 'failure.html'), await page.content()).catch(() => {});
+  results.push({ status: 'failed', error: String(error), errors, diagnostics, dom });
 } finally {
   await writeFile(join(artifacts, 'results.json'), JSON.stringify(results, null, 2));
   await browser.close();
