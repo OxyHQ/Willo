@@ -20,7 +20,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
@@ -35,3 +35,17 @@ jobs:
       - name: Export the real Expo web app
         working-directory: packages/frontend
         run: bunx expo export --platform web
+      - name: Install isolated browser QA tooling
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Exercise household screens in the real web export
+        run: python tests/household-browser.py
+      - name: Upload household screenshots and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: household-web-review
+          path: household-web-review/
+          if-no-files-found: ignore
+          retention-days: 14

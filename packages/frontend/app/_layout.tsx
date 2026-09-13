@@ -8,6 +8,8 @@ import { BloomProvider } from '@oxy.so/bloom/provider';
 import { OxyProvider } from '@oxy.so/services';
 import { HomeProvider } from '../state/home-context';
 import { Overlays } from '../components/overlays';
+import { HouseholdProvider } from '../household/store';
+import { HouseholdEditor } from '../household/editor';
 import * as WebBrowser from 'expo-web-browser';
 
 // Complete Home Assistant's existing web OAuth popup flow.
@@ -20,9 +22,12 @@ export default function RootLayout() {
         <BloomProvider>
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
             <HomeProvider>
-              <StatusBar barStyle="dark-content" />
-              <Stack screenOptions={{ headerShown: false }} />
-              <Overlays />
+              <HouseholdProvider>
+                <StatusBar barStyle="dark-content" />
+                <Stack screenOptions={{ headerShown: false }} />
+                <Overlays />
+                <HouseholdEditor />
+              </HouseholdProvider>
             </HomeProvider>
           </OxyProvider>
         </BloomProvider>

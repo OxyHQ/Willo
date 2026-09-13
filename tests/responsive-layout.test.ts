@@ -95,11 +95,12 @@ test('all placements stay in bounds and do not overlap across 46 widths', () => 
   }
 });
 test('bottom navigation and rail use the same destinations and parent selection', () => {
-  assert.equal(modernTabs.length, 3);
+  assert.equal(modernTabs.length, 4);
   assert.equal(classicTabs.length, 5);
   assert.equal(isNavigationActive('favorites-assistant', 'favorites'), true);
   assert.equal(isNavigationActive('composer', 'automations'), true);
   assert.equal(isNavigationActive('assistant', 'home'), true);
+  assert.equal(isNavigationActive('household', 'household'), true);
 });
 test('new reference tiles use the existing reducer rather than separate desktop state', () => {
   let state = initialHomeState;

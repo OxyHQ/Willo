@@ -16,14 +16,16 @@ import { Icon } from '@willo/ui';
 import { Label } from '@willo/ui';
 import { ResponsiveProvider, useResponsiveLayout } from '../layout/responsive-context';
 import { NavigationRail } from './navigation-rail';
-type SurfaceProps = { screen: ScreenId; onNavigate: Navigate; preview?: boolean };
+import { HouseholdScreen } from '../household/household-screen';
+import type { HouseholdSection } from '../household/model';
+type SurfaceProps = { screen: ScreenId; onNavigate: Navigate; preview?: boolean; householdSection?: HouseholdSection };
 export function ScreenSurface(props: SurfaceProps) {
   const insets = useSafeAreaInsets();
   return <View className="min-h-0 min-w-0 flex-1 bg-home-surface" style={{ paddingLeft: props.preview ? 0 : insets.left, paddingRight: props.preview ? 0 : insets.right }}>
     <ResponsiveProvider preview={props.preview}><ScreenBody {...props}/></ResponsiveProvider>
   </View>;
 }
-function ScreenBody({ screen, onNavigate, preview = false }: SurfaceProps) {
+function ScreenBody({ screen, onNavigate, preview = false, householdSection }: SurfaceProps) {
   const insets = useSafeAreaInsets();
   const { compact } = useResponsiveLayout();
   const modern = modernScreens.includes(screen);
@@ -42,6 +44,7 @@ function ScreenBody({ screen, onNavigate, preview = false }: SurfaceProps) {
     case 'assistant': content = <AssistantScreen onNavigate={onNavigate}/>; break;
     case 'composer': content = <ComposerScreen onNavigate={onNavigate}/>; break;
     case 'emergency': content = <EmergencyScreen onNavigate={onNavigate}/>; break;
+    case 'household': content = <HouseholdScreen section={householdSection}/>; break;
   }
 
   const tinted = modern && hasTabs;

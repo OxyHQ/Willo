@@ -3,6 +3,7 @@ import type { IconName } from '@willo/ui';
 export type NavigationItem = { screen: ScreenId; title: string; icon: IconName };
 export const modernTabs: NavigationItem[] = [
   { screen: 'home', title: 'Home', icon: 'home' },
+  { screen: 'household', title: 'Household', icon: 'person' },
   { screen: 'activity', title: 'Activity', icon: 'activity' },
   { screen: 'automations', title: 'Automations', icon: 'automations' },
 ];

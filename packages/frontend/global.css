@@ -5,4 +5,5 @@
 @source "./screens/**/*.{js,jsx,ts,tsx}";
 @source "./components/**/*.{js,jsx,ts,tsx}";
 @source "./layout/**/*.{js,jsx,ts,tsx}";
+@source "./household/**/*.{js,jsx,ts,tsx}";
 @source "../ui/**/*.{js,jsx,ts,tsx}";

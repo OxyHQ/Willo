@@ -11,10 +11,11 @@ export const SCREENS = [
   { id: 'timeline', title: 'Activity', subtitle: 'Camera event timeline', generation: 'classic', number: '10' },
   { id: 'settings', title: 'Settings', subtitle: 'Home, rooms & services', generation: 'classic', number: '11' },
   { id: 'favorites-assistant', title: 'Favorites + assistant', subtitle: 'Broadcast & assistant shortcuts', generation: 'classic', number: '12' },
+  { id: 'household', title: 'Household', subtitle: 'Tasks, lists & life together', generation: 'modern', number: '13' },
 ] as const;
 export type ScreenId = typeof SCREENS[number]['id'];
 export type Navigate = (screen: ScreenId | 'gallery') => void;
 export type ScreenProps = { onNavigate: Navigate };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
-export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency'];
+export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency', 'household'];
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency'];
