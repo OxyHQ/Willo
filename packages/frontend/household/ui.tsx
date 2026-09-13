@@ -38,7 +38,7 @@ export function Person({ id, caption = false }: { id: MemberId; caption?: boolea
   </View>;
 }
 export function CheckControl({ checked, label, onPress }: { checked: boolean; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel={label} onPress={onPress}
+  return <Pressable accessibilityRole="checkbox" accessibilityState={{ checked }} aria-checked={checked} accessibilityLabel={label} onPress={onPress}
     className="h-11 w-11 shrink-0 items-center justify-center rounded-full active:bg-home-blue">
     <View className={`h-6 w-6 items-center justify-center rounded-full ${checked ? 'bg-home-on-sky' : 'border-2 border-home-muted'}`}>
       {checked && <Icon name="check" size={16} color="#ffffff"/>}
