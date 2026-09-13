@@ -1,0 +1,21 @@
+/* Shared Home UI colors. Keep native icon colors in tokens.ts aligned. */
+@theme {
+  --color-home-ink: #202124;
+  --color-home-muted: #5f6368;
+  --color-home-surface: #f1f4f9;
+  --color-home-nav: #f0f5ff;
+  --color-home-blue: #d9e1ff;
+  --color-home-on-blue: #064aba;
+  --color-home-sky: #c1e8fc;
+  --color-home-on-sky: #00537f;
+  --color-home-yellow: #fff0c8;
+  --color-home-yellow-fill: #ffe182;
+  --color-home-on-yellow: #625007;
+  --color-home-peach: #ffddd1;
+  --color-home-peach-button: #ffb799;
+  --color-home-on-peach: #8e3205;
+  --color-home-green: #e1f5df;
+  --color-home-on-green: #146524;
+  --color-home-red: #b3261e;
+  --color-home-border: #e2e5e9;
+}

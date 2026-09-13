@@ -13,8 +13,16 @@ export const SCREENS = [
   { id: 'favorites-assistant', title: 'Favorites + assistant', subtitle: 'Broadcast & assistant shortcuts', generation: 'classic', number: '12' },
 ] as const;
 export type ScreenId = typeof SCREENS[number]['id'];
-export type Navigate = (screen: ScreenId | 'gallery') => void;
+export type Navigate = (screen: ScreenId) => void;
 export type ScreenProps = { onNavigate: Navigate };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
 export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency'];
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency'];
+
+/** Explicit URLs shared by navigation and the route contract test. */
+export const SCREEN_ROUTES = {
+  home: '/home', activity: '/activity', automations: '/automations',
+  assistant: '/assistant', composer: '/composer', emergency: '/emergency',
+  favorites: '/favorites', devices: '/devices', routines: '/routines',
+  timeline: '/timeline', settings: '/settings', 'favorites-assistant': '/favorites-assistant',
+} as const satisfies Record<ScreenId, string>;
