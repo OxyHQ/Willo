@@ -5,6 +5,10 @@ import * as AuthSession from 'expo-auth-session';
 import * as SecureStore from './storage';
 import * as Linking from 'expo-linking';
 
+// Home Assistant's default install is reachable at this address out of the
+// box (mDNS), so most people never need to type a URL at all.
+const DEFAULT_INSTANCE_URL = 'http://homeassistant.local:8123';
+
 const Container = styled.SafeAreaView``;
 const Margin = styled.View`
   margin: 40px;
@@ -24,17 +28,29 @@ const TextInput = styled.TextInput`
 
 const Submit = styled.Button``;
 
+const AdvancedToggle = styled.TouchableOpacity`
+  margin-top: 20px;
+  align-self: center;
+`;
+
+const AdvancedToggleLabel = styled.Text`
+  color: gray;
+  text-decoration-line: underline;
+`;
+
 type LoginViewProps = {
   onAuthSucceeded: (result: { instanceUrl: string }) => void;
 };
 
 type LoginViewState = {
   instanceUrl: string;
+  showAdvanced: boolean;
 };
 
 export default class LoginView extends React.Component<LoginViewProps, LoginViewState> {
   state: LoginViewState = {
-    instanceUrl: '',
+    instanceUrl: DEFAULT_INSTANCE_URL,
+    showAdvanced: false,
   };
 
   handlePress = async () => {
@@ -62,16 +78,30 @@ export default class LoginView extends React.Component<LoginViewProps, LoginView
   };
 
   render() {
+    const { instanceUrl, showAdvanced } = this.state;
+
     return (
       <Container>
         <Margin>
-          <Label>Home Assistant URL:</Label>
-          <TextInput
-            autoCapitalize="none"
-            placeholder="https://localhost:8123"
-            onChangeText={instanceUrl => this.setState({ instanceUrl })}
-          />
+          {showAdvanced && (
+            <>
+              <Label>Home Assistant URL:</Label>
+              <TextInput
+                autoCapitalize="none"
+                value={instanceUrl}
+                placeholder={DEFAULT_INSTANCE_URL}
+                onChangeText={instanceUrl => this.setState({ instanceUrl })}
+              />
+            </>
+          )}
           <Submit onPress={this.handlePress} title="Login" />
+          <AdvancedToggle
+            onPress={() => this.setState({ showAdvanced: !showAdvanced })}
+          >
+            <AdvancedToggleLabel>
+              {showAdvanced ? 'Hide advanced' : 'Advanced'}
+            </AdvancedToggleLabel>
+          </AdvancedToggle>
         </Margin>
       </Container>
     );

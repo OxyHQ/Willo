@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Dimensions,
@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import styled, { css } from '@emotion/native';
 import Color from 'color';
+import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { getMidColor } from './colors';
 import { Degree } from './styles';
 import ThermostatView from './ThermostatView';
-import type { Entity, SetTemperature } from './types';
+import LightSheet from './LightSheet';
+import type { Entity, ProviderControls } from './types';
 
 const entityWidth = Dimensions.get('window').width / 3 - 20;
 const entityHeight = entityWidth;
@@ -71,7 +73,7 @@ const entityBox = css`
 type ClimateEntityProps = {
   style?: StyleProp<ViewStyle>;
   data: Entity;
-  setTemperature: SetTemperature;
+  controls: ProviderControls;
 };
 
 type ClimateEntityState = {
@@ -102,7 +104,7 @@ class InnerClimateEntity extends React.Component<ClimateEntityProps, ClimateEnti
             entity={this.props.data}
             onClose={() => this.setState({ expanded: false })}
             setTemperature={temp =>
-              this.props.setTemperature(temp, this.props.data.entity_id)
+              this.props.controls.setTemperature(temp, this.props.data.entity_id)
             }
           />
         </Modal>
@@ -130,9 +132,34 @@ const ClimateEntity = styled(InnerClimateEntity)`
     getMidColor(attrs.temperature ?? 0)};
 `;
 
-const LightEntity = styled.View`
+type LightEntityProps = {
+  style?: StyleProp<ViewStyle>;
+  data: Entity;
+  controls: ProviderControls;
+};
+
+function InnerLightEntity({ style, data, controls }: LightEntityProps) {
+  const sheetRef = useRef<BottomSheetRef>(null);
+
+  return (
+    <>
+      <BottomSheet ref={sheetRef} detached>
+        <LightSheet
+          entity={data}
+          onToggle={turnOn => controls.toggleLight(data.entity_id, turnOn)}
+        />
+      </BottomSheet>
+
+      <TouchableWithoutFeedback onPress={() => sheetRef.current?.present()}>
+        <View style={style} />
+      </TouchableWithoutFeedback>
+    </>
+  );
+}
+
+const LightEntity = styled(InnerLightEntity)`
   ${entityBox}
-  background-color: ${({ data }: { data: Entity }) =>
+  background-color: ${({ data }: LightEntityProps) =>
     data.state === 'on'
       ? Color(data.attributes.rgb_color ?? [0, 0, 0]).string()
       : '#EBEBEB'};
@@ -141,13 +168,13 @@ const LightEntity = styled.View`
 type EntitiesViewProps = {
   locationName: string;
   entities: Entity[];
-  setTemperature: SetTemperature;
+  controls: ProviderControls;
 };
 
 export default function EntitiesView({
   locationName,
   entities,
-  setTemperature,
+  controls,
 }: EntitiesViewProps) {
   return (
     <>
@@ -175,11 +202,13 @@ export default function EntitiesView({
                     <ClimateEntity
                       key={entity.entity_id}
                       data={entity}
-                      setTemperature={setTemperature}
+                      controls={controls}
                     />
                   );
                 case 'light':
-                  return <LightEntity key={entity.entity_id} data={entity} />;
+                  return (
+                    <LightEntity key={entity.entity_id} data={entity} controls={controls} />
+                  );
                 default:
                   return null;
               }
