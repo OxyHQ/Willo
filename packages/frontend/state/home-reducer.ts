@@ -1,4 +1,4 @@
-export type DeviceKey = 'light' | 'pantry' | 'living-lamp' | 'office-lamp' | 'tv' | 'plug' | 'blinds' | 'office-blinds' | 'vacuum';
+export type DeviceKey = 'light' | 'pantry' | 'living-lamp' | 'office-lamp' | 'tv' | 'plug' | 'blinds' | 'office-blinds' | 'vacuum' | 'fan' | 'garage' | 'speaker' | 'floor-lamp';
 export type Routine = { id: string; title: string; description: string; icon: 'light' | 'kettle' | 'lock' | 'speaker' | 'sparkle' };
 export type HomeState = {
   locked: boolean; temperature: number; movieMode: boolean;
@@ -7,8 +7,8 @@ export type HomeState = {
 };
 export const initialHomeState: HomeState = {
   locked: true, temperature: 68, movieMode: false,
-  devices: { light: true, pantry: true, 'living-lamp': true, 'office-lamp': true, tv: true, plug: true, blinds: false, 'office-blinds': false, vacuum: false },
-  brightness: { light: 50, pantry: 50, 'living-lamp': 50, 'office-lamp': 50, tv: 50 },
+  devices: { light: true, pantry: true, 'living-lamp': true, 'office-lamp': true, tv: true, plug: true, blinds: false, 'office-blinds': false, vacuum: false, fan: true, garage: false, speaker: true, 'floor-lamp': true },
+  brightness: { light: 50, pantry: 50, 'living-lamp': 50, 'office-lamp': 50, tv: 50, speaker: 50, 'floor-lamp': 50 },
   routines: [], dismissedUpcoming: [], kitchenSilenced: true,
 };
 export type HomeAction =

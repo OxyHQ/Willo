@@ -16,13 +16,13 @@ export function Avatar({ onPress, source, label = 'Account menu' }: { onPress: (
 export function SectionTitle({ children, right, onPress }: { children: React.ReactNode; right?: string; onPress?: () => void }) {
   return <View className="mb-3 mt-5 flex-row items-center justify-between"><Label className="text-[13px] font-medium">{children}</Label>{right && <Pressable onPress={onPress} accessibilityRole="button" className="p-1"><Label className="text-[12px] font-medium text-home-on-blue">{right}</Label></Pressable>}</View>;
 }
-export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, chevron = false, active, height = 80 }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; brightness?: number; chevron?: boolean; active?: boolean; height?: number }) {
-  const t = tones[tone];
-  return <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onLongPress ? 'Hold to adjust brightness' : undefined} className={`relative flex-1 flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 active:opacity-75 ${t.tile}`} style={{ minHeight: height }}>
-    {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-home-yellow-fill" style={{ width: `${Math.min(100, Math.max(0, brightness))}%` as ViewStyle['width'] }}/>}
-    <View className="relative"><Icon name={icon} size={20} color={t.color} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
-    <View className="flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${t.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${t.text}`}>{subtitle}</Label>}</View>
-    {chevron && <Icon name="chevron" size={16} color={t.color}/>}
+export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, chevron = false, active, height = 80, grow = true }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; brightness?: number; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
+  const palette = tones[tone];
+  return <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onLongPress ? 'Hold to adjust brightness' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 active:opacity-75 ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
+    {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-home-yellow-fill" style={{ width: `${Math.min(100, Math.max(0, brightness))}%` as ViewStyle['width'] }}/>} 
+    <View className="relative"><Icon name={icon} size={20} color={palette.color} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
+    <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
+    {chevron && <Icon name="chevron" size={16} color={palette.color}/>} 
   </Pressable>;
 }
 export function AddButton({ onPress }: { onPress: () => void }) {

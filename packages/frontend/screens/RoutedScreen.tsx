@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { ScreenSurface } from '../components/screen-surface';
-import type { ScreenId } from '../data/screens';
+import { noTabScreens, type ScreenId } from '../data/screens';
+import { SCREEN_ROUTES } from '../data/screen-routes';
 
 export function RoutedScreen({ screen }: { screen: ScreenId }) {
   const router = useRouter();
@@ -8,8 +9,10 @@ export function RoutedScreen({ screen }: { screen: ScreenId }) {
     <ScreenSurface
       screen={screen}
       onNavigate={next => {
-        if (next === 'gallery') return;
-        router.push(`/${next}`);
+        if (next === 'gallery' || next === screen) return;
+        const destination = SCREEN_ROUTES[next];
+        if (noTabScreens.includes(next)) router.push(destination);
+        else router.navigate(destination);
       }}
     />
   );
