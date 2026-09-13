@@ -43,3 +43,26 @@ body {
 @source "./layout/**/*.{js,jsx,ts,tsx}";
 @source "../ui/**/*.{js,jsx,ts,tsx}";
 @source "../../node_modules/@oxy.so/bloom/lib/**/*.{js,jsx}";
+
+/* Isolated reference palette; existing Bloom tokens and custom controls are unchanged. */
+@theme {
+  --color-willo-ink: #252728;
+  --color-willo-secondary: #575c61;
+  --color-willo-surface: #f0f4f9;
+  --color-willo-faint: #f7f9fc;
+  --color-willo-muted: #dce1e8;
+  --color-willo-outline: #e0e3e7;
+  --color-willo-blue: #d9e1ff;
+  --color-willo-blue-strong: #c9d6ff;
+  --color-willo-on-blue: #0046ae;
+  --color-willo-sky: #bfe7fc;
+  --color-willo-on-sky: #005478;
+  --color-willo-yellow: #fff0c7;
+  --color-willo-yellow-strong: #ffe183;
+  --color-willo-on-yellow: #5c4800;
+  --color-willo-peach: #ffdacd;
+  --color-willo-peach-strong: #ffb89b;
+  --color-willo-on-peach: #8b3000;
+  --color-willo-green: #e0f4dd;
+  --color-willo-on-green: #176b35;
+}
