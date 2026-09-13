@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import {
   View,
   Dimensions,
+  Image,
   TouchableWithoutFeedback,
   Text,
   SafeAreaView,
@@ -12,11 +13,10 @@ import {
 import styled, { css } from '@emotion/native';
 import Color from 'color';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
-import { getMidColor } from './colors';
-import { Degree } from './styles';
+import { getMidColor, Degree } from '@willo/ui';
 import ThermostatView from './ThermostatView';
 import LightSheet from './LightSheet';
-import type { Entity, ProviderControls } from './types';
+import type { Entity, ProviderControls } from '../types';
 
 const entityWidth = Dimensions.get('window').width / 3 - 20;
 const entityHeight = entityWidth;
@@ -60,6 +60,21 @@ const Title = styled.View`
 `;
 
 const Modal = styled(RNModal)``;
+
+const EmptyState = styled.View`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+`;
+
+const EmptyStateText = styled.Text`
+  color: #8e8e93;
+  font-size: 16px;
+  margin-top: 20px;
+  text-align: center;
+`;
 
 const entityBox = css`
   width: ${String(entityWidth)}px;
@@ -201,26 +216,36 @@ export default function EntitiesView({
       </Title>
       <ScrollView>
         <Container>
-          <Margin>
-            {entities.map(entity => {
-              switch (entity.entity_id.split('.')[0]) {
-                case 'climate':
-                  return (
-                    <ClimateEntity
-                      key={entity.entity_id}
-                      data={entity}
-                      controls={controls}
-                    />
-                  );
-                case 'light':
-                  return (
-                    <LightEntity key={entity.entity_id} data={entity} controls={controls} />
-                  );
-                default:
-                  return null;
-              }
-            })}
-          </Margin>
+          {entities.length === 0 ? (
+            <EmptyState>
+              <Image
+                source={require('../assets/empty-devices.png')}
+                style={{ width: 220, height: 220, resizeMode: 'contain' }}
+              />
+              <EmptyStateText>No devices yet</EmptyStateText>
+            </EmptyState>
+          ) : (
+            <Margin>
+              {entities.map(entity => {
+                switch (entity.entity_id.split('.')[0]) {
+                  case 'climate':
+                    return (
+                      <ClimateEntity
+                        key={entity.entity_id}
+                        data={entity}
+                        controls={controls}
+                      />
+                    );
+                  case 'light':
+                    return (
+                      <LightEntity key={entity.entity_id} data={entity} controls={controls} />
+                    );
+                  default:
+                    return null;
+                }
+              })}
+            </Margin>
+          )}
         </Container>
       </ScrollView>
     </>

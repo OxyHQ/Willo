@@ -1,0 +1,4 @@
+{
+  "extends": "@oxy.so/app-preset/tsconfig/frontend.json",
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"]
+}

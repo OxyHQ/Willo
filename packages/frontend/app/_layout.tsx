@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { OxyProvider } from '@oxy.so/services';
+import { HomeProvider } from '../state/home-context';
 import * as WebBrowser from 'expo-web-browser';
 
 // Required by expo-auth-session: on web, this lets the popup opened for
@@ -18,7 +19,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <BloomProvider>
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
-            <Stack screenOptions={{ headerShown: false }} />
+            <HomeProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+            </HomeProvider>
           </OxyProvider>
         </BloomProvider>
       </GestureHandlerRootView>

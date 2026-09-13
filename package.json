@@ -6,14 +6,15 @@
     "node": ">=20"
   },
   "workspaces": [
-    "packages/frontend"
+    "packages/frontend",
+    "packages/ui"
   ],
   "scripts": {
     "start": "bun run --cwd packages/frontend start",
     "web": "bun run --cwd packages/frontend web",
     "android": "bun run --cwd packages/frontend android",
     "ios": "bun run --cwd packages/frontend ios",
-    "typecheck": "bun run --cwd packages/frontend typecheck"
+    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck"
   },
   "trustedDependencies": [
     "unrs-resolver"

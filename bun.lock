@@ -17,9 +17,11 @@
         "@oxy.so/services": "^1.0.3",
         "@react-native-async-storage/async-storage": "2.2.0",
         "@react-native-community/netinfo": "12.0.1",
+        "@react-native-community/slider": "^5.2.1",
         "@tanstack/query-async-storage-persister": "^5.102.8",
         "@tanstack/react-query": "^5.102.8",
         "@tanstack/react-query-persist-client": "^5.102.8",
+        "@willo/ui": "workspace:*",
         "color": "^3.1.0",
         "expo": "^57.0.0",
         "expo-auth-session": "~57.0.12",
@@ -65,6 +67,26 @@
         "eslint-config-expo": "^57.0.2",
         "expo-build-properties": "~57.0.17",
         "sharp": "^0.35.4",
+        "typescript": "~6.0.3",
+      },
+    },
+    "packages/ui": {
+      "name": "@willo/ui",
+      "dependencies": {
+        "@emotion/native": "^11.11.0",
+        "color": "^3.1.0",
+        "expo-image": "~57.0.5",
+        "moti": "^0.30.0",
+        "react": "19.2.3",
+        "react-native": "0.86.3",
+        "react-native-reanimated": "4.5.1",
+        "react-native-svg": "15.15.4",
+      },
+      "devDependencies": {
+        "@oxy.so/app-preset": "^1.0.1",
+        "@types/color": "^4.2.1",
+        "@types/react": "~19.2.4",
+        "nativewind": "5.0.0-rc.0",
         "typescript": "~6.0.3",
       },
     },
@@ -518,6 +540,8 @@
 
     "@react-native-community/netinfo": ["@react-native-community/netinfo@12.0.1", "", { "peerDependencies": { "react": "*", "react-native": ">=0.59" } }, "sha512-P/3caXIvfYSJG8AWJVefukg+ZGRPs+M4Lp3pNJtgcTYoJxCjWrKQGNnCkj/Cz//zWa/avGed0i/wzm0T8vV2IQ=="],
 
+    "@react-native-community/slider": ["@react-native-community/slider@5.2.1", "", {}, "sha512-HBDPRFRIN47hRtd5tdDWZp3kkVN1z98jGbK9wHOfUfVO+PbBDZzD7xjiiyBqNpg6Rom2QPFOpBZzsB2bHy4yAQ=="],
+
     "@react-native-masked-view/masked-view": ["@react-native-masked-view/masked-view@0.3.2", "", { "peerDependencies": { "react": ">=16", "react-native": ">=0.57" } }, "sha512-XwuQoW7/GEgWRMovOQtX3A4PrXhyaZm0lVUiY8qJDvdngjLms9Cpdck6SmGAUNqQwcj2EadHC1HwL0bEyoa/SQ=="],
 
     "@react-native/assets-registry": ["@react-native/assets-registry@0.86.3", "", {}, "sha512-TDhgCZA4wjJg84d5A9swiOQYPIWSKEEVdg9IwMFZDupQzW/F3QoLUrfAJOcalgqTDA9/buTB8awhE3Whwg6u9Q=="],
@@ -713,6 +737,8 @@
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
     "@willo/frontend": ["@willo/frontend@workspace:packages/frontend"],
+
+    "@willo/ui": ["@willo/ui@workspace:packages/ui"],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.15", "", {}, "sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA=="],
 

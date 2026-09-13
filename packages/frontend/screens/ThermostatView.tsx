@@ -14,11 +14,21 @@ import styled, { css } from '@emotion/native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { MotiView, MotiText, AnimatePresence, motify } from 'moti';
 import { Easing } from 'react-native-reanimated';
-import { getGradient, getPrimaryColor, getSecondaryColor } from './colors';
-import { Degree, Percentage, LabelBox, Label } from './styles';
-import Level from './components/Level';
-import { EXPANDED_BOX_SIZE, BOX_SIZE, LARGE_BOX_SIZE } from './constants';
-import type { Entity, Pose } from './types';
+import {
+  getGradient,
+  getPrimaryColor,
+  getSecondaryColor,
+  Degree,
+  Percentage,
+  LabelBox,
+  CaptionLabel as Label,
+  Level,
+  EXPANDED_BOX_SIZE,
+  BOX_SIZE,
+  LARGE_BOX_SIZE,
+  type Pose,
+} from '@willo/ui';
+import type { Entity } from '../types';
 
 const Container = styled(LinearGradient)`
   flex: 1;
@@ -304,9 +314,12 @@ export default class ThermostatView extends React.Component<
               {boxLabel(temp, currentTemperature, state.open)}
               <Temp animate={TEMP_POSES[pose]}>{temp}°</Temp>
               <Level
-                temp={temp}
+                value={temp}
+                min={5}
+                max={25}
+                color={getPrimaryColor(temp)}
                 pose={pose}
-                setTemperature={value => {
+                onChange={value => {
                   // Dragging past the minimum reports 'off'; there's no
                   // dedicated "off" handling downstream (HA's
                   // set_temperature service takes a number), so treat it

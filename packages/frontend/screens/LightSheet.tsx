@@ -5,8 +5,8 @@ import Color from 'color';
 import styled, { css } from '@emotion/native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { MotiView } from 'moti';
-import { LabelBox, Label, Percentage } from './styles';
-import type { Entity } from './types';
+import { LabelBox, CaptionLabel as Label, Percentage } from '@willo/ui';
+import type { Entity } from '../types';
 
 const BOX_SIZE = 160;
 const ON_COLOR = '#FFC235';
