@@ -1,4 +1,6 @@
 @import "@oxy.so/app-preset/base.css";
 
 @source "./app/**/*.{js,jsx,ts,tsx}";
+@source "./screens/**/*.{js,jsx,ts,tsx}";
 @source "./components/**/*.{js,jsx,ts,tsx}";
+@source "../ui/**/*.{js,jsx,ts,tsx}";

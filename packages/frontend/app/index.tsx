@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import LoginView from '../LoginView';
-import EntitiesView from '../EntitiesView';
 import connect from '../connect';
 import * as storage from '../storage';
+import { RoutedScreen } from '../screens/RoutedScreen';
 import type { Entity, HomeAssistantConfig, ProviderControls } from '../types';
 
 // Prevents a duplicate Home Assistant connection from Effects running twice
@@ -78,11 +78,12 @@ export default function Index() {
     })();
   }, [onRefreshToken, getEntities, getUpdatedState, getConfig]);
 
-  if (unauthenticated === true || !entities.length || !controls) {
+  if (unauthenticated === true || !controls) {
     return <LoginView onAuthSucceeded={onAuthSucceeded} />;
   }
 
-  return (
-    <EntitiesView locationName={locationName} entities={entities} controls={controls} />
-  );
+  // The real Home Assistant connection above stays live (entities, controls)
+  // so screens can be wired to it one at a time; the Home screen currently
+  // rendered still runs on its own local demo state (see state/home-context.tsx).
+  return <RoutedScreen screen="home" />;
 }

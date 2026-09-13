@@ -2,22 +2,27 @@ import React, { ReactNode } from 'react';
 import { PanResponder, PanResponderGestureState, View, ViewProps } from 'react-native';
 import { MotiView } from 'moti';
 import styled from '@emotion/native';
-import { getPrimaryColor } from '../colors';
-import { BOX_SIZE, EXPANDED_BOX_SIZE, LARGE_BOX_SIZE } from '../constants';
-import type { Pose } from '../types';
+import { EXPANDED_BOX_SIZE, LARGE_BOX_SIZE } from '../constants';
 
-const getPercentage = (temp: number) => ((temp - 5) / (25 - 5)) * 100;
+export type Pose = 'collapsed' | 'confirming' | 'expanded';
 
-const config: Record<string, { height: number }> = {
-  collapsed: { height: 0 },
-  confirming: { height: LARGE_BOX_SIZE / 2 },
+type LevelRange = { min: number; max: number };
+
+const getPercentage = (value: number, { min, max }: LevelRange) =>
+  ((value - min) / (max - min)) * 100;
+
+const buildConfig = (range: LevelRange): Record<string, { height: number }> => {
+  const config: Record<string, { height: number }> = {
+    collapsed: { height: 0 },
+    confirming: { height: LARGE_BOX_SIZE / 2 },
+  };
+  for (let value = range.min; value <= range.max; value++) {
+    config[`${value}`] = {
+      height: EXPANDED_BOX_SIZE * ((getPercentage(value, range) + 1) / 100),
+    };
+  }
+  return config;
 };
-Array.from({ length: 25 }).forEach(
-  (_, t) =>
-    (config[`${t + 5}`] = {
-      height: EXPANDED_BOX_SIZE * ((getPercentage(t + 5) + 1) / 100),
-    })
-);
 
 const ActionWrapper = styled.View`
   z-index: 1;
@@ -48,13 +53,15 @@ const Handle = styled(MotiView)`
   width: 24%;
   border-radius: 10px;
   margin-top: 10px;
-  background-color: ${(props: { temp: number }) => getPrimaryColor(props.temp)};
+  background-color: ${(props: { color: string }) => props.color};
 `;
 
 type LevelTrackProps = ViewProps & {
   innRef?: React.Ref<View>;
   pose: Pose;
-  temp: number;
+  value: number;
+  color: string;
+  config: Record<string, { height: number }>;
   children?: ReactNode;
 };
 
@@ -64,14 +71,14 @@ const LevelTrack = styled((props: LevelTrackProps) => {
       <Value
         pointerEvents="none"
         animate={
-          config[props.pose === 'expanded' ? String(props.temp) : props.pose] ?? {
+          props.config[props.pose === 'expanded' ? String(props.value) : props.pose] ?? {
             height: 0,
           }
         }
       >
         <Handle
           animate={{ scale: props.pose === 'expanded' ? 1 : 0 }}
-          temp={props.temp}
+          color={props.color}
         />
       </Value>
       <ActionWrapper pointerEvents={props.pose === 'expanded' ? 'none' : 'auto'}>
@@ -92,8 +99,11 @@ const LevelTrack = styled((props: LevelTrackProps) => {
 
 type LevelProps = {
   pose: Pose;
-  temp: number;
-  setTemperature: (value: number | 'off') => void;
+  value: number;
+  min: number;
+  max: number;
+  color: string;
+  onChange: (value: number | 'off') => void;
   children?: ReactNode;
 };
 
@@ -115,21 +125,29 @@ export default class Level extends React.Component<LevelProps, LevelState> {
     evt: { nativeEvent: { locationY: number } },
     gestureState: PanResponderGestureState
   ) => {
+    const { min, max } = this.props;
+    const steps = max - min + 1;
     const offset = this.state.height - evt.nativeEvent.locationY;
-    const temp = Math.round(
-      Math.min(Math.max(offset / (this.state.height / 21), 0), 21) + 4
+    const value = Math.round(
+      Math.min(Math.max(offset / (this.state.height / steps), 0), steps) + (min - 1)
     );
-    this.props.setTemperature(temp === 4 ? 'off' : temp);
+    this.props.onChange(value === min - 1 ? 'off' : value);
   };
 
   render() {
+    const { pose, value, min, max, color, children } = this.props;
     return (
       <LevelTrack
-        {...this.props}
+        pose={pose}
+        value={value}
+        color={color}
+        config={buildConfig({ min, max })}
         {...this.panResponder.panHandlers}
-        pointerEvents={this.props.pose !== 'collapsed' ? 'auto' : 'none'}
+        pointerEvents={pose !== 'collapsed' ? 'auto' : 'none'}
         onLayout={evt => this.setState({ height: evt.nativeEvent.layout.height })}
-      />
+      >
+        {children}
+      </LevelTrack>
     );
   }
 }
