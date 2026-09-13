@@ -138,17 +138,31 @@ export default async function connect({
     }
   };
 
-  return (temperature: number | string, entityId: string) =>
-    ws.send(
-      j({
-        id: id++,
-        type: 'call_service',
-        domain: 'climate',
-        service: 'set_temperature',
-        service_data: {
-          entity_id: entityId,
-          temperature,
-        },
-      })
-    );
+  return {
+    setTemperature: (temperature: number | string, entityId: string) =>
+      ws.send(
+        j({
+          id: id++,
+          type: 'call_service',
+          domain: 'climate',
+          service: 'set_temperature',
+          service_data: {
+            entity_id: entityId,
+            temperature,
+          },
+        })
+      ),
+    toggleLight: (entityId: string, turnOn: boolean) =>
+      ws.send(
+        j({
+          id: id++,
+          type: 'call_service',
+          domain: 'light',
+          service: turnOn ? 'turn_on' : 'turn_off',
+          service_data: {
+            entity_id: entityId,
+          },
+        })
+      ),
+  };
 }

@@ -24,4 +24,9 @@ export type SetTemperature = (
   entityId: string
 ) => void;
 
+export type ProviderControls = {
+  setTemperature: SetTemperature;
+  toggleLight: (entityId: string, turnOn: boolean) => void;
+};
+
 export type Pose = 'collapsed' | 'confirming' | 'expanded';

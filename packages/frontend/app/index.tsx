@@ -3,7 +3,7 @@ import LoginView from '../LoginView';
 import EntitiesView from '../EntitiesView';
 import connect from '../connect';
 import * as storage from '../storage';
-import type { Entity, HomeAssistantConfig, SetTemperature } from '../types';
+import type { Entity, HomeAssistantConfig, ProviderControls } from '../types';
 
 // Prevents a duplicate Home Assistant connection from Effects running twice
 // in StrictMode.
@@ -13,7 +13,7 @@ export default function Index() {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [unauthenticated, setUnauthenticated] = useState<boolean | null>(null);
   const [locationName, setLocationName] = useState('My home');
-  const [setTemperature, setSetTemperature] = useState<SetTemperature | null>(null);
+  const [controls, setControls] = useState<ProviderControls | null>(null);
 
   const getEntities = useCallback((newEntities: Entity[]) => setEntities(newEntities), []);
 
@@ -38,7 +38,7 @@ export default function Index() {
       const clientId = await storage.getItemAsync('clientId');
       if (!clientId) return;
 
-      const setter = await connect({
+      const providerControls = await connect({
         instanceUrl,
         authCode,
         clientId,
@@ -47,7 +47,7 @@ export default function Index() {
         getUpdatedState,
         getConfig,
       });
-      setSetTemperature(() => setter);
+      setControls(providerControls);
     },
     [onRefreshToken, getEntities, getUpdatedState, getConfig]
   );
@@ -65,7 +65,7 @@ export default function Index() {
         return;
       }
 
-      const setter = await connect({
+      const providerControls = await connect({
         refreshToken,
         instanceUrl,
         clientId,
@@ -74,19 +74,15 @@ export default function Index() {
         getUpdatedState,
         getConfig,
       });
-      setSetTemperature(() => setter);
+      setControls(providerControls);
     })();
   }, [onRefreshToken, getEntities, getUpdatedState, getConfig]);
 
-  if (unauthenticated === true || !entities.length || !setTemperature) {
+  if (unauthenticated === true || !entities.length || !controls) {
     return <LoginView onAuthSucceeded={onAuthSucceeded} />;
   }
 
   return (
-    <EntitiesView
-      locationName={locationName}
-      entities={entities}
-      setTemperature={setTemperature}
-    />
+    <EntitiesView locationName={locationName} entities={entities} controls={controls} />
   );
 }
