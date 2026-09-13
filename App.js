@@ -1,9 +1,15 @@
 import React from 'react';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './storage';
+import * as WebBrowser from 'expo-web-browser';
 import ThermostatView from './ThermostatView';
 import connect from './connect';
 import LoginView from './LoginView';
 import EntitiesView from './EntitiesView';
+
+// Required by expo-auth-session: on web, this lets the popup opened for
+// login detect that it's the redirect target, hand the result back to the
+// window that opened it, and close itself.
+WebBrowser.maybeCompleteAuthSession();
 
 export const Context = React.createContext({ entities: [] });
 
@@ -28,6 +34,11 @@ export default class App extends React.Component {
       locationName: config.location_name,
     });
 
+  onRefreshToken = refreshToken => {
+    SecureStore.setItemAsync('refreshToken', refreshToken);
+    SecureStore.deleteItemAsync('authCode');
+  };
+
   onAuthSucceeded = async ({ instanceUrl }) => {
     const authCode = await SecureStore.getItemAsync('authCode');
     const clientId = await SecureStore.getItemAsync('clientId');
@@ -35,6 +46,7 @@ export default class App extends React.Component {
       instanceUrl,
       authCode,
       clientId,
+      onRefreshToken: this.onRefreshToken,
       getEntities: this.getEntities,
       getUpdatedState: this.getUpdatedState,
       getConfig: this.getConfig,
@@ -42,16 +54,17 @@ export default class App extends React.Component {
   };
 
   async componentDidMount() {
-    const authCode = await SecureStore.getItemAsync('authCode');
+    const refreshToken = await SecureStore.getItemAsync('refreshToken');
     const instanceUrl = await SecureStore.getItemAsync('instanceUrl');
     const clientId = await SecureStore.getItemAsync('clientId');
-    if (!authCode || !instanceUrl || !clientId) {
+    if (!refreshToken || !instanceUrl || !clientId) {
       return this.setState({ unauthenticated: true });
     }
     this.setTemperature = await connect({
-      authCode,
+      refreshToken,
       instanceUrl,
       clientId,
+      onRefreshToken: this.onRefreshToken,
       getEntities: this.getEntities,
       getUpdatedState: this.getUpdatedState,
       getConfig: this.getConfig,

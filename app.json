@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Warren",
-    "slug": "warren",
+    "name": "Willo",
+    "slug": "willo",
     "privacy": "public",
-    "scheme": "warren",
+    "scheme": "willo",
     "platforms": [
       "ios",
       "android",
@@ -26,6 +26,6 @@
     "ios": {
       "supportsTablet": true
     },
-    "description": "Warren — smart home control by Oxy"
+    "description": "Willo — smart home control by Oxy"
   }
 }

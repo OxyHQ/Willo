@@ -5,24 +5,40 @@ const j = JSON.stringify;
 export default async ({
   instanceUrl,
   authCode,
+  refreshToken,
   clientId,
+  onRefreshToken,
   getEntities,
   getUpdatedState,
   getConfig,
 }) => {
   const url = new URL(instanceUrl);
 
+  // authCode is single-use (OAuth authorization_code grant): it's only
+  // present right after login. Every later connection must reuse the
+  // refresh_token that came back from that first exchange instead.
   const res = await fetch(`${instanceUrl}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: authCode,
-      client_id: clientId,
-    }).toString(),
+    body: new URLSearchParams(
+      refreshToken
+        ? {
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+            client_id: clientId,
+          }
+        : {
+            grant_type: 'authorization_code',
+            code: authCode,
+            client_id: clientId,
+          }
+    ).toString(),
   });
 
   const data = await res.json();
+  if (data.refresh_token) {
+    onRefreshToken(data.refresh_token);
+  }
 
   const res2 = await fetch(`${instanceUrl}/local/tado.yaml?${Date.now()}`, {
     cache: 'no-store',
