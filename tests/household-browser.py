@@ -92,8 +92,12 @@ try:
         page.goto(f'{BASE}/household/meals')
         page.get_by_role('button', name='Add missing ingredients to shopping', exact=True).click()
         page.get_by_role('button', name='Open shopping list', exact=True).click()
-        expect(page.get_by_text('Pasta', exact=True)).to_be_visible()
         expect(page.get_by_role('heading', name='Shopping', exact=True)).to_be_visible()
+        # The router may retain the previous meal screen, which also contains the word Pasta.
+        # Assert the actual, interactive shopping item rather than matching duplicate text.
+        expect(page.get_by_role('checkbox', name='Mark Pasta picked up', exact=True)).to_be_visible()
+        page.get_by_role('checkbox', name='Mark Pasta picked up', exact=True).click()
+        expect(page.get_by_role('button', name='Picked up · 2', exact=True)).to_be_visible()
         results.append({'flow': 'Meal ingredients reach shopping across real router navigation', 'passed': True})
         assert not errors, errors
         browser.close()
