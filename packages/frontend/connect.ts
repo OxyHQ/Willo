@@ -1,8 +1,29 @@
-import URL from 'url-parse';
 import YAML from 'yaml';
+import type { Entity, HomeAssistantConfig } from './types';
+
 const j = JSON.stringify;
 
-export default async ({
+type ConnectParams = {
+  instanceUrl: string;
+  authCode?: string | null;
+  refreshToken?: string | null;
+  clientId: string;
+  onRefreshToken: (refreshToken: string) => void;
+  getEntities: (entities: Entity[]) => void;
+  getUpdatedState: (entity: Entity) => void;
+  getConfig: (config: HomeAssistantConfig) => void;
+};
+
+type TokenResponse = {
+  access_token: string;
+  refresh_token?: string;
+};
+
+type TadoYamlConfig = {
+  entities: string[];
+};
+
+export default async function connect({
   instanceUrl,
   authCode,
   refreshToken,
@@ -11,7 +32,7 @@ export default async ({
   getEntities,
   getUpdatedState,
   getConfig,
-}) => {
+}: ConnectParams) {
   const url = new URL(instanceUrl);
 
   // authCode is single-use (OAuth authorization_code grant): it's only
@@ -29,13 +50,13 @@ export default async ({
           }
         : {
             grant_type: 'authorization_code',
-            code: authCode,
+            code: authCode ?? '',
             client_id: clientId,
           }
     ).toString(),
   });
 
-  const data = await res.json();
+  const data: TokenResponse = await res.json();
   if (data.refresh_token) {
     onRefreshToken(data.refresh_token);
   }
@@ -43,21 +64,19 @@ export default async ({
   const res2 = await fetch(`${instanceUrl}/local/tado.yaml?${Date.now()}`, {
     cache: 'no-store',
   });
-  const ui = YAML.parse(await res2.text());
+  const ui: TadoYamlConfig = YAML.parse(await res2.text());
 
   const { access_token: accessToken } = data;
 
   const ws = new WebSocket(
-    `${url.protocol === 'https:' ? 'wss' : 'ws'}://${
-      url.hostname
-    }/api/websocket`
+    `${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.hostname}/api/websocket`
   );
 
   let id = 1;
 
   ws.onmessage = e => {
-    const data = JSON.parse(e.data);
-    switch (data.type) {
+    const message = JSON.parse(e.data);
+    switch (message.type) {
       case 'auth_required':
         ws.send(
           j({
@@ -91,32 +110,35 @@ export default async ({
           })
         );
         break;
-      case 'event':
-        const event = data.event.data;
+      case 'event': {
+        const event = message.event.data as { entity_id: string; new_state: Entity };
         if (ui.entities.includes(event.entity_id)) {
           getUpdatedState(event.new_state);
         }
         break;
+      }
       case 'result':
-        switch (data.id) {
-          case 2:
+        switch (message.id) {
+          case 2: {
+            const states = message.result as Entity[];
             getEntities(
               ui.entities
-                .map(entity => data.result.find(e => e.entity_id === entity))
-                .filter(Boolean)
+                .map(entityId => states.find(e => e.entity_id === entityId))
+                .filter((entity): entity is Entity => Boolean(entity))
             );
             break;
+          }
           case 3:
-            getConfig(data.result);
+            getConfig(message.result as HomeAssistantConfig);
             break;
         }
         break;
       default:
-        console.log(data.type);
+        console.log(message.type);
     }
   };
 
-  return (temperature, entity_id) =>
+  return (temperature: number | string, entityId: string) =>
     ws.send(
       j({
         id: id++,
@@ -124,9 +146,9 @@ export default async ({
         domain: 'climate',
         service: 'set_temperature',
         service_data: {
-          entity_id,
+          entity_id: entityId,
           temperature,
         },
       })
     );
-};
+}

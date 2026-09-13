@@ -7,7 +7,9 @@ export const TEMP_COLORS = {
   night: '#0D65A7',
 };
 
-const COLORS = {
+type Gradient = [string, string];
+
+const COLORS: Record<number, Gradient> = {
   0: ['#9FB2C1', '#627B8A'],
   5: ['#409674', '#3F868B'],
   6: ['#3D9973', '#3F8989'],
@@ -32,15 +34,15 @@ const COLORS = {
   25: ['#FC8C25', '#FC541F'],
 };
 
-export const getGradient = t =>
+export const getGradient = (t: number): Gradient =>
   t === 0 ? COLORS[t] : COLORS[Math.max(5, Math.min(25, t))];
 
-export const getPrimaryColor = t => getGradient(t)[0];
-export const getSecondaryColor = t => getGradient(t)[1];
+export const getPrimaryColor = (t: number): string => getGradient(t)[0];
+export const getSecondaryColor = (t: number): string => getGradient(t)[1];
 
-export const getMidColor = t => {
+export const getMidColor = (t: number): string => {
   const a = Color(getPrimaryColor(t)).array();
   const b = Color(getSecondaryColor(t)).array();
 
-  return Color.rgb(a.map((x, i) => (x + b[i]) / 2)).string();
+  return Color.rgb(a.map((x: number, i: number) => (x + b[i]) / 2)).string();
 };

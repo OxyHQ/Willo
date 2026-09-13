@@ -6,12 +6,15 @@ import {
   Text,
   SafeAreaView,
   Modal as RNModal,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import styled, { css } from '@emotion/native';
 import Color from 'color';
 import { getMidColor } from './colors';
 import { Degree } from './styles';
 import ThermostatView from './ThermostatView';
+import type { Entity, SetTemperature } from './types';
 
 const entityWidth = Dimensions.get('window').width / 3 - 20;
 const entityHeight = entityWidth;
@@ -65,8 +68,18 @@ const entityBox = css`
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 `;
 
-class InnerClimateEntity extends React.Component {
-  state = {
+type ClimateEntityProps = {
+  style?: StyleProp<ViewStyle>;
+  data: Entity;
+  setTemperature: SetTemperature;
+};
+
+type ClimateEntityState = {
+  expanded: boolean;
+};
+
+class InnerClimateEntity extends React.Component<ClimateEntityProps, ClimateEntityState> {
+  state: ClimateEntityState = {
     expanded: false,
   };
 
@@ -75,6 +88,8 @@ class InnerClimateEntity extends React.Component {
       style,
       data: { attributes: attrs },
     } = this.props;
+    const currentTemperature = attrs.current_temperature ?? 0;
+    const temperature = attrs.temperature ?? 0;
 
     return (
       <>
@@ -92,17 +107,12 @@ class InnerClimateEntity extends React.Component {
           />
         </Modal>
 
-        <TouchableWithoutFeedback
-          onPress={() => this.setState({ expanded: true })}
-        >
+        <TouchableWithoutFeedback onPress={() => this.setState({ expanded: true })}>
           <View style={style}>
-            <Degree zoom={1.5}>{attrs.current_temperature}</Degree>
+            <Degree zoom={1.5}>{currentTemperature}</Degree>
             <Name>{attrs.friendly_name}</Name>
             <Status>
-              {attrs.current_temperature < attrs.temperature
-                ? 'Heating to'
-                : 'Set to'}{' '}
-              {attrs.temperature}°
+              {currentTemperature < temperature ? 'Heating to' : 'Set to'} {temperature}°
             </Status>
           </View>
         </TouchableWithoutFeedback>
@@ -116,23 +126,29 @@ const ClimateEntity = styled(InnerClimateEntity)`
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background-color: ${({ data: { attributes: attrs } }) =>
-    getMidColor(attrs.temperature)};
+  background-color: ${({ data: { attributes: attrs } }: ClimateEntityProps) =>
+    getMidColor(attrs.temperature ?? 0)};
 `;
 
 const LightEntity = styled.View`
   ${entityBox}
-  background-color: ${({ data }) =>
+  background-color: ${({ data }: { data: Entity }) =>
     data.state === 'on'
-      ? Color(data.attributes.rgb_color).string()
+      ? Color(data.attributes.rgb_color ?? [0, 0, 0]).string()
       : '#EBEBEB'};
 `;
+
+type EntitiesViewProps = {
+  locationName: string;
+  entities: Entity[];
+  setTemperature: SetTemperature;
+};
 
 export default function EntitiesView({
   locationName,
   entities,
   setTemperature,
-}) {
+}: EntitiesViewProps) {
   return (
     <>
       <Title>
@@ -153,7 +169,6 @@ export default function EntitiesView({
         <Container>
           <Margin>
             {entities.map(entity => {
-              console.log(entity.entity_id, entity.state);
               switch (entity.entity_id.split('.')[0]) {
                 case 'climate':
                   return (
@@ -165,6 +180,8 @@ export default function EntitiesView({
                   );
                 case 'light':
                   return <LightEntity key={entity.entity_id} data={entity} />;
+                default:
+                  return null;
               }
             })}
           </Margin>

@@ -1,7 +1,9 @@
-node_modules/**/*
-.expo/*
+node_modules/
+.expo/
+*.tsbuildinfo
 npm-debug.*
 *.jks
 *.p12
 *.key
 *.mobileprovision
+.env

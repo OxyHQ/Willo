@@ -10,13 +10,6 @@ const Margin = styled.View`
   margin: 40px;
 `;
 
-const LoginText = styled.Text`
-  margin-top: 150px;
-  text-align: center;
-  font-size: 20px;
-  margin-bottom: 20px;
-`;
-
 const Label = styled.Text`
   margin-bottom: 10px;
 `;
@@ -31,9 +24,17 @@ const TextInput = styled.TextInput`
 
 const Submit = styled.Button``;
 
-export default class LoginView extends React.Component {
-  state = {
-    instanceUrl: null,
+type LoginViewProps = {
+  onAuthSucceeded: (result: { instanceUrl: string }) => void;
+};
+
+type LoginViewState = {
+  instanceUrl: string;
+};
+
+export default class LoginView extends React.Component<LoginViewProps, LoginViewState> {
+  state: LoginViewState = {
+    instanceUrl: '',
   };
 
   handlePress = async () => {
@@ -51,7 +52,10 @@ export default class LoginView extends React.Component {
     if (result.type !== 'success') return;
 
     const { queryParams } = Linking.parse(result.url);
-    await SecureStore.setItemAsync('authCode', queryParams.code);
+    const code = queryParams?.code;
+    if (typeof code !== 'string') return;
+
+    await SecureStore.setItemAsync('authCode', code);
     await SecureStore.setItemAsync('instanceUrl', instanceUrl);
     await SecureStore.setItemAsync('clientId', clientId);
     this.props.onAuthSucceeded({ instanceUrl });

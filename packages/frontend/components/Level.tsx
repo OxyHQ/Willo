@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, PanResponder } from 'react-native';
+import React, { ReactNode } from 'react';
+import { PanResponder, PanResponderGestureState, View, ViewProps } from 'react-native';
 import { MotiView } from 'moti';
-import styled, { css } from '@emotion/native';
-import { getGradient, getPrimaryColor } from '../colors';
+import styled from '@emotion/native';
+import { getPrimaryColor } from '../colors';
 import { BOX_SIZE, EXPANDED_BOX_SIZE, LARGE_BOX_SIZE } from '../constants';
+import type { Pose } from '../types';
 
-const getPercentage = temp => ((temp - 5) / (25 - 5)) * 100;
+const getPercentage = (temp: number) => ((temp - 5) / (25 - 5)) * 100;
 
-const config = {
+const config: Record<string, { height: number }> = {
   collapsed: { height: 0 },
   confirming: { height: LARGE_BOX_SIZE / 2 },
 };
@@ -47,24 +48,33 @@ const Handle = styled(MotiView)`
   width: 24%;
   border-radius: 10px;
   margin-top: 10px;
-  background-color: ${props => getPrimaryColor(props.temp)};
+  background-color: ${(props: { temp: number }) => getPrimaryColor(props.temp)};
 `;
 
-const Level = styled(props => {
+type LevelTrackProps = ViewProps & {
+  innRef?: React.Ref<View>;
+  pose: Pose;
+  temp: number;
+  children?: ReactNode;
+};
+
+const LevelTrack = styled((props: LevelTrackProps) => {
   return (
     <View ref={props.innRef} {...props}>
       <Value
         pointerEvents="none"
-        animate={config[props.pose === 'expanded' ? props.temp : props.pose]}
+        animate={
+          config[props.pose === 'expanded' ? String(props.temp) : props.pose] ?? {
+            height: 0,
+          }
+        }
       >
         <Handle
           animate={{ scale: props.pose === 'expanded' ? 1 : 0 }}
           temp={props.temp}
         />
       </Value>
-      <ActionWrapper
-        pointerEvents={props.pose === 'expanded' ? 'none' : 'auto'}
-      >
+      <ActionWrapper pointerEvents={props.pose === 'expanded' ? 'none' : 'auto'}>
         {props.children}
       </ActionWrapper>
     </View>
@@ -80,20 +90,31 @@ const Level = styled(props => {
   overflow: hidden;
 `;
 
-export default class extends React.Component {
-  constructor(props) {
-    super(props);
-    this.panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gestureState) => true,
-      onPanResponderMove: this.onPanResponderMove,
-    });
-  }
+type LevelProps = {
+  pose: Pose;
+  temp: number;
+  setTemperature: (value: number | 'off') => void;
+  children?: ReactNode;
+};
 
-  state = {
+type LevelState = {
+  height: number;
+};
+
+export default class Level extends React.Component<LevelProps, LevelState> {
+  panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (evt, gestureState) => this.onPanResponderMove(evt, gestureState),
+  });
+
+  state: LevelState = {
     height: EXPANDED_BOX_SIZE,
   };
 
-  onPanResponderMove = (evt, state) => {
+  onPanResponderMove = (
+    evt: { nativeEvent: { locationY: number } },
+    gestureState: PanResponderGestureState
+  ) => {
     const offset = this.state.height - evt.nativeEvent.locationY;
     const temp = Math.round(
       Math.min(Math.max(offset / (this.state.height / 21), 0), 21) + 4
@@ -101,17 +122,13 @@ export default class extends React.Component {
     this.props.setTemperature(temp === 4 ? 'off' : temp);
   };
 
-  ref = React.createRef();
-
   render() {
     return (
-      <Level
+      <LevelTrack
         {...this.props}
         {...this.panResponder.panHandlers}
         pointerEvents={this.props.pose !== 'collapsed' ? 'auto' : 'none'}
-        onLayout={evt =>
-          this.setState({ height: evt.nativeEvent.layout.height })
-        }
+        onLayout={evt => this.setState({ height: evt.nativeEvent.layout.height })}
       />
     );
   }
