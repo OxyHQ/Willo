@@ -146,12 +146,16 @@ function InnerLightEntity({ style, data, controls }: LightEntityProps) {
       <BottomSheet ref={sheetRef} detached>
         <LightSheet
           entity={data}
+          onClose={() => sheetRef.current?.dismiss()}
           onToggle={turnOn => controls.toggleLight(data.entity_id, turnOn)}
         />
       </BottomSheet>
 
       <TouchableWithoutFeedback onPress={() => sheetRef.current?.present()}>
-        <View style={style} />
+        <View style={style}>
+          <Name>{data.attributes.friendly_name}</Name>
+          <Status>{data.state === 'on' ? 'On' : 'Off'}</Status>
+        </View>
       </TouchableWithoutFeedback>
     </>
   );
@@ -159,6 +163,9 @@ function InnerLightEntity({ style, data, controls }: LightEntityProps) {
 
 const LightEntity = styled(InnerLightEntity)`
   ${entityBox}
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   background-color: ${({ data }: LightEntityProps) =>
     data.state === 'on'
       ? Color(data.attributes.rgb_color ?? [0, 0, 0]).string()
