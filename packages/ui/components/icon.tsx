@@ -1,10 +1,12 @@
 import React from 'react';
 import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
-export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer';
+export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage';
 type Props = { name: IconName; size?: number; color?: string; filled?: boolean; strokeWidth?: number };
 /** Small SVG glyphs, shared across native and web; no platform-specific icon font. */
 export function Icon({ name, size = 22, color = '#202124', filled = false, strokeWidth = 1.75 }: Props) {
   const symbols: Record<IconName, React.ReactNode> = {
+    fan: <><Circle cx="12" cy="12" r="2"/><Path d="M11 10C5 9 5 4 9 3c4-1 7 1 4 7M14 11c1-6 6-6 7-2 1 4-1 7-7 4M13 14c6 1 6 6 2 7-4 1-7-1-4-7M10 13c-1 6-6 6-7 2-1-4 1-7 7-4"/></>,
+    garage: <><Path d="m2 9 10-6 10 6v12H2Z"/><Path d="M6 21V11h12v10M6 14h12M6 17h12"/></>,
     history: <><Path d="M3 11a9 9 0 1 1 2.6 7M3 5v6h6M12 7v5l4 2"/></>,
     devices: <><Path d="M14 17H2V4h17v4M1 21h13"/><Rect x="16" y="10" width="6" height="12" rx="1"/><Path d="M18 19h2"/></>,
     thermometer: <><Path d="M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Z"/><Path d="M12 7v10"/><Circle cx="12" cy="18" r="1.5" fill={color}/></>,

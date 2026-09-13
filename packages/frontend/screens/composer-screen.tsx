@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, TextInput, View } from 'react-native';
+import { PageScroll, CardStrip, ContentWidth } from '../layout/page-layout';
 import { Icon } from '@willo/ui';
 import { IconButton, Label } from '@willo/ui';
 import { type ScreenProps } from '../data/screens';
@@ -23,14 +24,14 @@ export function ComposerScreen({ onNavigate }: ScreenProps) {
     onNavigate('automations');
   }
   return <KeyboardAvoidingView className="flex-1 bg-white" behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
-    <View className="flex-row items-center justify-between px-3 pb-2"><IconButton icon="close" label="Cancel automation" onPress={() => onNavigate('automations')}/><Label className="text-[14px]">Create automation</Label><Pressable accessibilityRole="button" accessibilityLabel="Save automation" disabled={!valid} onPress={save} className={`px-3 py-3 ${!valid ? 'opacity-30' : ''}`}><Label className="text-[14px] font-medium text-home-on-blue">Save</Label></Pressable></View>
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" className="flex-1" contentContainerStyle={{ paddingBottom: 28 }}>
-      <View className="px-5 pb-5 pt-7"><Icon name="sparkle" size={23} color={colors.onSky}/><TextInput accessibilityLabel="Describe your automation" multiline textAlignVertical="top" value={text} onChangeText={value => { setText(value); setReview(false); }} placeholder="Describe what you want your home to do" placeholderTextColor={colors.muted} maxLength={500} className="mt-5 min-h-[220px] text-[29px] leading-[37px] text-home-ink" style={{ fontFamily: 'System' }}/></View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>{suggestions.map((item, index) => <Pressable key={item.title} accessibilityRole="button" onPress={() => { setText(item.text); setReview(false); }} className={`w-[138px] rounded-[19px] p-3 ${index === 1 ? 'bg-home-sky' : 'bg-home-surface'}`}><Label className={`text-[12px] leading-[17px] ${index === 1 ? 'text-home-on-sky' : ''}`}>{item.title}</Label></Pressable>)}</ScrollView>
-      <View className="mt-7 gap-4 px-5"><Pressable disabled={!valid} onPress={() => setReview(value => !value)} accessibilityRole="button" accessibilityLabel="Review automation" className={`flex-row items-center justify-center gap-2 rounded-full bg-home-sky py-4 ${!valid ? 'opacity-30' : ''}`}><Icon name="sparkle" size={18} color={colors.onSky}/><Label className="text-[14px] font-medium text-home-on-sky">{review ? 'Hide preview' : 'Review automation'}</Label></Pressable>
+    <ContentWidth maxWidth={808}><View className="flex-row items-center justify-between pb-2 pt-3"><IconButton icon="close" label="Cancel automation" onPress={() => onNavigate('automations')}/><Label className="text-[14px]">Create automation</Label><Pressable accessibilityRole="button" accessibilityLabel="Save automation" disabled={!valid} onPress={save} className={`px-3 py-3 ${!valid ? 'opacity-30' : ''}`}><Label className="text-[14px] font-medium text-home-on-blue">Save</Label></Pressable></View></ContentWidth>
+    <PageScroll maxWidth={808}>
+      <View className="pb-5 pt-7"><Icon name="sparkle" size={23} color={colors.onSky}/><TextInput accessibilityLabel="Describe your automation" multiline textAlignVertical="top" value={text} onChangeText={value => { setText(value); setReview(false); }} placeholder="Describe what you want your home to do" placeholderTextColor={colors.muted} maxLength={500} className="mt-5 min-h-[220px] text-[29px] leading-[37px] text-home-ink" style={{ fontFamily: 'System' }}/></View>
+      <CardStrip>{suggestions.map((item, index) => <Pressable key={item.title} accessibilityRole="button" onPress={() => { setText(item.text); setReview(false); }} className={`w-[138px] rounded-[19px] p-3 ${index === 1 ? 'bg-home-sky' : 'bg-home-surface'}`}><Label className={`text-[12px] leading-[17px] ${index === 1 ? 'text-home-on-sky' : ''}`}>{item.title}</Label></Pressable>)}</CardStrip>
+      <View className="mt-7 gap-4"><Pressable disabled={!valid} onPress={() => setReview(value => !value)} accessibilityRole="button" accessibilityLabel="Review automation" className={`flex-row items-center justify-center gap-2 rounded-full bg-home-sky py-4 ${!valid ? 'opacity-30' : ''}`}><Icon name="sparkle" size={18} color={colors.onSky}/><Label className="text-[14px] font-medium text-home-on-sky">{review ? 'Hide preview' : 'Review automation'}</Label></Pressable>
         {review && <View className="gap-3 rounded-[24px] bg-home-surface p-5"><Label className="text-[13px] font-medium">Automation preview</Label><Label className="text-[14px] leading-[21px]">{text}</Label><Label className="text-[12px] leading-[18px] text-home-muted">This is a local draft, not an AI-generated or scheduled automation. Save adds it to Your automations.</Label></View>}
         <Label className="text-center text-[11px] leading-[16px] text-home-muted">Preview only. No devices or scheduling services are connected.</Label>
       </View>
-    </ScrollView>
+    </PageScroll>
   </KeyboardAvoidingView>;
 }
