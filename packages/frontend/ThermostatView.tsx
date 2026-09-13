@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { ComponentProps, ReactNode } from 'react';
 import {
   Text,
   View,
   StatusBar,
+  StyleProp,
   TouchableWithoutFeedback,
   TouchableOpacity,
+  ViewProps,
+  ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import styled, { css } from '@emotion/native';
@@ -15,6 +18,7 @@ import { getGradient, getPrimaryColor, getSecondaryColor } from './colors';
 import { Degree, Percentage, LabelBox, Label } from './styles';
 import Level from './components/Level';
 import { EXPANDED_BOX_SIZE, BOX_SIZE, LARGE_BOX_SIZE } from './constants';
+import type { Entity, Pose } from './types';
 
 const Container = styled(LinearGradient)`
   flex: 1;
@@ -27,13 +31,20 @@ const Safe = styled.SafeAreaView`
   align-items: stretch;
 `;
 
-const BOX_POSES = {
+const BOX_POSES: Record<Pose, { height: number; top: number }> = {
   collapsed: { height: BOX_SIZE, top: 0 },
   expanded: { height: EXPANDED_BOX_SIZE, top: 20 },
   confirming: { height: LARGE_BOX_SIZE, top: 0 },
 };
 
-const Box = styled(({ style, onPress, pose, children }) => (
+type BoxProps = {
+  style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  pose: Pose;
+  children?: ReactNode;
+};
+
+const Box = styled(({ style, onPress, pose, children }: BoxProps) => (
   <TouchableWithoutFeedback onPress={onPress}>
     <MotiView style={style} animate={BOX_POSES[pose]}>
       {children}
@@ -51,16 +62,11 @@ const Box = styled(({ style, onPress, pose, children }) => (
   padding: 20px;
 `;
 
-const boxLabel = (temp, current, open) => {
-  let text;
+const boxLabel = (temp: number, current: number, open: boolean) => {
   const t = Math.round(temp);
   const c = Math.round(current);
+  const text = c >= t ? 'Set to' : 'Heating to';
 
-  if (c >= t) {
-    text = 'Set to';
-  } else if (c < t) {
-    text = 'Heating to';
-  }
   return (
     <MotiText
       animate={{ opacity: open ? 0 : 1 }}
@@ -74,7 +80,7 @@ const boxLabel = (temp, current, open) => {
   );
 };
 
-const TEMP_POSES = {
+const TEMP_POSES: Record<Pose, { top: number; fontSize: number }> = {
   collapsed: { top: 0, fontSize: 90 },
   expanded: { top: -350, fontSize: 70 },
   confirming: { top: -80, fontSize: 90 },
@@ -107,28 +113,36 @@ const Footer = styled(MotiView)`
   margin-top: auto;
 `;
 
-const ICONS = {
+type IconName = ComponentProps<typeof Icon>['name'];
+
+const ICONS: Record<string, IconName> = {
   manual: 'cursor-pointer',
   'smart schedule': 'calendar-star',
   off: 'power',
   timer: 'timer',
 };
-const OperationMode = styled(props => (
-  <View style={props.style}>
+
+type OperationModeProps = {
+  style?: StyleProp<ViewStyle>;
+  children: string;
+};
+
+const OperationMode = styled(({ style, children }: OperationModeProps) => (
+  <View style={style}>
     <Icon
       style={css`
         color: #fefefe;
         margin-right: 10px;
       `}
       size={24}
-      name={ICONS[props.children.toLowerCase()] || 'thermostat'}
+      name={ICONS[children.toLowerCase()] ?? 'thermostat'}
     />
     <Text
       style={css`
         color: #fefefe;
       `}
     >
-      {props.children}
+      {children}
     </Text>
   </View>
 ))`
@@ -142,15 +156,18 @@ const OperationMode = styled(props => (
   margin-top: 50px;
 `;
 
-class TimerLogic extends React.Component {
+type TimerLogicProps = ViewProps & {
+  onPoseCompleted?: () => void;
+};
+
+class TimerLogic extends React.Component<TimerLogicProps> {
+  timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   componentDidMount() {
-    this.timeout = setTimeout(
-      () => this.props.onPoseCompleted && this.props.onPoseCompleted(),
-      5000
-    );
+    this.timeoutId = setTimeout(() => this.props.onPoseCompleted?.(), 5000);
   }
   componentWillUnmount() {
-    clearTimeout(this.timeout);
+    clearTimeout(this.timeoutId);
   }
   render() {
     return <View {...this.props} />;
@@ -164,11 +181,17 @@ const Timer = styled(MotiTimerLogic)`
   top: 0;
   left: 0;
   height: 4px;
-  background-color: ${props => getSecondaryColor(props.temp)};
+  background-color: ${(props: { temp: number }) => getSecondaryColor(props.temp)};
 `;
 
 const MotiCancelButton = motify(TouchableOpacity)();
-const Cancel = styled(props => (
+
+type CancelProps = {
+  onPress?: () => void;
+  children?: ReactNode;
+};
+
+const Cancel = styled((props: CancelProps) => (
   <MotiCancelButton
     from={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -195,19 +218,36 @@ const Cancel = styled(props => (
 
 const DEBUG_TEMP_SHIFT = 0;
 
-export default class ThermostatView extends React.Component {
-  state = {
+type ThermostatViewProps = {
+  entity?: Entity | null;
+  onClose: () => void;
+  setTemperature: (temp: number) => void;
+};
+
+type ThermostatViewState = {
+  open: boolean;
+  tempUserOverride: number | null;
+  timeout: boolean;
+};
+
+export default class ThermostatView extends React.Component<
+  ThermostatViewProps,
+  ThermostatViewState
+> {
+  state: ThermostatViewState = {
     open: false,
     tempUserOverride: null,
-    timeout: null,
+    timeout: false,
   };
 
-  static getDerivedStateFromProps(props, state) {
-    if (props.entity.attributes.temperature === state.tempUserOverride) {
+  static getDerivedStateFromProps(
+    props: ThermostatViewProps,
+    state: ThermostatViewState
+  ): ThermostatViewState | null {
+    if (props.entity?.attributes.temperature === state.tempUserOverride) {
       return { ...state, tempUserOverride: null };
-    } else {
-      return null;
     }
+    return null;
   }
 
   render() {
@@ -226,15 +266,10 @@ export default class ThermostatView extends React.Component {
     }
 
     const attrs = entity.attributes;
-    const range = attrs ? attrs.max_temp - attrs.min_temp : 0;
+    const temp = state.tempUserOverride ?? (attrs.temperature ?? 0) + DEBUG_TEMP_SHIFT;
+    const currentTemperature = attrs.current_temperature ?? 0;
 
-    const temp = state.tempUserOverride || attrs.temperature + DEBUG_TEMP_SHIFT;
-
-    const pose = state.open
-      ? 'expanded'
-      : state.timeout
-      ? 'confirming'
-      : 'collapsed';
+    const pose: Pose = state.open ? 'expanded' : state.timeout ? 'confirming' : 'collapsed';
 
     return (
       <TouchableWithoutFeedback onPress={() => this.setState({ open: false })}>
@@ -252,7 +287,7 @@ export default class ThermostatView extends React.Component {
               />
               <Title>{attrs.friendly_name}</Title>
               <Icon
-                name="settings"
+                name="cog"
                 size={30}
                 style={css`
                   color: #fff;
@@ -264,19 +299,23 @@ export default class ThermostatView extends React.Component {
                 backgroundColor: getPrimaryColor(temp),
               }}
               pose={pose}
-              onPress={() =>
-                pose === 'collapsed' && this.setState({ open: true })
-              }
+              onPress={() => pose === 'collapsed' && this.setState({ open: true })}
             >
-              {boxLabel(temp, attrs.current_temperature, state.open)}
-              {
-                <Temp animate={TEMP_POSES[pose]}>{temp}°</Temp>
-              }
+              {boxLabel(temp, currentTemperature, state.open)}
+              <Temp animate={TEMP_POSES[pose]}>{temp}°</Temp>
               <Level
                 temp={temp}
                 pose={pose}
-                setTemperature={temp => {
-                  this.setState({ tempUserOverride: temp, timeout: true });
+                setTemperature={value => {
+                  // Dragging past the minimum reports 'off'; there's no
+                  // dedicated "off" handling downstream (HA's
+                  // set_temperature service takes a number), so treat it
+                  // as the coldest setting rather than passing the string
+                  // through.
+                  this.setState({
+                    tempUserOverride: value === 'off' ? 0 : value,
+                    timeout: true,
+                  });
                 }}
               >
                 <AnimatePresence>
@@ -291,7 +330,7 @@ export default class ThermostatView extends React.Component {
                         easing: Easing.linear,
                       }}
                       onPoseCompleted={() => {
-                        this.setState({ timeout: null });
+                        this.setState({ timeout: false });
                         setTemperature(temp);
                       }}
                       key="timer"
@@ -302,11 +341,11 @@ export default class ThermostatView extends React.Component {
                     <Cancel
                       key="cancel"
                       onPress={() =>
-                        this.setState(({ timeout }) => ({
+                        this.setState({
                           open: false,
-                          timeout: clearTimeout(timeout),
-                          tempUserOverride: attrs.temperature,
-                        }))
+                          timeout: false,
+                          tempUserOverride: attrs.temperature ?? null,
+                        })
                       }
                     >
                       Cancel
@@ -317,7 +356,7 @@ export default class ThermostatView extends React.Component {
             </Box>
 
             <Footer animate={{ bottom: state.open ? -300 : 0 }}>
-              <OperationMode>{attrs.operation_mode}</OperationMode>
+              <OperationMode>{attrs.operation_mode ?? ''}</OperationMode>
               <View
                 style={css`
                   display: flex;
@@ -327,20 +366,14 @@ export default class ThermostatView extends React.Component {
                   margin-top: auto;
                 `}
               >
-                {
-                  <LabelBox>
-                    <Label>Inside now</Label>
-                    <Degree>{attrs.current_temperature}</Degree>
-                  </LabelBox>
-                }
-                {
-                  <LabelBox>
-                    <Label>Humidity</Label>
-                    <Percentage>
-                      {Math.round(attrs.current_humidity)}
-                    </Percentage>
-                  </LabelBox>
-                }
+                <LabelBox>
+                  <Label>Inside now</Label>
+                  <Degree>{currentTemperature}</Degree>
+                </LabelBox>
+                <LabelBox>
+                  <Label>Humidity</Label>
+                  <Percentage>{Math.round(attrs.current_humidity ?? 0)}</Percentage>
+                </LabelBox>
               </View>
             </Footer>
           </Safe>
