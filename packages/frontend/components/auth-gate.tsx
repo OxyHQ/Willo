@@ -18,7 +18,7 @@ function SignedOutScreen() {
     <View className="min-h-0 min-w-0 flex-1 items-center justify-center bg-background px-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
-          <Image source={illustration} style={{ width: '100%', aspectRatio: ILLUSTRATION_RATIO }} contentFit="contain" />
+          <Image source={illustration} style={{ width: 200, aspectRatio: ILLUSTRATION_RATIO }} contentFit="contain" />
           <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">Welcome to Willo</Label>
           <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">Sign in with your Oxy account to control your home.</Label>
           <OxySignInButton variant="contained" style={{ marginTop: 28, alignSelf: 'stretch' }} />
