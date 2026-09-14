@@ -8,11 +8,11 @@ import { useTheme } from '@oxy.so/bloom/theme';
 const HEART_D = 'M-1-10C-8-23-20-18-20-7C-20 4-8 17-1 24C7 16 21 1 20-9C20-20 7-22-1-10Z';
 
 // The illustration's own original tones (from `ilustracion-hogar.svg`) —
-// what the backdrop and ink looked like before this was themed at all.
-// Kept as the LIGHT-mode values on purpose: recoloring them to a raw
-// Bloom token (`primarySubtle`/`text`) reads as a different illustration,
-// not a themed one — there's no "before" to preserve a match against in
-// dark mode, but in light mode this must look like what it always did.
+// what everything looked like before this was themed at all. Kept as the
+// LIGHT-mode values on purpose: recoloring them to raw Bloom tokens reads
+// as a different illustration, not a themed one — there's no "before" to
+// preserve a match against in dark mode, but in light mode this must look
+// like what it always did.
 const ORIGINAL_BACKDROP = '#cfeafa';
 const ORIGINAL_INK = '#252d29';
 
@@ -22,21 +22,44 @@ const ORIGINAL_INK = '#252d29';
  * image, so it can follow Bloom's own theme instead of a flat baked-in
  * palette.
  *
- * Only TWO things are actually themed, and only in dark mode: the backdrop
- * card (`primarySubtle` — the exact token `bg-primary-subtle` already uses
- * elsewhere in the app) and the line art itself (`text`), so the outlines
- * stay legible against a dark screen instead of reading as flat black.
- * Light mode keeps the illustration's own original colors exactly.  Every
- * other fill below (the cat, the trousers, the plant print, the lamps, the
- * skin and hair tones…) is the illustration's own literal, hand-picked
- * color regardless of mode — those are the ARTWORK's colors, not UI
- * chrome, and recoloring a yellow cat to a "brand accent" would just make
- * it a worse cat.
+ * Light mode keeps the illustration's own original colors exactly — every
+ * fill below is a literal hex, matching the source SVG. Dark mode swaps a
+ * deliberate SUBSET of those fills for real Bloom tokens (verified against
+ * Willo's actual seed via `buildThemeFromSeed`), chosen per element:
+ *  - the backdrop card and the small "favorited" heart-badge backgrounds →
+ *    `primarySubtle` (the brand tint; `bg-primary-subtle` already means
+ *    this everywhere else in the app)
+ *  - the pale "device glow" behind the floor lamp and the speaker →
+ *    `infoSubtle` (blue devices already read as `info` throughout the
+ *    app — see `tokens.ts`)
+ *  - the thermometer badge → `warningSubtle` (a climate reading is the one
+ *    spot a "warning" hue actually fits)
+ *  - every plain white surface (cabinet, socks, shirt, the one white heart
+ *    badge) → `card`, Bloom's own elevated-surface color — literally white
+ *    in light mode too, so this is a no-op there and only helps dark mode,
+ *    where flat `#ffffff` blocks would read as harsh cutouts
+ *  - every outline (`ink`, including the hair's — a hair-colored FILL
+ *    stroked in the same near-black as its own fill reads fine in light
+ *    mode, but is invisible ("black on black") against a dark backdrop;
+ *    giving it the same themed outline every other shape already gets
+ *    fixes that, and it's still literally black hair, just with a visible
+ *    edge)
+ *
+ * What's deliberately left alone in BOTH modes: the cat, the trousers, the
+ * plant print, the table lamp's pink shade, skin tones, and the hair's own
+ * fill. Those are the artwork's own colors — recoloring a yellow cat or a
+ * pink lampshade to the nearest brand token doesn't have a real semantic
+ * fit in Bloom's role system (no "pink"/"yellow-cat" role exists) and would
+ * just make them read as a different, worse drawing.
  */
 export function SignInIllustration({ width = 200 }: { width?: number }) {
   const { colors: themeColors, isDark } = useTheme();
   const backdrop = isDark ? themeColors.primarySubtle : ORIGINAL_BACKDROP;
   const ink = isDark ? themeColors.text : ORIGINAL_INK;
+  const surface = isDark ? themeColors.card : '#ffffff';
+  const thermometerBadge = isDark ? themeColors.warningSubtle : '#fff0bb';
+  const toPrimarySubtle = (original: string) => (isDark ? themeColors.primarySubtle : original);
+  const toInfoSubtle = (original: string) => (isDark ? themeColors.infoSubtle : original);
   const height = width * (888 / 1240);
 
   return (
@@ -46,7 +69,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
       {/* Hanging green print */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M605 117L695 78L785 116" />
-        <Path fill="#e4f2fa" d="M691 78C689 74 692 69 697 69C702 69 705 74 702 79C700 83 694 84 691 78Z" />
+        <Path fill={toPrimarySubtle('#e4f2fa')} d="M691 78C689 74 692 69 697 69C702 69 705 74 702 79C700 83 694 84 691 78Z" />
         <Path fill="#a8dcae" d="M600 119L788 118L790 354L601 355Z" />
         <G stroke="#31533b" strokeWidth={5.9}>
           <Path d="M635 179C633 159 660 146 691 146C725 145 756 157 758 174C761 193 733 205 699 206C665 207 636 198 635 179Z" />
@@ -58,7 +81,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
       {/* Arc floor lamp, behind the figure */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M934 265C935 219 960 192 1001 181C1048 168 1087 183 1106 215C1126 250 1126 310 1126 356L1125 402M1117 488L1115 772" />
-        <Path fill="#d8edfb" d="M914 319C920 332 929 343 940 343C952 343 962 334 967 319Z" />
+        <Path fill={toInfoSubtle('#d8edfb')} d="M914 319C920 332 929 343 940 343C952 343 962 334 967 319Z" />
         <Path fill="#6a9ff1" d="M876 318C886 293 905 269 931 266C963 261 994 282 1008 315Z" />
       </G>
 
@@ -70,21 +93,21 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Thermometer badge */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#fff0bb" d="M88 357C87 332 107 313 132 312C159 310 182 330 183 356C185 384 163 405 137 407C110 409 89 387 88 357Z" />
+        <Path fill={thermometerBadge} d="M88 357C87 332 107 313 132 312C159 310 182 330 183 356C185 384 163 405 137 407C110 409 89 387 88 357Z" />
         <Path fill="#20241f" stroke="none" d="M128 367L129 336C129 328 140 327 141 335L143 366C149 370 151 377 149 383C147 391 137 394 130 391C120 388 118 375 128 367Z" />
         <Path stroke="#fff4d1" strokeWidth={3.4} d="M135 338L135 360" />
       </G>
 
       {/* White low cabinet */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#ffffff" d="M261 464L1024 464L1031 728L264 728Z" />
+        <Path fill={surface} d="M261 464L1024 464L1031 728L264 728Z" />
         <Path d="M518 466L518 726" />
-        <Path fill="#ffffff" d="M284 593C284 586 290 581 297 581C304 581 310 587 310 594C310 601 304 607 297 607C290 607 284 601 284 593Z" />
-        <Path fill="#ffffff" d="M542 592C542 585 548 580 554 580C561 580 567 586 567 593C567 601 561 606 554 606C547 606 542 601 542 592Z" />
+        <Path fill={surface} d="M284 593C284 586 290 581 297 581C304 581 310 587 310 594C310 601 304 607 297 607C290 607 284 601 284 593Z" />
+        <Path fill={surface} d="M542 592C542 585 548 580 554 580C561 580 567 586 567 593C567 601 561 606 554 606C547 606 542 601 542 592Z" />
       </G>
 
       {/* Raised white socks */}
-      <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round" fill="#ffffff">
+      <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round" fill={surface}>
         <Path d="M479 389C485 364 496 333 502 307C507 286 511 272 515 273C520 274 520 288 521 302C522 322 528 333 542 342L530 389Z" />
         <Path d="M403 463C401 435 401 391 405 356C406 344 411 352 416 367C424 390 438 405 457 417L442 464Z" />
       </G>
@@ -98,9 +121,9 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Speaker beside the cabinet */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#d9effb" d="M111 611L197 612C222 612 234 628 233 652L233 800C233 826 219 839 195 839L109 839C93 839 85 822 84 799L86 655C86 630 93 611 111 611Z" />
-        <Path fill="#deeff8" d="M130 681C130 665 143 653 159 653C176 653 190 665 190 681C191 697 178 710 161 711C144 711 130 698 130 681Z" />
-        <Path fill="#deeff8" d="M115 766C115 743 132 725 153 725C176 724 196 742 196 766C196 789 179 808 156 808C133 808 115 791 115 766Z" />
+        <Path fill={toInfoSubtle('#d9effb')} d="M111 611L197 612C222 612 234 628 233 652L233 800C233 826 219 839 195 839L109 839C93 839 85 822 84 799L86 655C86 630 93 611 111 611Z" />
+        <Path fill={toInfoSubtle('#deeff8')} d="M130 681C130 665 143 653 159 653C176 653 190 665 190 681C191 697 178 710 161 711C144 711 130 698 130 681Z" />
+        <Path fill={toInfoSubtle('#deeff8')} d="M115 766C115 743 132 725 153 725C176 724 196 742 196 766C196 789 179 808 156 808C133 808 115 791 115 766Z" />
       </G>
 
       {/* Yellow cat, curled tail and paws */}
@@ -114,8 +137,11 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
         <Path strokeWidth={4.8} d="M574 791C587 766 608 745 630 738M584 795L624 788" />
       </G>
 
-      {/* Figure's hair — the character's own hair color, not UI ink; left static */}
-      <Path fill="#050906" stroke="#111711" strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" d="M1019 636C1038 627 1056 620 1074 624C1095 628 1105 645 1107 665L1112 711C1114 730 1135 735 1147 756C1161 779 1161 806 1148 835L793 835C818 819 866 805 913 786C960 767 1008 737 1028 696C1040 675 1039 649 1019 636Z" />
+      {/* Figure's hair — the fill stays literal black hair in both modes;
+          the outline is themed `ink` (like every other shape) instead of
+          its own static near-black, or it's invisible — black on black —
+          against a dark backdrop. */}
+      <Path fill="#050906" stroke={ink} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" d="M1019 636C1038 627 1056 620 1074 624C1095 628 1105 645 1107 665L1112 711C1114 730 1135 735 1147 756C1161 779 1161 806 1148 835L793 835C818 819 866 805 913 786C960 767 1008 737 1028 696C1040 675 1039 649 1019 636Z" />
 
       {/* Raised right forearm and gesturing hand */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
@@ -130,7 +156,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* White t-shirt */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#ffffff" d="M848 754L860 719C870 700 890 688 912 681C941 671 968 675 990 683C1008 691 1022 705 1037 727C1018 750 973 774 908 787L848 771Z" />
+        <Path fill={surface} d="M848 754L860 719C870 700 890 688 912 681C941 671 968 675 990 683C1008 691 1022 705 1037 727C1018 750 973 774 908 787L848 771Z" />
         <Path d="M849 752L978 704" />
       </G>
 
@@ -155,15 +181,15 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Floating favorite / home heart badges */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#e0f0fb" d="M216 234C215 211 233 191 256 188C280 184 301 197 309 220C318 244 305 269 282 277C257 286 232 274 221 253C218 248 216 241 216 234Z" />
+        <Path fill={toPrimarySubtle('#e0f0fb')} d="M216 234C215 211 233 191 256 188C280 184 301 197 309 220C318 244 305 269 282 277C257 286 232 274 221 253C218 248 216 241 216 234Z" />
         <Path fill="none" stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" transform="translate(263 230)" d={HEART_D} />
       </G>
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#ffffff" d="M52 611C52 585 72 566 96 566C122 565 141 585 143 610C145 635 126 656 101 658C76 660 54 641 52 617Z" />
+        <Path fill={surface} d="M52 611C52 585 72 566 96 566C122 565 141 585 143 610C145 635 126 656 101 658C76 660 54 641 52 617Z" />
         <Path fill="none" stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" transform="translate(98 608)" d={HEART_D} />
       </G>
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#e0f0fa" d="M1073 444C1075 419 1094 402 1117 401C1142 400 1163 420 1164 445C1166 470 1147 490 1122 492C1097 494 1076 475 1073 451Z" />
+        <Path fill={toPrimarySubtle('#e0f0fa')} d="M1073 444C1075 419 1094 402 1117 401C1142 400 1163 420 1164 445C1166 470 1147 490 1122 492C1097 494 1076 475 1073 451Z" />
         <Path fill="none" stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" transform="translate(1120 443)" d={HEART_D} />
       </G>
 
