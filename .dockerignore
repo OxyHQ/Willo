@@ -1,0 +1,42 @@
+# Build context excludes for the @willo/backend image (context = repo root).
+#
+# Use the **/ prefix so BuildKit matches NESTED directories too — a bare
+# `node_modules` / `dist` only matches the top-level entry, leaving stale
+# per-package copies in the context (and, for node_modules, a bloated/incorrect
+# install layer). See ~/Oxy/AGENTS.md (.dockerignore rule).
+**/node_modules
+**/dist
+**/.expo
+**/*.tsbuildinfo
+**/__tests__
+
+.git
+.github
+.claude
+.worktrees
+.local-packages
+docs
+tests
+*.md
+*.log
+coverage
+.DS_Store
+
+# packages/backend/.env is real, gitignored, local-dev-only configuration —
+# it must never reach a Docker layer. The Dockerfile also never names it in a
+# COPY, so this is defense in depth rather than the only guard.
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Exclude the heavy Expo frontend and the UI kit source from the backend
+# build context, but KEEP each package.json: bun's frozen-lockfile install
+# requires every workspace member's manifest to be present, and
+# packages/backend's own tsconfig.json resolves @oxy.so/app-preset (declared
+# as a dependency of frontend/ui, not of backend) through bun's hoisted
+# install — so their manifests are load-bearing, not just formality.
+packages/frontend/*
+!packages/frontend/package.json
+packages/ui/*
+!packages/ui/package.json
