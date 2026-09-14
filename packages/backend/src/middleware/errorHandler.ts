@@ -23,6 +23,13 @@ export function errorHandler(error: unknown, _req: Request, res: Response, _next
     res.status(409).json({ error: 'Conflict', message: error.message });
     return;
   }
+  // Malformed request bodies (bad JSON) are a user-input boundary, not an
+  // internal failure: express.json() throws a SyntaxError carrying its own
+  // `status`/`statusCode` before any route handler ever runs.
+  if (error instanceof SyntaxError && 'status' in error && error.status === 400) {
+    res.status(400).json({ error: 'BadRequest', message: 'Malformed request body.' });
+    return;
+  }
   console.error('Unhandled error in Willo backend:', error);
   res.status(500).json({ error: 'InternalServerError', message: 'Something went wrong.' });
 }
