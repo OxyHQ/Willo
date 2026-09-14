@@ -1,8 +1,45 @@
 @import "@oxy.so/app-preset/base.css";
 @import "../ui/theme/home-ui.css";
 
+/* Bloom's canonical design tokens (radius scale, spacing, and — as a
+   byproduct of one bundled theme.css, not by choice — its color palette
+   too). Needed ONLY so ContentPanel's own literal `rounded-radius-28
+   border-border` utilities resolve; nothing in this app's own screens
+   reaches for Bloom's colors, and the kit's own `home-*` tokens in
+   ../ui/theme/home-ui.css stay the source of truth everywhere else. */
+@import "@oxy.so/bloom/design-tokens/theme.css";
+
+/* Document-level scrolling. Expo / react-native-web automatically inject a
+   "recommended style reset" into the served HTML that locks
+   `html, body { height: 100%; overflow: hidden }` and `#root { height: 100% }`
+   for a native-like fixed viewport. These plain, UNLAYERED rules override it
+   so the DOCUMENT scrolls instead: the body grows with its content and
+   scrolling works from anywhere, including over the sticky NavigationRail and
+   header — the same override OxyHQ/Mention's `global.css` ships, for the same
+   reason. `#root { min-height: 100vh }` is required so the flex root does not
+   collapse to 0 height when `height: auto` is applied. No runtime JS.
+
+   NOTE: `overflow` MUST be `visible` on BOTH axes here. Setting one axis to
+   `hidden`/`clip`/`auto`/`scroll` triggers CSS "overflow promotion" — the
+   other `visible` axis computes to `auto`, turning body into a scroll
+   container (so the inner body scrolls and the DOCUMENT does not). Any wanted
+   horizontal clipping goes on a CHILD, never here. */
+html,
+body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+#root {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+
 @source "./app/**/*.{js,jsx,ts,tsx}";
 @source "./screens/**/*.{js,jsx,ts,tsx}";
 @source "./components/**/*.{js,jsx,ts,tsx}";
 @source "./layout/**/*.{js,jsx,ts,tsx}";
 @source "../ui/**/*.{js,jsx,ts,tsx}";
+@source "../../node_modules/@oxy.so/bloom/lib/**/*.{js,jsx}";

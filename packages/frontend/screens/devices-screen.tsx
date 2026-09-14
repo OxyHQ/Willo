@@ -1,7 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
 import { PageScroll, SectionGrid } from '../layout/page-layout';
-import { ClassicHeader } from '../components/headers';
 import { AddButton, SectionTitle, Tile } from '@willo/ui';
 import { type ScreenProps } from '../data/screens';
 import { type DeviceKey } from '../state/home-reducer';
@@ -19,7 +18,7 @@ const groupByRoom = <T extends { room: string | null }>(items: T[]): Map<string,
   }
   return byRoom;
 };
-export function DevicesScreen({ onNavigate }: ScreenProps) {
+export function DevicesScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand } = useHome();
   const device = (id: DeviceKey, title: string, icon: IconName, light = false) => <Tile key={id} title={title} subtitle={id.includes('blinds') ? state.devices[id] ? 'Open' : 'Closed' : id === 'vacuum' ? state.devices[id] ? 'Running' : 'Paused' : state.devices[id] ? light || id === 'tv' ? `On · ${state.brightness[id] ?? 50}%` : 'On' : 'Off'} icon={icon} tone={state.devices[id] || id.includes('blinds') ? light ? 'yellow' : 'blue' : 'neutral'} brightness={light && state.devices[id] ? state.brightness[id] : undefined} active={state.devices[id]} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id })} onLongPress={light || id === 'tv' ? () => setSheet({ kind: 'device', title, id }) : undefined}/>;
   const lightTile = (light: Device) => {
@@ -34,7 +33,7 @@ export function DevicesScreen({ onNavigate }: ScreenProps) {
   };
   const lightsByRoom = groupByRoom(devices.filter(d => d.domain === 'light'));
   const camerasByRoom = groupByRoom(devices.filter(d => d.domain === 'camera'));
-  return <View className="flex-1 bg-white"><ClassicHeader title="Devices" onNavigate={onNavigate}/><PageScroll bottom={96}><SectionGrid>
+  return <View className="flex-1 bg-white"><PageScroll bottom={96}>{header}<SectionGrid>
     <View><SectionTitle>Front room</SectionTitle><View className="flex-row gap-2">{device('tv', 'TV', 'tv')}<Tile title="Thermostat" subtitle="Indoor 70°" icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/></View>
     </View><View><SectionTitle>Living room</SectionTitle><View className="gap-2"><View className="flex-row gap-2">{device('living-lamp', 'Lamp', 'light', true)}<Tile title="Camera" icon="camera" tone="blue" chevron onPress={() => setSheet({ kind: 'camera', title: 'Living room camera' })}/></View><View className="flex-row gap-2">{device('blinds', 'Blinds', 'blinds')}{device('vacuum', 'Vacuum', 'vacuum')}</View></View>
     </View><View><SectionTitle>Office</SectionTitle><View className="gap-2"><View className="flex-row gap-2">{device('plug', 'Smart plug', 'plug')}{device('office-lamp', 'Lamp', 'light', true)}</View><View className="flex-row gap-2">{device('office-blinds', 'Blinds', 'blinds')}<View className="flex-1"/></View></View>
