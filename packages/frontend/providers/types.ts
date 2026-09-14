@@ -1,46 +1,40 @@
-export type LightDevice = {
+// A capability, not a device type: any device can carry any combination of
+// these, so adding a new kind of physical device (a lock, a cover, a media
+// player) means adding one capability variant here, never a new Device
+// subtype, a new provider method, or new fields threaded through every
+// screen that lists devices.
+export type DeviceCapability =
+  | { kind: 'onOff'; on: boolean }
+  | { kind: 'brightness'; percent: number | null }
+  | { kind: 'color'; color: string | null }
+  | { kind: 'fanSpeed'; percent: number | null }
+  | { kind: 'camera'; snapshotUrl: string | null }
+  | { kind: 'measurement'; value: number | null; unit: string | null; deviceClass: string | null };
+
+export type Device = {
   id: string;
   name: string;
   room: string | null;
-  on: boolean;
-  brightness: number | null;
-  color: string | null;
+  /** The provider's own domain/category for this device (e.g. Home Assistant's
+   * "light", "camera", "fan", "sensor") — used for icon/grouping choices, never
+   * for deciding what a device can do. What it can do is `capabilities`. */
+  domain: string;
+  capabilities: DeviceCapability[];
 };
 
-export type CameraDevice = {
-  id: string;
-  name: string;
-  room: string | null;
-  snapshotUrl: string | null;
-};
+export const getCapability = <K extends DeviceCapability['kind']>(
+  device: Device,
+  kind: K
+): Extract<DeviceCapability, { kind: K }> | undefined =>
+  device.capabilities.find((capability): capability is Extract<DeviceCapability, { kind: K }> => capability.kind === kind);
 
-export type FanDevice = {
-  id: string;
-  name: string;
-  room: string | null;
-  on: boolean;
-  percentage: number | null;
-};
-
-export type SensorReading = {
-  id: string;
-  name: string;
-  value: number | null;
-  unit: string | null;
-};
-
-export type DeviceSnapshot = {
-  lights: LightDevice[];
-  cameras: CameraDevice[];
-  fans: FanDevice[];
-  sensors: SensorReading[];
-};
+export type DeviceCommand =
+  | { kind: 'setOnOff'; on: boolean }
+  | { kind: 'setBrightness'; percent: number }
+  | { kind: 'setFanSpeed'; percent: number };
 
 export type SmartHomeProvider = {
-  connect(): Promise<DeviceSnapshot>;
-  subscribe(onSnapshot: (snapshot: DeviceSnapshot) => void): () => void;
-  toggleLight(id: string, on: boolean): void;
-  setLightBrightness(id: string, percent: number): void;
-  toggleFan(id: string, on: boolean): void;
-  setFanPercentage(id: string, percent: number): void;
+  connect(): Promise<Device[]>;
+  subscribe(onDevices: (devices: Device[]) => void): () => void;
+  sendCommand(id: string, command: DeviceCommand): void;
 };
