@@ -16,6 +16,35 @@ const HEART_D = 'M-1-10C-8-23-20-18-20-7C-20 4-8 17-1 24C7 16 21 1 20-9C20-20 7-
 const ORIGINAL_BACKDROP = '#cfeafa';
 const ORIGINAL_INK = '#252d29';
 
+function hexToRgb(hex: string): [number, number, number] {
+  const value = parseInt(hex.slice(1), 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+function themeColorToRgb(value: string): [number, number, number] {
+  const match = value.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [0, 0, 0];
+}
+
+/**
+ * Blends an illustration color toward a live Bloom token by `amount` (0 =
+ * the original color, 1 = the token itself). A flat token swap reads wrong
+ * for these — `tertiary` on its own is a saturated traffic-cone orange, not
+ * skin — and leaving the pale original untouched is the same washed-out
+ * problem the white surfaces and the hair outline already had against a
+ * dark backdrop. Blending keeps the object recognizable (skin still reads
+ * as skin, the cat still reads as a cat) while genuinely pulling it toward
+ * the app's real brand color for that mode.
+ */
+function warmToward(original: string, token: string, amount: number): string {
+  const [or, og, ob] = hexToRgb(original);
+  const [tr, tg, tb] = themeColorToRgb(token);
+  const r = Math.round(or + (tr - or) * amount);
+  const g = Math.round(og + (tg - og) * amount);
+  const b = Math.round(ob + (tb - ob) * amount);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 /**
  * A vector port of `ilustracion-hogar.svg` (the reference illustration
  * supplied for the signed-out screen — see `auth-gate.tsx`), not a raster
@@ -23,17 +52,25 @@ const ORIGINAL_INK = '#252d29';
  * palette.
  *
  * Light mode keeps the illustration's own original colors exactly — every
- * fill below is a literal hex, matching the source SVG. Dark mode swaps a
- * deliberate SUBSET of those fills for real Bloom tokens (verified against
- * Willo's actual seed via `buildThemeFromSeed`), chosen per element:
+ * fill below is a literal hex, matching the source SVG. Dark mode swaps or
+ * warms a deliberate SUBSET of those fills using real Bloom tokens
+ * (verified against Willo's actual seed + accent pins via
+ * `buildThemeFromSeed`), chosen per element:
  *  - the backdrop card and the small "favorited" heart-badge backgrounds →
  *    `primarySubtle` (the brand tint; `bg-primary-subtle` already means
  *    this everywhere else in the app)
- *  - the pale "device glow" behind the floor lamp and the speaker →
- *    `infoSubtle` (blue devices already read as `info` throughout the
- *    app — see `tokens.ts`)
- *  - the thermometer badge → `warningSubtle` (a climate reading is the one
- *    spot a "warning" hue actually fits)
+ *  - the pale "device glow" behind the speaker → `infoSubtle` (blue
+ *    devices already read as `info` throughout the app — see `tokens.ts`)
+ *  - both lamps' glow/shade (the floor lamp's bulb highlight, the table
+ *    lamp's shade) → warmed toward `secondary`, the same "light is on"
+ *    tone every lit-light tile in the app already uses (`tokens.ts`'s
+ *    `yellow` tone) — so the floor lamp's bulb reads as genuinely lit,
+ *    not just recolored
+ *  - the cat's fur → warmed toward `secondary` too (it's already the same
+ *    warm-yellow family)
+ *  - skin tones and the thermometer badge → warmed toward `tertiary`
+ *    (Willo's own peach/climate accent — `ThermostatCard` already uses
+ *    this exact family for temperature)
  *  - every plain white surface (cabinet, socks, shirt, the one white heart
  *    badge) → `card`, Bloom's own elevated-surface color — literally white
  *    in light mode too, so this is a no-op there and only helps dark mode,
@@ -45,21 +82,22 @@ const ORIGINAL_INK = '#252d29';
  *    fixes that, and it's still literally black hair, just with a visible
  *    edge)
  *
- * What's deliberately left alone in BOTH modes: the cat, the trousers, the
- * plant print, the table lamp's pink shade, skin tones, and the hair's own
- * fill. Those are the artwork's own colors — recoloring a yellow cat or a
- * pink lampshade to the nearest brand token doesn't have a real semantic
- * fit in Bloom's role system (no "pink"/"yellow-cat" role exists) and would
- * just make them read as a different, worse drawing.
+ * What's deliberately left alone in BOTH modes: the trousers, the plant
+ * print, and the lamps' own solid fixture color. Those are the artwork's
+ * own material colors, not something with a Bloom role to warm toward.
  */
 export function SignInIllustration({ width = 200 }: { width?: number }) {
   const { colors: themeColors, isDark } = useTheme();
   const backdrop = isDark ? themeColors.primarySubtle : ORIGINAL_BACKDROP;
   const ink = isDark ? themeColors.text : ORIGINAL_INK;
   const surface = isDark ? themeColors.card : '#ffffff';
-  const thermometerBadge = isDark ? themeColors.warningSubtle : '#fff0bb';
   const toPrimarySubtle = (original: string) => (isDark ? themeColors.primarySubtle : original);
   const toInfoSubtle = (original: string) => (isDark ? themeColors.infoSubtle : original);
+  // The lamps' glow and the cat both warm toward `secondary` (Willo's "a
+  // light is on" tone); skin and the thermometer warm toward `tertiary`
+  // (Willo's peach/climate tone, same family `ThermostatCard` uses).
+  const toLit = (original: string, amount: number) => (isDark ? warmToward(original, themeColors.secondary, amount) : original);
+  const toWarmSkin = (original: string, amount: number) => (isDark ? warmToward(original, themeColors.tertiary, amount) : original);
   const height = width * (888 / 1240);
 
   return (
@@ -81,19 +119,19 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
       {/* Arc floor lamp, behind the figure */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
         <Path d="M934 265C935 219 960 192 1001 181C1048 168 1087 183 1106 215C1126 250 1126 310 1126 356L1125 402M1117 488L1115 772" />
-        <Path fill={toInfoSubtle('#d8edfb')} d="M914 319C920 332 929 343 940 343C952 343 962 334 967 319Z" />
+        <Path fill={toLit('#d8edfb', 0.65)} d="M914 319C920 332 929 343 940 343C952 343 962 334 967 319Z" />
         <Path fill="#6a9ff1" d="M876 318C886 293 905 269 931 266C963 261 994 282 1008 315Z" />
       </G>
 
       {/* Table lamp */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#fbe9e7" d="M313 336L329 337L329 411C330 435 340 452 359 463L278 464C300 452 310 437 313 415Z" />
-        <Path fill="#fbe7e6" d="M225 306C247 275 273 251 302 250C335 248 374 269 398 290C414 303 425 317 421 326C417 338 397 339 373 340L254 341C231 341 211 329 225 306Z" />
+        <Path fill={toLit('#fbe9e7', 0.6)} d="M313 336L329 337L329 411C330 435 340 452 359 463L278 464C300 452 310 437 313 415Z" />
+        <Path fill={toLit('#fbe7e6', 0.6)} d="M225 306C247 275 273 251 302 250C335 248 374 269 398 290C414 303 425 317 421 326C417 338 397 339 373 340L254 341C231 341 211 329 225 306Z" />
       </G>
 
       {/* Thermometer badge */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={thermometerBadge} d="M88 357C87 332 107 313 132 312C159 310 182 330 183 356C185 384 163 405 137 407C110 409 89 387 88 357Z" />
+        <Path fill={toWarmSkin('#fff0bb', 0.45)} d="M88 357C87 332 107 313 132 312C159 310 182 330 183 356C185 384 163 405 137 407C110 409 89 387 88 357Z" />
         <Path fill="#20241f" stroke="none" d="M128 367L129 336C129 328 140 327 141 335L143 366C149 370 151 377 149 383C147 391 137 394 130 391C120 388 118 375 128 367Z" />
         <Path stroke="#fff4d1" strokeWidth={3.4} d="M135 338L135 360" />
       </G>
@@ -128,12 +166,12 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Yellow cat, curled tail and paws */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#ffedb6" d="M244 801C225 781 222 761 230 739C239 716 257 697 269 674C283 648 284 633 276 612C271 601 264 590 256 582C249 575 239 578 235 584C231 591 236 602 242 612C253 630 259 644 250 665C239 688 219 710 205 732C190 755 187 778 198 800C208 820 225 835 247 838L531 838C550 838 567 826 571 813C574 804 563 796 554 791L566 768C570 762 568 757 562 756C557 754 550 757 545 758C545 753 552 747 549 743C545 737 534 742 528 745C508 753 488 774 469 780C451 786 440 782 424 774L389 747C368 728 347 708 325 706C300 703 277 716 264 738C253 757 249 782 244 801Z" />
+        <Path fill={toLit('#ffedb6', 0.45)} d="M244 801C225 781 222 761 230 739C239 716 257 697 269 674C283 648 284 633 276 612C271 601 264 590 256 582C249 575 239 578 235 584C231 591 236 602 242 612C253 630 259 644 250 665C239 688 219 710 205 732C190 755 187 778 198 800C208 820 225 835 247 838L531 838C550 838 567 826 571 813C574 804 563 796 554 791L566 768C570 762 568 757 562 756C557 754 550 757 545 758C545 753 552 747 549 743C545 737 534 742 528 745C508 753 488 774 469 780C451 786 440 782 424 774L389 747C368 728 347 708 325 706C300 703 277 716 264 738C253 757 249 782 244 801Z" />
         <Path d="M293 751C312 735 335 728 349 734C363 740 367 751 362 768C357 785 349 799 342 811L381 812C397 812 405 822 405 836" />
         <Path d="M437 814C459 814 477 816 491 824L493 836" />
         <Path d="M533 760C542 764 548 774 552 782" />
         <Path d="M499 797L539 795M519 820L549 808" />
-        <Path fill="#ffedb6" d="M550 835C560 828 570 825 576 836Z" />
+        <Path fill={toLit('#ffedb6', 0.45)} d="M550 835C560 828 570 825 576 836Z" />
         <Path strokeWidth={4.8} d="M574 791C587 766 608 745 630 738M584 795L624 788" />
       </G>
 
@@ -145,13 +183,13 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Raised right forearm and gesturing hand */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#edddba" d="M911 686C919 656 927 622 934 588C937 575 935 566 928 559L919 552C914 549 912 545 915 541L929 549L915 536C909 530 911 526 918 529L942 544C954 552 961 565 960 580L954 677C941 677 926 681 911 686Z" />
+        <Path fill={toWarmSkin('#edddba', 0.3)} d="M911 686C919 656 927 622 934 588C937 575 935 566 928 559L919 552C914 549 912 545 915 541L929 549L915 536C909 530 911 526 918 529L942 544C954 552 961 565 960 580L954 677C941 677 926 681 911 686Z" />
         <Path strokeWidth={4.6} d="M918 538L939 558M927 550L925 557" />
       </G>
 
       {/* Profile and neck */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#eddfc4" d="M1041 629L1025 633L1016 638L1027 641C1023 645 1018 650 1015 656C1010 666 1017 675 1026 680C1018 685 1007 687 992 684L1005 713L1037 727C1037 703 1036 684 1056 674C1065 670 1078 669 1080 660C1082 651 1074 646 1064 650C1058 651 1051 652 1047 647C1043 642 1044 635 1047 630Z" />
+        <Path fill={toWarmSkin('#eddfc4', 0.3)} d="M1041 629L1025 633L1016 638L1027 641C1023 645 1018 650 1015 656C1010 666 1017 675 1026 680C1018 685 1007 687 992 684L1005 713L1037 727C1037 703 1036 684 1056 674C1065 670 1078 669 1080 660C1082 651 1074 646 1064 650C1058 651 1051 652 1047 647C1043 642 1044 635 1047 630Z" />
       </G>
 
       {/* White t-shirt */}
@@ -161,7 +199,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
       </G>
 
       {/* Small fingertips peeking around the phone */}
-      <G stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" fill="#efddb5">
+      <G stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" fill={toWarmSkin('#efddb5', 0.3)}>
         <Path d="M890 548C898 545 903 550 902 554C901 558 896 559 892 559Z" />
         <Path d="M896 560C904 557 909 562 907 566C906 570 901 572 897 570Z" />
         <Path d="M901 574C909 571 913 576 911 580C910 584 906 586 902 582Z" />
@@ -175,7 +213,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Near arm, hand and thumb resting on the phone */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill="#f0ddb0" d="M908 787L820 816C808 821 799 817 796 806C790 790 797 768 805 747L837 677C846 657 849 636 848 616C845 607 846 594 850 586L855 578C859 573 862 578 861 584L859 602L868 589C872 583 877 586 874 595L869 614C873 635 867 657 860 677L840 742L825 758L901 732Z" />
+        <Path fill={toWarmSkin('#f0ddb0', 0.3)} d="M908 787L820 816C808 821 799 817 796 806C790 790 797 768 805 747L837 677C846 657 849 636 848 616C845 607 846 594 850 586L855 578C859 573 862 578 861 584L859 602L868 589C872 583 877 586 874 595L869 614C873 635 867 657 860 677L840 742L825 758L901 732Z" />
         <Path d="M825 758L818 760M858 604L852 613M901 733L908 787" />
       </G>
 
