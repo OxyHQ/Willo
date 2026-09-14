@@ -4,6 +4,7 @@ import { createOxyAuthMiddleware, createOxyCors } from '@oxy.so/core/server';
 import { config } from './config';
 import homesRouter from './routes/homes.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { ecosystemActivityMiddleware } from './ecosystemActivity';
 
 /**
  * Build the Express app. Takes `oxy` as a parameter (rather than constructing
@@ -13,6 +14,11 @@ import { errorHandler } from './middleware/errorHandler';
 export function createApp(oxy: OxyServices): Express {
   const app = express();
 
+  // First, unconditionally: observes every inbound request whether or not
+  // ecosystem-activity has actually started (see ecosystemActivity.ts — it
+  // no-ops until OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET are present), so
+  // there is nothing to plumb through `createApp` when it does.
+  app.use(ecosystemActivityMiddleware);
   app.use(createOxyCors({ appOrigins: config.corsOrigins }));
   app.use(express.json());
 
