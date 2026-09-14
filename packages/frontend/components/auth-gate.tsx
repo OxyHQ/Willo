@@ -1,9 +1,12 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { ContentPanel } from '@oxy.so/bloom/content-panel';
+import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useAuth, OxySignInButton } from '@oxy.so/services';
 import { Label } from '@willo/ui';
 import { ContentWidth } from '../layout/page-layout';
+import { BREAKPOINTS } from '../layout/metrics';
 import { SignInIllustration } from './sign-in-illustration';
 
 function SignedOutScreen() {
@@ -27,21 +30,34 @@ function SignedOutScreen() {
  * `app/_layout.tsx`, which wraps only the routed `<Slot/>`/`<Stack/>` in
  * this, not the nav rail or bottom tabs: Willo's own chrome stays on
  * screen whether or not you're signed in, only the part that actually
- * needs an identity swaps for a sign-in prompt. No background class here
- * either — the `screen-surface` container this renders inside already
- * paints `bg-background`.
+ * needs an identity swaps for a sign-in prompt.
+ *
+ * The loading/signed-out states wrap themselves in the SAME `ContentPanel`
+ * (`bg-card`, framed the same way, same bottom-edge inset) every real
+ * screen already gets from `ScreenSurface` — otherwise this would be the
+ * one screen in the app sitting on the plain page background instead of
+ * the raised card surface every other screen has. Once signed in, `children`
+ * is the routed `<Slot/>`/`<Stack/>`, which wraps ITSELF in that same panel
+ * via `ScreenSurface` — this must not double-wrap that case.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { colors: themeColors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
+  const bottomEdgeInset = useBottomEdgeInset();
 
-  if (!isAuthResolved) {
-    return (
-      <View className="min-h-0 min-w-0 flex-1 items-center justify-center">
-        <ActivityIndicator color={themeColors.primary} />
-      </View>
-    );
-  }
-  if (!isAuthenticated) return <SignedOutScreen />;
-  return <>{children}</>;
+  if (isAuthResolved && isAuthenticated) return <>{children}</>;
+
+  return (
+    <View className="min-h-0 min-w-0 flex-1 sm:pb-2 sm:pr-2">
+      <ContentPanel framedFrom={BREAKPOINTS.rail} maskColor={themeColors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomEdgeInset }}>
+        {isAuthResolved ? (
+          <SignedOutScreen />
+        ) : (
+          <View className="min-h-0 min-w-0 flex-1 items-center justify-center">
+            <ActivityIndicator color={themeColors.primary} />
+          </View>
+        )}
+      </ContentPanel>
+    </View>
+  );
 }
