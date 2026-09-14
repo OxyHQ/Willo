@@ -1,10 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { assets } from '../data/assets';
 import { useHome } from '../state/home-context';
+import type { CameraDevice } from '../providers/types';
 import { Icon } from '@willo/ui';
 import { Label } from '@willo/ui';
+
+// Home Assistant's camera snapshot URL carries its own short-lived signed
+// token, so re-fetching it periodically (rather than opening a video
+// stream) is enough for a "live-ish" thumbnail.
+const SNAPSHOT_REFRESH_MS = 8000;
+
+export function RealCameraCard({ camera, height = 194, width }: { camera: CameraDevice; height?: number; width?: number }) {
+  const { setSheet } = useHome();
+  const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setRefreshKey(key => key + 1), SNAPSHOT_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, []);
+  const uri = camera.snapshotUrl ? `${camera.snapshotUrl}&_=${refreshKey}` : undefined;
+  return <View className="relative overflow-hidden rounded-[27px] bg-home-surface" style={{ height, width }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open ${camera.name}`} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl: camera.snapshotUrl })} className="absolute inset-0">
+      {uri ? <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
+    </Pressable>
+    <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
+      <View className="flex-row items-center gap-2"><View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]"/><Label className="text-[13px] font-medium text-white" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}>Live</Label></View>
+    </View>
+    <Label pointerEvents="none" className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white" style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}>{camera.name}</Label>
+  </View>;
+}
+
 export function CameraCard({ garden = false, height = 194, showNest = true, label, width }: { garden?: boolean; height?: number; showNest?: boolean; label?: string; width?: number }) {
   const { setSheet } = useHome();
   const [muted, setMuted] = useState(true);

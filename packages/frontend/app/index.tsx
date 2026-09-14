@@ -1,89 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
 import LoginView from '../LoginView';
-import connect from '../connect';
-import * as storage from '../storage';
 import { RoutedScreen } from '../screens/RoutedScreen';
-import type { Entity, HomeAssistantConfig, ProviderControls } from '../types';
-
-// Prevents a duplicate Home Assistant connection from Effects running twice
-// in StrictMode.
-let hasInitialized = false;
+import { useHome } from '../state/home-context';
 
 export default function Index() {
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [unauthenticated, setUnauthenticated] = useState<boolean | null>(null);
-  const [locationName, setLocationName] = useState('My home');
-  const [controls, setControls] = useState<ProviderControls | null>(null);
+  const { unauthenticated, login } = useHome();
 
-  const getEntities = useCallback((newEntities: Entity[]) => setEntities(newEntities), []);
-
-  const getUpdatedState = useCallback((entity: Entity) => {
-    setEntities(prev =>
-      prev.map(e => (e.entity_id !== entity.entity_id ? e : entity))
-    );
-  }, []);
-
-  const getConfig = useCallback((config: HomeAssistantConfig) => {
-    setLocationName(config.location_name);
-  }, []);
-
-  const onRefreshToken = useCallback((refreshToken: string) => {
-    storage.setItemAsync('refreshToken', refreshToken);
-    storage.deleteItemAsync('authCode');
-  }, []);
-
-  const onAuthSucceeded = useCallback(
-    async ({ instanceUrl }: { instanceUrl: string }) => {
-      const authCode = await storage.getItemAsync('authCode');
-      const clientId = await storage.getItemAsync('clientId');
-      if (!clientId) return;
-
-      const providerControls = await connect({
-        instanceUrl,
-        authCode,
-        clientId,
-        onRefreshToken,
-        getEntities,
-        getUpdatedState,
-        getConfig,
-      });
-      setControls(providerControls);
-    },
-    [onRefreshToken, getEntities, getUpdatedState, getConfig]
-  );
-
-  useEffect(() => {
-    if (hasInitialized) return;
-    hasInitialized = true;
-
-    (async () => {
-      const refreshToken = await storage.getItemAsync('refreshToken');
-      const instanceUrl = await storage.getItemAsync('instanceUrl');
-      const clientId = await storage.getItemAsync('clientId');
-      if (!refreshToken || !instanceUrl || !clientId) {
-        setUnauthenticated(true);
-        return;
-      }
-
-      const providerControls = await connect({
-        refreshToken,
-        instanceUrl,
-        clientId,
-        onRefreshToken,
-        getEntities,
-        getUpdatedState,
-        getConfig,
-      });
-      setControls(providerControls);
-    })();
-  }, [onRefreshToken, getEntities, getUpdatedState, getConfig]);
-
-  if (unauthenticated === true || !controls) {
-    return <LoginView onAuthSucceeded={onAuthSucceeded} />;
+  if (unauthenticated !== false) {
+    return <LoginView onAuthSucceeded={login} />;
   }
 
-  // The real Home Assistant connection above stays live (entities, controls)
-  // so screens can be wired to it one at a time; the Home screen currently
-  // rendered still runs on its own local demo state (see state/home-context.tsx).
   return <RoutedScreen screen="home" />;
 }
