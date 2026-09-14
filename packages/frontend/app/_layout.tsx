@@ -82,7 +82,11 @@ export default function RootLayout() {
             `secondaryColor` → `onYellow`: an unpinned `secondary` resolves to
             a red for this seed, not the yellow the "light is on" tone needs. */}
         <BloomProvider defaultMode="system" seed="#00537f" secondaryColor="#625007" tertiaryColor="#8e3205">
-          <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
+          <OxyProvider
+            baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}
+            clientId={process.env.EXPO_PUBLIC_OXY_CLIENT_ID}
+            authRedirectUri={process.env.EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI}
+          >
             {/* Wraps `AuthGate` itself (not just `AppShell`) — the signed-out
                 screen uses `ContentWidth` (`layout/page-layout.tsx`), which
                 is also a `useResponsiveLayout()` consumer, so it needs the
