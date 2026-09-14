@@ -8,16 +8,15 @@ export type EntityAttributes = {
   current_humidity?: number;
   rgb_color?: [number, number, number];
   brightness?: number;
+  entity_picture?: string;
+  percentage?: number;
+  unit_of_measurement?: string;
 };
 
 export type Entity = {
   entity_id: string;
   state: string;
   attributes: EntityAttributes;
-};
-
-export type HomeAssistantConfig = {
-  location_name: string;
 };
 
 export type SetTemperature = (
