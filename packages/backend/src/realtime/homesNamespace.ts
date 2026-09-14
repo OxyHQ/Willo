@@ -25,6 +25,7 @@ import type { OxyServices } from '@oxy.so/core';
 import { getDb } from '../db/postgres';
 import { homeMembers } from '../db/schema';
 import { setHomesNamespace } from './socketRegistry';
+import { observeEcosystemSocket } from '../ecosystemActivity';
 
 const HOMES_NAMESPACE = '/homes';
 
@@ -44,6 +45,8 @@ export function createHomesNamespace(io: SocketIOServer, oxy: OxyServices): void
   namespace.use(oxy.authSocket());
 
   namespace.on('connection', (socket: HomeSocket) => {
+    observeEcosystemSocket(socket);
+
     const userId = socket.data.userId;
     if (!userId) {
       // Defensive: authSocket() already rejects a handshake with no valid
