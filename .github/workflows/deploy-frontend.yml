@@ -1,9 +1,10 @@
 name: Deploy frontend
 
 on:
-  workflow_run:
-    workflows: [UI checks]
-    types: [completed]
+  # UI checks only runs on pull_request, never on a direct push to main, so
+  # gating this on `workflow_run: [UI checks]` would never fire for a
+  # push that lands on main outside a PR. Deploy on push directly instead.
+  push:
     branches: [main]
   workflow_dispatch: {}
 
@@ -20,18 +21,11 @@ env:
 
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: oven-sh/setup-bun@v2
         with:
