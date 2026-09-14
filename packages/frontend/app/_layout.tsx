@@ -7,6 +7,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { OxyProvider } from '@oxy.so/services';
 import { HomeProvider } from '../state/home-context';
+import { AuthGate } from '../components/auth-gate';
 import { Overlays } from '../components/overlays';
 import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
@@ -82,13 +83,15 @@ export default function RootLayout() {
             a red for this seed, not the yellow the "light is on" tone needs. */}
         <BloomProvider defaultMode="system" seed="#00537f" secondaryColor="#625007" tertiaryColor="#8e3205">
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
-            <HomeProvider>
-              <StatusBar barStyle="dark-content" />
-              <ResponsiveProvider>
-                <AppShell />
-              </ResponsiveProvider>
-              <Overlays />
-            </HomeProvider>
+            <AuthGate>
+              <HomeProvider>
+                <StatusBar barStyle="dark-content" />
+                <ResponsiveProvider>
+                  <AppShell />
+                </ResponsiveProvider>
+                <Overlays />
+              </HomeProvider>
+            </AuthGate>
           </OxyProvider>
         </BloomProvider>
       </GestureHandlerRootView>
