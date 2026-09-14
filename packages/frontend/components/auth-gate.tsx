@@ -16,7 +16,7 @@ function SignedOutScreen() {
           <SignInIllustration width={200} />
           <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">Welcome to Willo</Label>
           <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">Sign in with your Oxy account to control your home.</Label>
-          <OxySignInButton variant="contained" style={{ marginTop: 28, alignSelf: 'stretch' }} />
+          <OxySignInButton variant="contained" style={{ marginTop: 28 }} />
         </View>
       </ContentWidth>
     </View>
