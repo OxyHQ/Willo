@@ -83,15 +83,20 @@ export default function RootLayout() {
             a red for this seed, not the yellow the "light is on" tone needs. */}
         <BloomProvider defaultMode="system" seed="#00537f" secondaryColor="#625007" tertiaryColor="#8e3205">
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
-            <AuthGate>
-              <HomeProvider>
-                <StatusBar barStyle="dark-content" />
-                <ResponsiveProvider>
+            {/* Wraps `AuthGate` itself (not just `AppShell`) — the signed-out
+                screen uses `ContentWidth` (`layout/page-layout.tsx`), which
+                is also a `useResponsiveLayout()` consumer, so it needs the
+                same provider the signed-in app shell does. One instance,
+                shared across both states, instead of two. */}
+            <ResponsiveProvider>
+              <AuthGate>
+                <HomeProvider>
+                  <StatusBar barStyle="dark-content" />
                   <AppShell />
-                </ResponsiveProvider>
-                <Overlays />
-              </HomeProvider>
-            </AuthGate>
+                  <Overlays />
+                </HomeProvider>
+              </AuthGate>
+            </ResponsiveProvider>
           </OxyProvider>
         </BloomProvider>
       </GestureHandlerRootView>
