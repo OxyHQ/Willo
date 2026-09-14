@@ -5,19 +5,30 @@ import { Pressable, View, useWindowDimensions } from 'react-native';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { assets } from '../data/assets';
 import { useHome, type Sheet } from '../state/home-context';
-import { colors, Icon, IconButton, Label } from '@willo/ui';
+import { getCapability, type Device } from '../providers/types';
+import { colors, Icon, IconButton, Label, type IconName } from '@willo/ui';
+
+// The tone (yellow, blue) and icon a generic on/off-and-adjustable device
+// renders with, chosen from its domain — the same domain the provider tags
+// every device with, never guessed from which capabilities happen to be
+// present.
+const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue'; color: string; onColor: string; offColor: string }> = {
+  light: { icon: 'light', tone: 'yellow', color: colors.yellow, onColor: colors.onYellow, offColor: colors.surface },
+  fan: { icon: 'fan', tone: 'blue', color: colors.blue, onColor: colors.onBlue, offColor: colors.surface },
+};
 
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
-  const { state, dispatch, sheet, setSheet, toast, devices, toggleLight, setLightBrightness, toggleFan, setFanPercentage } = useHome();
+  const { state, dispatch, sheet, setSheet, toast, devices, sendCommand } = useHome();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetRef>(null);
   // Retain content until Bloom finishes the dismissal animation.
   const [shown, setShown] = useState<Sheet>(null);
-  // Re-resolve against the live list so brightness/on-off track real-world
-  // changes (another app, a physical switch) while the sheet stays open.
-  const liveLight = shown?.kind === 'light' ? devices.lights.find(light => light.id === shown.light.id) ?? shown.light : null;
-  const liveFan = shown?.kind === 'fan' ? devices.fans.find(fan => fan.id === shown.fan.id) ?? shown.fan : null;
+  // Re-resolve against the live list so on-off/brightness/speed track
+  // real-world changes (another app, a physical switch) while the sheet
+  // stays open.
+  const liveDevice: Device | null =
+    shown?.kind === 'realDevice' ? devices.find(device => device.id === shown.device.id) ?? shown.device : null;
 
   useEffect(() => {
     if (sheet) {
@@ -85,72 +96,51 @@ export function Overlays() {
                 <Label className="text-center text-[11px] text-home-muted">Changes affect this demo session only.</Label>
               </View>
             )}
-            {shown.kind === 'light' && liveLight && (
-              <View className="gap-5">
-                <View
-                  className="h-[140px] items-center justify-center rounded-[25px]"
-                  style={{ backgroundColor: liveLight.on ? liveLight.color ?? colors.yellow : colors.surface }}
-                >
-                  <Icon name="light" size={34} color={liveLight.on ? '#ffffff' : colors.muted} filled={liveLight.on} />
-                  <Label
-                    className="mt-3 text-[32px]"
-                    style={{ color: liveLight.on ? '#ffffff' : colors.ink }}
+            {shown.kind === 'realDevice' && liveDevice && (() => {
+              const onOff = getCapability(liveDevice, 'onOff');
+              const brightness = getCapability(liveDevice, 'brightness');
+              const fanSpeed = getCapability(liveDevice, 'fanSpeed');
+              const percent = brightness?.percent ?? fanSpeed?.percent ?? null;
+              const appearance = DEVICE_APPEARANCE[liveDevice.domain] ?? DEVICE_APPEARANCE.light;
+              const on = onOff?.on ?? false;
+              return (
+                <View className="gap-5">
+                  <View
+                    className="h-[140px] items-center justify-center rounded-[25px]"
+                    style={{ backgroundColor: on ? appearance.color : appearance.offColor }}
                   >
-                    {liveLight.on ? (liveLight.brightness != null ? `${liveLight.brightness}%` : 'On') : 'Off'}
-                  </Label>
+                    <Icon name={appearance.icon} size={34} color={on ? '#ffffff' : colors.muted} filled={on} />
+                    <Label className="mt-3 text-[32px]" style={{ color: on ? '#ffffff' : colors.ink }}>
+                      {on ? (percent != null ? `${percent}%` : 'On') : 'Off'}
+                    </Label>
+                  </View>
+                  {percent != null && (
+                    <Slider
+                      accessibilityLabel={`${liveDevice.name} ${brightness ? 'brightness' : 'speed'}`}
+                      minimumValue={1}
+                      maximumValue={100}
+                      step={1}
+                      value={percent}
+                      onSlidingComplete={value =>
+                        sendCommand(liveDevice.id, brightness ? { kind: 'setBrightness', percent: value } : { kind: 'setFanSpeed', percent: value })
+                      }
+                      minimumTrackTintColor={appearance.onColor}
+                      maximumTrackTintColor={appearance.color}
+                      thumbTintColor={appearance.onColor}
+                    />
+                  )}
+                  {onOff && (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => sendCommand(liveDevice.id, { kind: 'setOnOff', on: !on })}
+                      className="items-center rounded-full bg-home-sky py-4"
+                    >
+                      <Label className="text-[14px] font-medium text-home-on-sky">Turn {on ? 'off' : 'on'}</Label>
+                    </Pressable>
+                  )}
                 </View>
-                {liveLight.brightness != null && (
-                  <Slider
-                    accessibilityLabel={`${liveLight.name} brightness`}
-                    minimumValue={1}
-                    maximumValue={100}
-                    step={1}
-                    value={liveLight.brightness}
-                    onSlidingComplete={value => setLightBrightness(liveLight.id, value)}
-                    minimumTrackTintColor={colors.onYellow}
-                    maximumTrackTintColor={colors.yellow}
-                    thumbTintColor={colors.onYellow}
-                  />
-                )}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => toggleLight(liveLight.id, !liveLight.on)}
-                  className="items-center rounded-full bg-home-sky py-4"
-                >
-                  <Label className="text-[14px] font-medium text-home-on-sky">Turn {liveLight.on ? 'off' : 'on'}</Label>
-                </Pressable>
-              </View>
-            )}
-            {shown.kind === 'fan' && liveFan && (
-              <View className="gap-5">
-                <View className="h-[140px] items-center justify-center rounded-[25px] bg-home-blue">
-                  <Icon name="fan" size={34} color={colors.onBlue} filled={liveFan.on} />
-                  <Label className="mt-3 text-[32px] text-home-on-blue">
-                    {liveFan.on ? (liveFan.percentage != null ? `${liveFan.percentage}%` : 'On') : 'Off'}
-                  </Label>
-                </View>
-                {liveFan.percentage != null && (
-                  <Slider
-                    accessibilityLabel={`${liveFan.name} speed`}
-                    minimumValue={1}
-                    maximumValue={100}
-                    step={1}
-                    value={liveFan.percentage}
-                    onSlidingComplete={value => setFanPercentage(liveFan.id, value)}
-                    minimumTrackTintColor={colors.onBlue}
-                    maximumTrackTintColor={colors.blue}
-                    thumbTintColor={colors.onBlue}
-                  />
-                )}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => toggleFan(liveFan.id, !liveFan.on)}
-                  className="items-center rounded-full bg-home-sky py-4"
-                >
-                  <Label className="text-[14px] font-medium text-home-on-sky">Turn {liveFan.on ? 'off' : 'on'}</Label>
-                </Pressable>
-              </View>
-            )}
+              );
+            })()}
           </>
         )}
       </BottomSheet>

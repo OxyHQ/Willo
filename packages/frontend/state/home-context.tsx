@@ -2,16 +2,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { homeReducer, initialHomeState, type HomeAction, type HomeState, type DeviceKey } from './home-reducer';
 import * as storage from '../storage';
 import { createHomeAssistantProvider } from '../providers/home-assistant';
-import type { DeviceSnapshot, FanDevice, LightDevice, SmartHomeProvider } from '../providers/types';
-
-const EMPTY_SNAPSHOT: DeviceSnapshot = { lights: [], cameras: [], fans: [], sensors: [] };
+import type { Device, DeviceCommand, SmartHomeProvider } from '../providers/types';
 
 export type SheetOption = { label: string; description?: string; selected?: boolean; onPress: () => void };
 export type Sheet =
   | { kind: 'menu'; title: string; description?: string; options: SheetOption[] }
   | { kind: 'device'; title: string; id: DeviceKey }
-  | { kind: 'light'; title: string; light: LightDevice }
-  | { kind: 'fan'; title: string; fan: FanDevice }
+  | { kind: 'realDevice'; title: string; device: Device }
   | { kind: 'camera'; title: string; garden?: boolean; snapshotUrl?: string | null }
   | { kind: 'message'; title: string; description: string }
   | null;
@@ -23,13 +20,10 @@ type HomeContextValue = {
   setSheet: React.Dispatch<React.SetStateAction<Sheet>>;
   toast: string;
   notify: (message: string) => void;
-  devices: DeviceSnapshot;
+  devices: Device[];
   unauthenticated: boolean | null;
   login: (params: { instanceUrl: string }) => Promise<void>;
-  toggleLight: (id: string, on: boolean) => void;
-  setLightBrightness: (id: string, percent: number) => void;
-  toggleFan: (id: string, on: boolean) => void;
-  setFanPercentage: (id: string, percent: number) => void;
+  sendCommand: (id: string, command: DeviceCommand) => void;
 };
 
 const HomeContext = createContext<HomeContextValue | null>(null);
@@ -46,7 +40,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const [devices, setDevices] = useState<DeviceSnapshot>(EMPTY_SNAPSHOT);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [unauthenticated, setUnauthenticated] = useState<boolean | null>(null);
   const providerRef = useRef<SmartHomeProvider | null>(null);
   const hasInitialized = useRef(false);
@@ -60,9 +54,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     async (credentials: { instanceUrl: string; authCode?: string | null; refreshToken?: string | null; clientId: string }) => {
       try {
         const provider = createHomeAssistantProvider({ ...credentials, onRefreshToken });
-        const initialSnapshot = await provider.connect();
+        const initialDevices = await provider.connect();
         providerRef.current = provider;
-        setDevices(initialSnapshot);
+        setDevices(initialDevices);
         provider.subscribe(setDevices);
         setUnauthenticated(false);
       } catch (error) {
@@ -102,23 +96,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [connectWith]);
 
-  const toggleLight = useCallback((id: string, on: boolean) => providerRef.current?.toggleLight(id, on), []);
-  const setLightBrightness = useCallback(
-    (id: string, percent: number) => providerRef.current?.setLightBrightness(id, percent),
-    []
-  );
-  const toggleFan = useCallback((id: string, on: boolean) => providerRef.current?.toggleFan(id, on), []);
-  const setFanPercentage = useCallback(
-    (id: string, percent: number) => providerRef.current?.setFanPercentage(id, percent),
-    []
-  );
+  const sendCommand = useCallback((id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command), []);
 
   const value = useMemo(
-    () => ({
-      state, dispatch, sheet, setSheet, toast, notify, devices, unauthenticated, login,
-      toggleLight, setLightBrightness, toggleFan, setFanPercentage,
-    }),
-    [state, sheet, toast, notify, devices, unauthenticated, login, toggleLight, setLightBrightness, toggleFan, setFanPercentage]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, unauthenticated, login, sendCommand }),
+    [state, sheet, toast, notify, devices, unauthenticated, login, sendCommand]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

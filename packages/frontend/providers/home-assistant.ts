@@ -1,6 +1,6 @@
 import YAML from 'yaml';
 import type { Entity } from '../types';
-import type { CameraDevice, DeviceSnapshot, FanDevice, LightDevice, SensorReading, SmartHomeProvider } from './types';
+import type { Device, DeviceCapability, SmartHomeProvider } from './types';
 
 const j = JSON.stringify;
 
@@ -34,6 +34,47 @@ const replaceOrAppend = <T extends { id: string }>(list: T[], item: T): T[] => {
   return index === -1 ? [...list, item] : list.map((existing, i) => (i === index ? item : existing));
 };
 
+// Every domain this provider knows how to curate. An entity whose domain
+// isn't here is dropped rather than shown with no capabilities — curation
+// (which domains, which specific entities within them) happens once, in
+// Home Assistant's own www/tado.yaml.
+const capabilitiesFor = (entity: Entity, instanceUrl: string): DeviceCapability[] | null => {
+  switch (domainOf(entity.entity_id)) {
+    case 'light':
+      return [
+        { kind: 'onOff', on: entity.state === 'on' },
+        {
+          kind: 'brightness',
+          percent: entity.attributes.brightness != null ? Math.round((entity.attributes.brightness / 255) * 100) : null,
+        },
+        {
+          kind: 'color',
+          color: entity.attributes.rgb_color
+            ? `rgb(${entity.attributes.rgb_color[0]}, ${entity.attributes.rgb_color[1]}, ${entity.attributes.rgb_color[2]})`
+            : null,
+        },
+      ];
+    case 'fan':
+      return [
+        { kind: 'onOff', on: entity.state === 'on' },
+        { kind: 'fanSpeed', percent: entity.attributes.percentage ?? null },
+      ];
+    case 'sensor':
+      return [
+        {
+          kind: 'measurement',
+          value: entity.state === 'unknown' || entity.state === 'unavailable' ? null : Number(entity.state),
+          unit: entity.attributes.unit_of_measurement ?? null,
+          deviceClass: entity.attributes.device_class ?? null,
+        },
+      ];
+    case 'camera':
+      return [{ kind: 'camera', snapshotUrl: entity.attributes.entity_picture ? `${instanceUrl}${entity.attributes.entity_picture}` : null }];
+    default:
+      return null;
+  }
+};
+
 // Home Assistant is the first, and so far only, implementation of
 // SmartHomeProvider. This module owns everything HA-specific (its OAuth
 // dance, its WebSocket protocol, its entity/area registries); nothing
@@ -46,77 +87,35 @@ export function createHomeAssistantProvider(credentials: HomeAssistantCredential
   let nextMessageId = 1;
   let allowedEntityIds: string[] = [];
   let roomByEntityId = new Map<string, string | null>();
-  let snapshot: DeviceSnapshot = { lights: [], cameras: [], fans: [], sensors: [] };
-  const listeners = new Set<(snapshot: DeviceSnapshot) => void>();
+  let devices: Device[] = [];
+  const listeners = new Set<(devices: Device[]) => void>();
 
-  const emit = () => listeners.forEach(listener => listener(snapshot));
+  const emit = () => listeners.forEach(listener => listener(devices));
 
-  const toLightDevice = (entity: Entity): LightDevice => ({
-    id: entity.entity_id,
-    name: entity.attributes.friendly_name ?? entity.entity_id,
-    room: roomByEntityId.get(entity.entity_id) ?? null,
-    on: entity.state === 'on',
-    brightness:
-      entity.attributes.brightness != null
-        ? Math.round((entity.attributes.brightness / 255) * 100)
-        : null,
-    color: entity.attributes.rgb_color
-      ? `rgb(${entity.attributes.rgb_color[0]}, ${entity.attributes.rgb_color[1]}, ${entity.attributes.rgb_color[2]})`
-      : null,
-  });
-
-  const toCameraDevice = (entity: Entity): CameraDevice => ({
-    id: entity.entity_id,
-    name: entity.attributes.friendly_name ?? entity.entity_id,
-    room: roomByEntityId.get(entity.entity_id) ?? null,
-    snapshotUrl: entity.attributes.entity_picture ? `${instanceUrl}${entity.attributes.entity_picture}` : null,
-  });
-
-  const toFanDevice = (entity: Entity): FanDevice => ({
-    id: entity.entity_id,
-    name: entity.attributes.friendly_name ?? entity.entity_id,
-    room: roomByEntityId.get(entity.entity_id) ?? null,
-    on: entity.state === 'on',
-    percentage: entity.attributes.percentage ?? null,
-  });
-
-  const toSensorReading = (entity: Entity): SensorReading => ({
-    id: entity.entity_id,
-    name: entity.attributes.friendly_name ?? entity.entity_id,
-    value: entity.state === 'unknown' || entity.state === 'unavailable' ? null : Number(entity.state),
-    unit: entity.attributes.unit_of_measurement ?? null,
-  });
-
-  const setInitialSnapshot = (entities: Entity[]) => {
-    snapshot = {
-      lights: entities.filter(entity => domainOf(entity.entity_id) === 'light').map(toLightDevice),
-      cameras: entities.filter(entity => domainOf(entity.entity_id) === 'camera').map(toCameraDevice),
-      fans: entities.filter(entity => domainOf(entity.entity_id) === 'fan').map(toFanDevice),
-      sensors: entities.filter(entity => domainOf(entity.entity_id) === 'sensor').map(toSensorReading),
+  const toDevice = (entity: Entity): Device | null => {
+    const capabilities = capabilitiesFor(entity, instanceUrl);
+    if (!capabilities) return null;
+    return {
+      id: entity.entity_id,
+      name: entity.attributes.friendly_name ?? entity.entity_id,
+      room: roomByEntityId.get(entity.entity_id) ?? null,
+      domain: domainOf(entity.entity_id),
+      capabilities,
     };
   };
 
+  const setInitialDevices = (entities: Entity[]) => {
+    devices = entities.map(toDevice).filter((device): device is Device => device !== null);
+  };
+
   const applyStateChange = (entity: Entity) => {
-    switch (domainOf(entity.entity_id)) {
-      case 'light':
-        snapshot = { ...snapshot, lights: replaceOrAppend(snapshot.lights, toLightDevice(entity)) };
-        break;
-      case 'camera':
-        snapshot = { ...snapshot, cameras: replaceOrAppend(snapshot.cameras, toCameraDevice(entity)) };
-        break;
-      case 'fan':
-        snapshot = { ...snapshot, fans: replaceOrAppend(snapshot.fans, toFanDevice(entity)) };
-        break;
-      case 'sensor':
-        snapshot = { ...snapshot, sensors: replaceOrAppend(snapshot.sensors, toSensorReading(entity)) };
-        break;
-      default:
-        return;
-    }
+    const updated = toDevice(entity);
+    if (!updated) return;
+    devices = replaceOrAppend(devices, updated);
     emit();
   };
 
-  async function connect(): Promise<DeviceSnapshot> {
+  async function connect(): Promise<Device[]> {
     // authCode is single-use (OAuth authorization_code grant): it's only
     // present right after login. Every later connection must reuse the
     // refresh_token that came back from that first exchange instead.
@@ -139,7 +138,7 @@ export function createHomeAssistantProvider(credentials: HomeAssistantCredential
 
     const { access_token: accessToken } = tokenData;
 
-    return new Promise<DeviceSnapshot>((resolve, reject) => {
+    return new Promise<Device[]>((resolve, reject) => {
       ws = new WebSocket(`${url.protocol === 'https:' ? 'wss' : 'ws'}://${url.host}/api/websocket`);
       const requestIds = { states: 0, entities: 0, devices: 0, areas: 0 };
       const pending: {
@@ -159,8 +158,8 @@ export function createHomeAssistantProvider(credentials: HomeAssistantCredential
             return [entity.entity_id, areaId ? areaNameById.get(areaId) ?? null : null];
           })
         );
-        setInitialSnapshot(pending.states.filter(entity => allowedEntityIds.includes(entity.entity_id)));
-        resolve(snapshot);
+        setInitialDevices(pending.states.filter(entity => allowedEntityIds.includes(entity.entity_id)));
+        resolve(devices);
       };
 
       ws.onerror = () => reject(new Error('Could not reach Home Assistant.'));
@@ -216,21 +215,23 @@ export function createHomeAssistantProvider(credentials: HomeAssistantCredential
 
   return {
     connect,
-    subscribe(onSnapshot) {
-      listeners.add(onSnapshot);
-      return () => listeners.delete(onSnapshot);
+    subscribe(onDevices) {
+      listeners.add(onDevices);
+      return () => listeners.delete(onDevices);
     },
-    toggleLight(id, on) {
-      callService('light', on ? 'turn_on' : 'turn_off', { entity_id: id });
-    },
-    setLightBrightness(id, percent) {
-      callService('light', 'turn_on', { entity_id: id, brightness_pct: Math.round(percent) });
-    },
-    toggleFan(id, on) {
-      callService('fan', on ? 'turn_on' : 'turn_off', { entity_id: id });
-    },
-    setFanPercentage(id, percent) {
-      callService('fan', 'set_percentage', { entity_id: id, percentage: Math.round(percent) });
+    sendCommand(id, command) {
+      const domain = domainOf(id);
+      switch (command.kind) {
+        case 'setOnOff':
+          callService(domain, command.on ? 'turn_on' : 'turn_off', { entity_id: id });
+          break;
+        case 'setBrightness':
+          callService('light', 'turn_on', { entity_id: id, brightness_pct: Math.round(command.percent) });
+          break;
+        case 'setFanSpeed':
+          callService('fan', 'set_percentage', { entity_id: id, percentage: Math.round(command.percent) });
+          break;
+      }
     },
   };
 }

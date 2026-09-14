@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { assets } from '../data/assets';
 import { useHome } from '../state/home-context';
-import type { CameraDevice } from '../providers/types';
+import { getCapability, type Device } from '../providers/types';
 import { Icon } from '@willo/ui';
 import { Label } from '@willo/ui';
 
@@ -12,16 +12,17 @@ import { Label } from '@willo/ui';
 // stream) is enough for a "live-ish" thumbnail.
 const SNAPSHOT_REFRESH_MS = 8000;
 
-export function RealCameraCard({ camera, height = 194, width }: { camera: CameraDevice; height?: number; width?: number }) {
+export function RealCameraCard({ camera, height = 194, width }: { camera: Device; height?: number; width?: number }) {
   const { setSheet } = useHome();
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => setRefreshKey(key => key + 1), SNAPSHOT_REFRESH_MS);
     return () => clearInterval(interval);
   }, []);
-  const uri = camera.snapshotUrl ? `${camera.snapshotUrl}&_=${refreshKey}` : undefined;
+  const snapshotUrl = getCapability(camera, 'camera')?.snapshotUrl ?? null;
+  const uri = snapshotUrl ? `${snapshotUrl}&_=${refreshKey}` : undefined;
   return <View className="relative overflow-hidden rounded-[27px] bg-home-surface" style={{ height, width }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Open ${camera.name}`} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl: camera.snapshotUrl })} className="absolute inset-0">
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open ${camera.name}`} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl })} className="absolute inset-0">
       {uri ? <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
     </Pressable>
     <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between">

@@ -11,6 +11,7 @@ export type EntityAttributes = {
   entity_picture?: string;
   percentage?: number;
   unit_of_measurement?: string;
+  device_class?: string;
 };
 
 export type Entity = {
