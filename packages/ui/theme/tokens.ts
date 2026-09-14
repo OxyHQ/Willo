@@ -24,8 +24,13 @@ export const tones = {
   blue: { tile: 'bg-info-subtle', text: 'text-info-text', color: colors.onBlue },
   sky: { tile: 'bg-primary-subtle', text: 'text-primary-text', color: colors.onSky },
   yellow: { tile: 'bg-home-yellow', text: 'text-home-on-yellow', color: colors.onYellow },
-  peach: { tile: 'bg-home-peach', text: 'text-home-on-peach', color: colors.onPeach },
+  // `tertiary` is pinned to this exact peach in `BloomProvider`
+  // (`app/_layout.tsx`'s `tertiaryColor`), not left to the seed's own
+  // auto-derived hue — see that prop's doc comment.
+  peach: { tile: 'bg-tertiary-subtle', text: 'text-tertiary-text', color: colors.onPeach },
   green: { tile: 'bg-home-green', text: 'text-home-on-green', color: colors.onGreen },
-  neutral: { tile: 'bg-home-surface', text: 'text-home-ink', color: colors.ink },
+  // `muted` is Bloom's own real "inactive surface" token — a closer semantic
+  // fit for an OFF device than the generic page `background`.
+  neutral: { tile: 'bg-muted', text: 'text-muted-foreground', color: colors.ink },
 } as const;
 export type Tone = keyof typeof tones;
