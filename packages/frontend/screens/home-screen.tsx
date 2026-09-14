@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, View } from 'react-native';
 import { RealCameraCard } from '../components/camera-card';
 import { Icon, type IconName } from '@willo/ui';
-import { Label, Tile } from '@willo/ui';
+import { Label, Tile, useOptimisticValue } from '@willo/ui';
 import { ThermostatCard } from '../components/thermostat-card';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { PageScroll } from '../layout/page-layout';
@@ -11,7 +11,7 @@ import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import type { DeviceKey } from '../state/home-reducer';
 import { getCapability, type Device } from '../providers/types';
-import { colors } from '@willo/ui';
+import { useTheme } from '@oxy.so/bloom/theme';
 
 type Category = 'Favorites' | 'All' | 'Cameras' | 'Lights' | 'Wifi' | 'Climate';
 const categories: { name: Category; icon: IconName }[] = [
@@ -20,8 +20,38 @@ const categories: { name: Category; icon: IconName }[] = [
 ];
 type HomeCard = DashboardCard & { category: Category };
 
+/**
+ * A real light's `subtitle`/`tone`/`active` are all derived from the SAME
+ * `percent` that drives the fill — dragging moves all three together instead
+ * of the fill alone updating while the "On · X%" text sits frozen on the
+ * pre-drag value. Its own component (not a plain helper called in a
+ * `.map`/inline, like `lightTile` used to be): `useOptimisticValue` is a
+ * hook, and the real light list here is exactly the dynamic-length loop that
+ * breaks the rules of hooks when a hook is called from a plain function
+ * instead of a component.
+ */
+function LightTile({ light }: { light: Device }) {
+  const { setSheet, sendCommand } = useHome();
+  const onOff = getCapability(light, 'onOff');
+  const brightnessCapability = getCapability(light, 'brightness');
+  // Not every light HA reports is dimmable — a plain on/off light has no
+  // `brightness` capability at all, and gets no slider (`brightness`/
+  // `onBrightnessChange` both left `undefined`) rather than one that always
+  // reads 100%.
+  const dimmable = brightnessCapability !== undefined;
+  const [percent, setPercent] = useOptimisticValue(dimmable ? (onOff?.on ? brightnessCapability.percent ?? 100 : 0) : 0);
+  const on = dimmable ? percent > 0 : (onOff?.on ?? false);
+  return <Tile grow={false} height={80} title={light.name}
+    subtitle={on ? (dimmable ? `On · ${percent}%` : 'On') : 'Off'}
+    icon="light" tone={on ? 'yellow' : 'neutral'} active={on}
+    brightness={dimmable ? percent : undefined}
+    onBrightnessChange={dimmable ? next => { setPercent(next); sendCommand(light.id, next === 0 ? { kind: 'setOnOff', on: false } : { kind: 'setBrightness', percent: next }); } : undefined}
+    onPress={() => sendCommand(light.id, { kind: 'setOnOff', on: !onOff?.on })}
+    onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}/>;
+}
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand } = useHome();
+  const { colors: themeColors } = useTheme();
   const { compact, columns, gutter } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
   // Crossfades the grid on category change instead of snapping straight to
@@ -73,25 +103,14 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const cameras = devices.filter(d => d.domain === 'camera');
   const fan = devices.find(d => d.domain === 'fan');
   const sensors = devices.filter(d => d.domain === 'sensor');
-  const lightTile = (light: Device) => {
-    const onOff = getCapability(light, 'onOff');
-    const brightness = getCapability(light, 'brightness');
-    return <Tile grow={false} height={80} title={light.name}
-      subtitle={onOff?.on ? (brightness?.percent != null ? `On · ${brightness.percent}%` : 'On') : 'Off'}
-      icon="light" tone={onOff?.on ? 'yellow' : 'neutral'} active={onOff?.on}
-      brightness={onOff?.on ? brightness?.percent ?? undefined : undefined}
-      onPress={() => sendCommand(light.id, { kind: 'setOnOff', on: !onOff?.on })}
-      onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}/>;
-  };
   const noLights = <Tile grow={false} height={80} title="No lights found" subtitle="Check Home Assistant" icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
   const noCameras = <Tile grow={false} height={80} title="No cameras found" subtitle="Check Home Assistant" icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
-  const device = (id: DeviceKey, title: string, icon: IconName, light = false) => <Tile grow={false} height={80} title={title}
-    subtitle={id === 'garage' ? (state.devices[id] ? 'Open' : 'Closed') : state.devices[id] ? (light || id === 'speaker' ? `${id === 'speaker' ? 'Playing' : 'On'} · ${state.brightness[id] ?? 50}%` : 'On') : 'Off'}
-    icon={icon} tone={state.devices[id] ? (light ? 'yellow' : 'blue') : id === 'garage' ? 'blue' : 'neutral'}
-    active={state.devices[id]} brightness={light && state.devices[id] ? state.brightness[id] : undefined}
-    onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id })}
-    onLongPress={light ? () => setSheet({ kind: 'device', title, id }) : undefined}/>;
+  const device = (id: DeviceKey, title: string, icon: IconName) => <Tile grow={false} height={80} title={title}
+    subtitle={id === 'garage' ? (state.devices[id] ? 'Open' : 'Closed') : state.devices[id] ? (id === 'speaker' ? `Playing · ${state.brightness[id] ?? 50}%` : 'On') : 'Off'}
+    icon={icon} tone={state.devices[id] ? 'blue' : id === 'garage' ? 'blue' : 'neutral'}
+    active={state.devices[id]}
+    onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id })}/>;
   const lock = <Tile grow={false} title="Front door lock" subtitle={state.locked ? 'Locked' : 'Unlocked'}
     icon={state.locked ? 'lock' : 'unlock'} tone={state.locked ? 'blue' : 'neutral'} active={state.locked}
     onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/>;
@@ -111,14 +130,14 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   })();
   const sensorList = <View className="gap-3 rounded-[24px] bg-home-surface p-4">
     <View className="flex-row items-center gap-2"><Icon name="home" size={16}/><Label className="min-w-0 flex-1 text-[12px]">Indoor readings</Label></View>
-    {sensors.length === 0 && <Label className="text-[11px] text-home-muted">No sensors found</Label>}
+    {sensors.length === 0 && <Label className="text-[11px] text-muted-foreground">No sensors found</Label>}
     {sensors.map(sensor => { const measurement = getCapability(sensor, 'measurement');
       return <View key={sensor.id} className="flex-row items-center justify-between gap-3"><Label className="min-w-0 flex-1 text-[11px]">{sensor.name}</Label><Label className="text-[11px]">{measurement?.value != null ? `${measurement.value}${measurement.unit ?? ''}` : '—'}</Label></View>; })}
   </View>;
   const base = {
     camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras },
     lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
-    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[0] ? lightTile(lights[0]) : noLights },
+    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[0] ? <LightTile light={lights[0]}/> : noLights },
     thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
     weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: 72, content: weather },
     air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: 72, content: air },
@@ -129,7 +148,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: cameras[1] ? cameraTile(cameras[1], 240) : noCameras },
     plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', 'Plug', 'plug') },
     sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 196, content: sensorList },
-    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[1] ? lightTile(lights[1]) : noLights },
+    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[1] ? <LightTile light={lights[1]}/> : noLights },
     wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title="Office WiFi" subtitle="Settings preview" icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
   const order: (keyof typeof base)[] = compact
@@ -138,7 +157,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   // Beyond the favorite slots above, the full Lights/Cameras tabs list every
   // real light or camera Home Assistant reports, not just a fixed pair.
   const extraLightCards: HomeCard[] = lights.slice(2).map((light, index) => ({
-    id: `light-${light.id}`, category: 'Lights', lane: index % 4, estimatedHeight: 80, content: lightTile(light),
+    id: `light-${light.id}`, category: 'Lights', lane: index % 4, estimatedHeight: 80, content: <LightTile key={light.id} light={light}/>,
   }));
   const extraCameraCards: HomeCard[] = cameras.slice(2).map((camera, index) => ({
     id: `camera-${camera.id}`, category: 'Cameras', lane: index % 2, estimatedHeight: 170, content: cameraTile(camera, 170),
@@ -148,7 +167,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     : selected === 'Lights' ? [...Object.values(base).filter(card => card.category === 'Lights'), ...extraLightCards].map(card => ({ ...card, lane: undefined }))
     : selected === 'Cameras' ? [...Object.values(base).filter(card => card.category === 'Cameras'), ...extraCameraCards].map(card => ({ ...card, lane: undefined, span: compact ? 2 : 1 }))
     : Object.values(base).filter(card => card.category === selected).map(card => ({ ...card, lane: undefined }));
-  return <View className="min-h-0 flex-1 bg-white">
+  return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>
       {header}
       {/* Cancels PageScroll's own horizontal padding (a real horizontal
@@ -159,14 +178,14 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingVertical: 16, paddingHorizontal: gutter, gap: 8 }}>
         {categories.map(category => {
           const active = selected === category.name;
-          const labelClassName = `text-[14px] ${active ? 'font-medium text-home-on-sky' : 'text-home-muted'}`;
+          const labelClassName = `text-[14px] ${active ? 'font-medium text-primary-text' : 'text-muted-foreground'}`;
           // Desktop always shows every label — nothing to animate, so it
           // stays the plain, un-animated render it always was.
           if (!compact) {
             return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
               onPress={() => selectCategory(category.name)}
-              className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-home-sky' : 'bg-home-surface'}`}>
-              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? colors.onSky : colors.muted}/>
+              className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-primary-subtle' : 'bg-home-surface'}`}>
+              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? themeColors.primary : themeColors.textSecondary}/>
               <Label className={labelClassName}>{category.name}</Label>
             </Pressable>;
           }
@@ -182,8 +201,8 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           const naturalWidth = labelWidths[category.name] ?? 54;
           return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
             onPress={() => selectCategory(category.name)} className="active:opacity-70">
-            <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-home-sky' : 'bg-home-surface'}`}>
-              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? colors.onSky : colors.muted}/>
+            <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-primary-subtle' : 'bg-home-surface'}`}>
+              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? themeColors.primary : themeColors.textSecondary}/>
               <Animated.View style={{
                 overflow: 'hidden',
                 width: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, naturalWidth] }),

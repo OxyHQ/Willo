@@ -7,7 +7,7 @@ import { CardStrip, PageColumns, PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';
 import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
-import { colors } from '@willo/ui';
+import { useTheme } from '@oxy.so/bloom/theme';
 const upcoming: { id: string; time: string; period: string; name: string; icon: IconName }[] = [
   { id: 'kettle', time: '10:00', period: 'AM', name: 'Morning kettle', icon: 'kettle' },
   { id: 'security', time: '7:30', period: 'PM', name: 'Nighttime security', icon: 'lock' },
@@ -15,22 +15,23 @@ const upcoming: { id: string; time: string; period: string; name: string; icon: 
 ];
 export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, notify } = useHome();
+  const { colors: themeColors } = useTheme();
   const { compact, split } = useResponsiveLayout();
   const shown = upcoming.filter(item => !state.dismissedUpcoming.includes(item.id));
-  return <View className="min-h-0 flex-1 bg-white">
+  return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>{header}<PageColumns weights={[1, 1.35]}>
       <View><SectionTitle>Upcoming</SectionTitle><CardStrip gap={12}>
         {shown.length ? shown.map((item, index) => <View key={item.id}
-          className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-home-sky' : 'bg-home-surface'}`}
+          className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-primary-subtle' : 'bg-home-surface'}`}
           style={{ width: compact ? 156 : split ? '100%' : 196, gap: 32 }}>
-          <View className="flex-row items-center justify-between"><Icon name={item.icon} size={23} color={index === 0 ? colors.onSky : colors.ink}/>
+          <View className="flex-row items-center justify-between"><Icon name={item.icon} size={23} color={index === 0 ? themeColors.primary : themeColors.text}/>
             <Pressable accessibilityRole="button" accessibilityLabel={`Dismiss ${item.name}`} onPress={() => dispatch({ type: 'DISMISS_UPCOMING', id: item.id })}
-              className="h-11 w-11 items-center justify-center rounded-full bg-white/80"><Icon name="close" size={16}/></Pressable>
+              className="h-11 w-11 items-center justify-center rounded-full bg-card/80"><Icon name="close" size={16}/></Pressable>
           </View>
-          <View><Label className={`text-[33px] leading-[41px] ${index === 0 ? 'text-home-on-sky' : ''}`}>{item.time}<Label className={`text-[12px] ${index === 0 ? 'text-home-on-sky' : ''}`}> {item.period}</Label></Label>
-            <Label className={`mt-1 text-[11px] leading-[15px] ${index === 0 ? 'text-home-on-sky' : ''}`}>Today · {item.name}</Label>
+          <View><Label className={`text-[33px] leading-[41px] ${index === 0 ? 'text-primary-text' : ''}`}>{item.time}<Label className={`text-[12px] ${index === 0 ? 'text-primary-text' : ''}`}> {item.period}</Label></Label>
+            <Label className={`mt-1 text-[11px] leading-[15px] ${index === 0 ? 'text-primary-text' : ''}`}>Today · {item.name}</Label>
           </View>
-        </View>) : <View className="w-full rounded-3xl bg-home-surface p-5"><Label className="text-[13px] text-home-muted">No upcoming routines in this demo.</Label></View>}
+        </View>) : <View className="w-full rounded-3xl bg-home-surface p-5"><Label className="text-[13px] text-muted-foreground">No upcoming routines in this demo.</Label></View>}
       </CardStrip></View>
       <View><SectionTitle right="+ Add" onPress={() => onNavigate('composer')}>Your automations</SectionTitle><View className="gap-2">
         <RoutineRow title="Wake up" description="At sunrise, turn on bedroom lights and open blinds" icon="light"/>
@@ -44,7 +45,7 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
 }
 export function RoutinesScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, notify } = useHome();
-  return <View className="min-h-0 flex-1 bg-white">
+  return <View className="min-h-0 flex-1 bg-card">
     <PageScroll bottom={96}>{header}<PageColumns>
       <View><SectionTitle>Household Routines</SectionTitle><View className="gap-2">
         <RoutineRow title="Garage motion light" description="1 starter · 1 action" icon="settings"/>

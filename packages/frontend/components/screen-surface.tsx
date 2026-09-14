@@ -13,9 +13,9 @@ import { SettingsScreen } from '../screens/settings-screen';
 import { AssistantHeader, AssistantScreen } from '../screens/assistant-screen';
 import { ComposerHeader, ComposerProvider, ComposerScreen } from '../screens/composer-screen';
 import { EmergencyHeader, EmergencyScreen } from '../screens/emergency-screen';
-import { colors } from '@willo/ui';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { useResponsiveLayout } from '../layout/responsive-context';
 
 /**
@@ -46,18 +46,20 @@ const PANEL_FRAMED_FROM = BREAKPOINTS.rail;
 // (`components/Header.tsx`), just applied to a header that is this app's own
 // sibling of the panel instead of the panel's first child.
 const webStickyHeaderStyle = Platform.OS === 'web' ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 }) : undefined;
-// Mobile's sticky header floats directly over scrolling content (unlike
-// desktop's, which sits on the plain surface background with nothing
-// scrolling under it), so a hard-edged solid fill would cut content off with
-// a visible line as it scrolls past. A gradient — solid at the top, fading to
-// transparent by the bottom — reads as the content dissolving under the
-// header instead.
-const webStickyHeaderGradientStyle = Platform.OS === 'web'
-  ? asViewStyle({ backgroundImage: `linear-gradient(to bottom, ${colors.surface} 0%, ${colors.surface} 60%, rgba(241, 244, 249, 0) 100%)` })
-  : undefined;
 
 export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const { width, gutter } = useResponsiveLayout();
+  const { colors } = useTheme();
+  // Mobile's sticky header floats directly over scrolling content (unlike
+  // desktop's, which sits on the plain surface background with nothing
+  // scrolling under it), so a hard-edged solid fill would cut content off with
+  // a visible line as it scrolls past. A gradient — solid at the top, fading to
+  // transparent by the bottom — reads as the content dissolving under the
+  // header instead. `colors.background`, not a static hex, so it stays right
+  // if the app's background ever moves with the theme.
+  const webStickyHeaderGradientStyle = Platform.OS === 'web'
+    ? asViewStyle({ backgroundImage: `linear-gradient(to bottom, ${colors.background} 0%, ${colors.background} 60%, transparent 100%)` })
+    : undefined;
   const combineHeader = width < PANEL_FRAMED_FROM;
   // `BottomNav` (web) floats `position: fixed` over content and CLAIMS its
   // own footprint in Bloom's bottom-edge registry (`bottom-nav.tsx`) — this
@@ -83,14 +85,11 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   // own otherwise — its containing block here is the screen's own content,
   // which is as tall as that screen, so `top: 0` pins it for the full scroll.
   const bleedHeader = (node: React.ReactNode) => (
-    <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter }]}>
-      {/* The gradient lives on this wrapper, not the header itself — the
-          header's own opaque `bg-home-surface` would otherwise paint over it.
-          `transparent` turns that off; only `AskHeader`/`ClassicHeader` read
-          it; the other headers (assistant/composer/emergency) never carry a
-          background of their own, so passing it there is a harmless no-op. */}
-      {React.isValidElement(node) ? React.cloneElement(node as React.ReactElement<{ transparent?: boolean }>, { transparent: true }) : node}
-    </View>
+    // The gradient lives on this wrapper, not the header itself — none of
+    // `AskHeader`/`ClassicHeader`/the other headers paint a background of
+    // their own (see their own doc comments), so the gradient shows straight
+    // through without anything needing to opt out of an opaque fill.
+    <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter }]}>{node}</View>
   );
   let header: React.ReactNode;
   let content: React.ReactNode;
@@ -146,7 +145,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
             that the panel starts near it. The sticky header above pushes
             where the panel visually starts without moving the overlay's own
             math, so without this the overlay would paint over the header. */}
-        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.surface} surfaceClassName="bg-white" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomEdgeInset }}>
+        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomEdgeInset }}>
           {content}
         </ContentPanel>
       </View>
