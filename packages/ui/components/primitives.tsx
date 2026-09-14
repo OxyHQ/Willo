@@ -51,7 +51,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // involved) and would otherwise stay the static brand hex regardless of
   // mode. The rest of `tones` still uses `palette.color` as-is until they
   // migrate the same way.
-  const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info, peach: themeColors.tertiary, neutral: themeColors.textSecondary };
+  const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info, yellow: themeColors.secondary, peach: themeColors.tertiary, green: themeColors.success, neutral: themeColors.textSecondary };
   const iconColor = migratedToneColor[tone] ?? palette.color;
   const [pressed, setPressed] = useState(false);
   // The tile's own measured width, read on every pan update to turn a
@@ -129,7 +129,10 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
-      {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-home-yellow-fill" style={{ width: `${Math.min(100, Math.max(0, brightness))}%` as ViewStyle['width'] }}/>}
+      {/* `secondary`, not `secondary-subtle`: a solid fill for a real
+          progress indicator, matching `ThermostatCard`'s solid `tertiary`
+          buttons rather than the tinted `-subtle` surfaces. */}
+      {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${Math.min(100, Math.max(0, brightness))}%` as ViewStyle['width'] }}/>}
       <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
       <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
