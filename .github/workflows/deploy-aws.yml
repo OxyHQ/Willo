@@ -1,0 +1,209 @@
+# Deploy the Willo backend (@willo/backend) to AWS ECS Fargate.
+#
+# Modeled closely on ~/Oxy/Peable's own deploy-aws.yml (Bun-native image,
+# mutable :latest task-definition reuse, OIDC -> ECR -> ECS). The ECR repo
+# (oxy/willo) and the ECS service (willo on cluster oxy-cluster, port 4200)
+# are provisioned in terraform (~/Oxy/oxy-infra); every AWS step below no-ops
+# gracefully until the service exists, so the first push can run before the
+# service is created (the image still lands in ECR).
+#
+# Two adaptations from Peable, both because this is the FIRST production
+# deploy pipeline this backend has ever had:
+#   - No packages/shared-types (Willo has none) in the trigger paths or the
+#     image.
+#   - One migration step, not a pre/post pair — see
+#     .github/scripts/run-migration-task.sh for why: this backend's own
+#     migrator has no phase concept to drive one.
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/backend/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'bunfig.toml'
+      - '.github/workflows/deploy-aws.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-willo-backend
+  # Serialize production rollouts. Cancelling after `update-service` would
+  # leave an unmonitored deployment running in ECS.
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-west-2
+  ECR_REGISTRY: 237343248947.dkr.ecr.us-west-2.amazonaws.com
+  APP: willo
+  CLUSTER: oxy-cluster
+  DOCKERFILE: packages/backend/Dockerfile
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
+        with:
+          role-to-assume: arn:aws:iam::237343248947:role/oxy-github-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      # The secrets are enumerated one at a time, on purpose.
+      #
+      # A workflow that walks every repository secret into a shell loop
+      # (`toJSON(secrets)`) is shaped exactly like an exfiltration payload, so
+      # GitHub creates the run with conclusion `action_required` and ZERO jobs
+      # until a human clicks "Approve and run" in the UI — and that approval
+      # cannot be automated. The list below is the secrets the `willo` task
+      # definition actually consumes. Adding a new one means adding it here,
+      # or it never reaches SSM.
+      - name: Sync GitHub secrets -> SSM (GitHub is the source of truth)
+        env:
+          # The Postgres connection string, and the one the service cannot
+          # boot without: `config.ts` refuses to load without it and
+          # `server.ts` opens the pool before listening. An unset or
+          # placeholder GitHub secret is SKIPPED by sync_secret below, so this
+          # can never overwrite a value provisioned directly in SSM.
+          APP_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Ecosystem-activity telemetry (src/ecosystemActivity.ts). Both are
+          # expected to be UNSET until a separate process finishes
+          # registering an Oxy application for Willo and provisions these —
+          # sync_secret skips them meanwhile, and the service runs exactly as
+          # it does today (see ecosystemActivity.ts: absent credentials just
+          # print a warning, they never fail startup).
+          APP_OXY_SERVICE_API_KEY: ${{ secrets.OXY_SERVICE_API_KEY }}
+          APP_OXY_SERVICE_API_SECRET: ${{ secrets.OXY_SERVICE_API_SECRET }}
+        run: |
+          sync_secret() {
+            name="$1"; value="$2"; path="$3"
+            if [ -z "$value" ] || [ "$value" = "-" ]; then
+              echo "::warning::skip empty/placeholder secret $name; SSM unchanged"
+              return 0
+            fi
+            aws ssm put-parameter --name "$path" --value "$value" --type SecureString --overwrite >/dev/null
+            echo "synced -> $path"
+          }
+
+          sync_secret DATABASE_URL "$APP_DATABASE_URL" "/oxy/$APP/DATABASE_URL"
+          sync_secret OXY_SERVICE_API_KEY "$APP_OXY_SERVICE_API_KEY" "/oxy/$APP/OXY_SERVICE_API_KEY"
+          sync_secret OXY_SERVICE_API_SECRET "$APP_OXY_SERVICE_API_SECRET" "/oxy/$APP/OXY_SERVICE_API_SECRET"
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
+
+      - name: Build and push (linux/arm64)
+        run: |
+          IMG=$ECR_REGISTRY/oxy/$APP
+          docker build -f "$DOCKERFILE" -t "$IMG:${{ github.sha }}" -t "$IMG:latest" .
+          docker push "$IMG:${{ github.sha }}"
+          docker push "$IMG:latest"
+
+      # The one-shot migration task below REUSES the service's live task
+      # definition and network configuration rather than registering its
+      # own, which is what gives it the same DATABASE_URL secret, subnets and
+      # security groups the service has. It therefore also runs the image the
+      # task definition points at — the `:latest` tag just pushed above — so
+      # `run-task` gets the NEW image without a second revision. If the task
+      # definition is ever pinned to an immutable tag, this step must
+      # register a revision instead, or the migrator uses the OLD image.
+      - name: Resolve the ECS one-shot shape
+        id: ecs
+        run: |
+          set -euo pipefail
+
+          STATUS=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].status' --output text 2>/dev/null || echo NONE)
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          if [ "$STATUS" != "ACTIVE" ]; then
+            echo "ECS service $APP not created yet — nothing to migrate or deploy against"
+            exit 0
+          fi
+
+          TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].taskDefinition' --output text)
+          NET=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].networkConfiguration' --output json)
+          CONTAINER=$(aws ecs describe-task-definition --task-definition "$TD" --query 'taskDefinition.containerDefinitions[0].name' --output text)
+          echo "task_definition=$TD" >> "$GITHUB_OUTPUT"
+          echo "container=$CONTAINER" >> "$GITHUB_OUTPUT"
+          # JSON on one line: a GITHUB_OUTPUT value cannot span lines unhelped.
+          echo "network=$(echo "$NET" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+          # There is deliberately NO `DATABASE_URL` preflight here.
+          #
+          # It would only be useful while no route read Postgres, so a task
+          # definition without the variable served fine and skipping
+          # migrations was harmless. That is not the state of the world:
+          # `config.ts` refuses to load without `DATABASE_URL` and
+          # `server.ts` opens the pool before listening, so a task definition
+          # missing it crash-loops instead of serving. Keeping the preflight
+          # would answer a missing variable by SKIPPING the migration and
+          # letting the rollout proceed to a service that cannot boot —
+          # turning a loud configuration error into a silent one plus a
+          # crash-loop with no migration applied.
+
+      - name: Migrate — one-shot ECS task before the rollout
+        if: steps.ecs.outputs.status == 'ACTIVE'
+        run: .github/scripts/run-migration-task.sh
+        env:
+          TASK_DEFINITION: ${{ steps.ecs.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.ecs.outputs.container }}
+          NETWORK_CONFIGURATION: ${{ steps.ecs.outputs.network }}
+
+      - name: Deploy to ECS (rolling; skipped until the service exists)
+        run: |
+          set -euo pipefail
+
+          # Poll the PRIMARY deployment's rolloutState instead of the fixed
+          # `aws ecs wait services-stable` waiter (which caps at 10 min and
+          # false-fails on a longer rollout + ALB drain).
+          MAX_WAIT_SECS=1200   # 20 min hard cap before we call it a real timeout
+          POLL_INTERVAL=15     # seconds between describe-services polls
+
+          STATUS=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].status' --output text 2>/dev/null || echo NONE)
+          if [ "$STATUS" != "ACTIVE" ]; then
+            echo "ECS service $APP not created yet — image is in ECR, skipping deploy"
+            exit 0
+          fi
+
+          aws ecs update-service --cluster "$CLUSTER" --service "$APP" --force-new-deployment >/dev/null
+          echo "Triggered new deployment for $APP; polling rolloutState (timeout ${MAX_WAIT_SECS}s)..."
+
+          elapsed=0
+          while [ "$elapsed" -lt "$MAX_WAIT_SECS" ]; do
+            # describe-services must not abort the loop on a transient error (set -e safe).
+            DESC=$(aws ecs describe-services \
+              --cluster "$CLUSTER" --services "$APP" \
+              --query 'services[0].deployments[?status==`PRIMARY`]|[0].[rolloutState,runningCount,desiredCount]' \
+              --output text 2>/dev/null) || DESC=""
+
+            if [ -z "$DESC" ] || [ "$DESC" = "None" ]; then
+              echo "  ($elapsed s) no PRIMARY deployment info yet, retrying..."
+            else
+              ROLLOUT_STATE=$(echo "$DESC" | awk '{print $1}')
+              RUNNING=$(echo "$DESC" | awk '{print $2}')
+              DESIRED=$(echo "$DESC" | awk '{print $3}')
+              echo "  ($elapsed s) rolloutState=$ROLLOUT_STATE running=$RUNNING desired=$DESIRED"
+
+              if [ "$ROLLOUT_STATE" = "COMPLETED" ] && [ "$RUNNING" = "$DESIRED" ]; then
+                echo "deployed $APP — rollout COMPLETED ($RUNNING/$DESIRED tasks running)"
+                exit 0
+              fi
+              if [ "$ROLLOUT_STATE" = "FAILED" ]; then
+                echo "::error::ECS rollout for $APP FAILED — see service events in the AWS console"
+                exit 1
+              fi
+            fi
+
+            sleep "$POLL_INTERVAL"
+            elapsed=$((elapsed + POLL_INTERVAL))
+          done
+
+          echo "::error::ECS rollout for $APP did not reach COMPLETED within ${MAX_WAIT_SECS}s (genuine timeout)"
+          exit 1
