@@ -1,0 +1,26 @@
+# Willo's web shell, deployed as a Cloudflare Worker serving static assets —
+# not Cloudflare Pages. Pages always additionally serves <project>.pages.dev
+# with no way to switch it off, which has already caused two real incidents
+# elsewhere at Oxy (Alia, Mention): the .pages.dev origin served a
+# byte-identical deployment outside the CORS allowlist. Willo has no separate
+# backend to reverse-proxy behind (unlike Mention's shell.mention.earth), so
+# there's no access-gate script here — just the custom domain, with no
+# workers.dev/preview fallback name to leak.
+name = "willo-frontend"
+compatibility_date = "2026-09-14"
+
+# No `willo-frontend.<subdomain>.workers.dev` and no per-version preview URL —
+# willo.sh is the only name this deployment answers to.
+workers_dev = false
+preview_urls = false
+
+# `expo export --platform web` emits one index.html plus hashed assets (a
+# client-routed SPA, not per-route static HTML), so the SPA fallback below is
+# what makes a deep link (e.g. /devices) work on a hard refresh.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[[routes]]
+pattern = "willo.sh"
+custom_domain = true
