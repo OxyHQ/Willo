@@ -7,32 +7,41 @@ import { useTheme } from '@oxy.so/bloom/theme';
 // matching the source illustration's own `<use href="#heart">` pattern.
 const HEART_D = 'M-1-10C-8-23-20-18-20-7C-20 4-8 17-1 24C7 16 21 1 20-9C20-20 7-22-1-10Z';
 
+// The illustration's own original tones (from `ilustracion-hogar.svg`) —
+// what the backdrop and ink looked like before this was themed at all.
+// Kept as the LIGHT-mode values on purpose: recoloring them to a raw
+// Bloom token (`primarySubtle`/`text`) reads as a different illustration,
+// not a themed one — there's no "before" to preserve a match against in
+// dark mode, but in light mode this must look like what it always did.
+const ORIGINAL_BACKDROP = '#cfeafa';
+const ORIGINAL_INK = '#252d29';
+
 /**
  * A vector port of `ilustracion-hogar.svg` (the reference illustration
  * supplied for the signed-out screen — see `auth-gate.tsx`), not a raster
  * image, so it can follow Bloom's own theme instead of a flat baked-in
  * palette.
  *
- * Only TWO things are actually themed, deliberately: the backdrop card
- * (`primarySubtle` — the exact token `bg-primary-subtle` already uses
- * elsewhere in the app, verified against Willo's real seed via
- * `buildThemeFromSeed`: a pale brand-blue tint in light mode, a muted one in
- * dark) and the line art itself (`text` — near-black in light mode, a light
- * gray-blue in dark mode, so the illustration's own outlines stay legible
- * against a dark screen instead of reading as flat black). Every other fill
- * below (the cat, the trousers, the plant print, the lamps, the skin and
- * hair tones…) is the illustration's own literal, hand-picked color — those
- * are the ARTWORK's colors, not UI chrome, and recoloring a yellow cat to a
- * "brand accent" would just make it a worse cat.
+ * Only TWO things are actually themed, and only in dark mode: the backdrop
+ * card (`primarySubtle` — the exact token `bg-primary-subtle` already uses
+ * elsewhere in the app) and the line art itself (`text`), so the outlines
+ * stay legible against a dark screen instead of reading as flat black.
+ * Light mode keeps the illustration's own original colors exactly.  Every
+ * other fill below (the cat, the trousers, the plant print, the lamps, the
+ * skin and hair tones…) is the illustration's own literal, hand-picked
+ * color regardless of mode — those are the ARTWORK's colors, not UI
+ * chrome, and recoloring a yellow cat to a "brand accent" would just make
+ * it a worse cat.
  */
 export function SignInIllustration({ width = 200 }: { width?: number }) {
-  const { colors: themeColors } = useTheme();
-  const ink = themeColors.text;
+  const { colors: themeColors, isDark } = useTheme();
+  const backdrop = isDark ? themeColors.primarySubtle : ORIGINAL_BACKDROP;
+  const ink = isDark ? themeColors.text : ORIGINAL_INK;
   const height = width * (888 / 1240);
 
   return (
     <Svg width={width} height={height} viewBox="0 0 1240 888" fill="none">
-      <Path fill={themeColors.primarySubtle} d="M24 548L24 124C24 60 59 25 121 24L1117 24C1181 24 1218 59 1218 124L1218 548Z" />
+      <Path fill={backdrop} d="M24 548L24 124C24 60 59 25 121 24L1117 24C1181 24 1218 59 1218 124L1218 548Z" />
 
       {/* Hanging green print */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
