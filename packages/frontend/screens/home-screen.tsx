@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { AskHeader } from '../components/headers';
+import React, { useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, View } from 'react-native';
 import { RealCameraCard } from '../components/camera-card';
 import { Icon, type IconName } from '@willo/ui';
 import { Label, Tile } from '@willo/ui';
@@ -21,10 +20,53 @@ const categories: { name: Category; icon: IconName }[] = [
 ];
 type HomeCard = DashboardCard & { category: Category };
 
-export function HomeScreen({ onNavigate }: ScreenProps) {
+export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand } = useHome();
-  const { compact, columns } = useResponsiveLayout();
+  const { compact, columns, gutter } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
+  // Crossfades the grid on category change instead of snapping straight to
+  // the new set of cards — an instant swap reads as "nothing happened" (the
+  // grid just silently becomes different cards) rather than as a selection
+  // that visibly took effect.
+  const gridOpacity = useRef(new Animated.Value(1)).current;
+  // One width value per chip (0 = collapsed to icon-only, 1 = its label at
+  // full width) instead of a single "which one is open" flag, so the
+  // OUTGOING chip's collapse and the INCOMING chip's expand run as two ends
+  // of the SAME `Animated.parallel` rather than two separately-timed
+  // transitions — that's what makes them read as one motion instead of a
+  // collapse, a pause, then a separate expand.
+  const chipWidths = useRef<Record<Category, Animated.Value>>(
+    Object.fromEntries(categories.map(c => [c.name, new Animated.Value(c.name === 'Favorites' ? 1 : 0)])) as Record<Category, Animated.Value>,
+  ).current;
+  // A collapsed chip's label can't be measured directly — it's rendered at
+  // zero size. Each label's REAL natural width comes from an invisible,
+  // always-full-size copy of it (below, `opacity: 0`, `position: absolute`,
+  // out of the touch/layout flow) measured once via `onLayout`; the visible,
+  // animated copy then collapses/expands toward that real number instead of
+  // a guessed fixed budget, which read as too wide for shorter names ("All")
+  // and would've clipped a longer one that didn't fit.
+  const [labelWidths, setLabelWidths] = useState<Partial<Record<Category, number>>>({});
+  function selectCategory(next: Category) {
+    if (next === selected) return;
+    // `useNativeDriver` is left off throughout: it must animate on NATIVE
+    // too (not just web), and react-native-web's support for it is
+    // inconsistent enough that when it silently doesn't engage, the
+    // animation's callback never fires — which would leave `selected` stuck
+    // on whatever it already was, i.e. exactly "tapping another chip does
+    // nothing." Plain JS-driven `Animated.timing` always fires, everywhere.
+    // `{ finished }` guards the callback: tapping a second chip before the
+    // fade-out finishes STOPS this animation (interrupted, not finished) and
+    // starts a new one, so the interrupted one must not also commit its OWN
+    // now-stale `next` — only the animation that actually completes should.
+    Animated.timing(gridOpacity, { toValue: 0, duration: 120, useNativeDriver: false }).start(({ finished }) => {
+      if (!finished) return;
+      setSelected(next);
+      Animated.timing(gridOpacity, { toValue: 1, duration: 160, useNativeDriver: false }).start();
+      Animated.parallel(
+        categories.map(c => Animated.timing(chipWidths[c.name], { toValue: c.name === next ? 1 : 0, duration: 220, useNativeDriver: false })),
+      ).start();
+    });
+  }
   const full = compact ? 2 : 1;
   const message = (title: string, description: string) => setSheet({ kind: 'message', title, description });
   const lights = devices.filter(d => d.domain === 'light');
@@ -106,20 +148,76 @@ export function HomeScreen({ onNavigate }: ScreenProps) {
     : selected === 'Lights' ? [...Object.values(base).filter(card => card.category === 'Lights'), ...extraLightCards].map(card => ({ ...card, lane: undefined }))
     : selected === 'Cameras' ? [...Object.values(base).filter(card => card.category === 'Cameras'), ...extraCameraCards].map(card => ({ ...card, lane: undefined, span: compact ? 2 : 1 }))
     : Object.values(base).filter(card => card.category === selected).map(card => ({ ...card, lane: undefined }));
-  return <View className="min-h-0 flex-1 bg-white"><AskHeader onNavigate={onNavigate}/>
+  return <View className="min-h-0 flex-1 bg-white">
     <PageScroll>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 16, gap: 8 }}>
+      {header}
+      {/* Cancels PageScroll's own horizontal padding (a real horizontal
+          scroller must reach the true edges, not stop at the resting
+          container's padding) and puts the same inset back on the scrollable
+          content's start/end instead, so it still rests inset but can pan
+          past it. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -gutter }} contentContainerStyle={{ paddingVertical: 16, paddingHorizontal: gutter, gap: 8 }}>
         {categories.map(category => {
           const active = selected === category.name;
-          const textVisible = !compact || category.name === 'Favorites';
+          const labelClassName = `text-[14px] ${active ? 'font-medium text-home-on-sky' : 'text-home-muted'}`;
+          // Desktop always shows every label — nothing to animate, so it
+          // stays the plain, un-animated render it always was.
+          if (!compact) {
+            return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
+              onPress={() => selectCategory(category.name)}
+              className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-home-sky' : 'bg-home-surface'}`}>
+              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? colors.onSky : colors.muted}/>
+              <Label className={labelClassName}>{category.name}</Label>
+            </Pressable>;
+          }
+          // Compact: only the SELECTED chip shows its label — the rest
+          // collapse to an icon-only circle. The label's WIDTH (0 to its own
+          // measured natural width) and its leading MARGIN (0 to 8, replacing
+          // a static `gap`) are both driven by this one chip's own share of
+          // the same `Animated.parallel` in `selectCategory`, so the chip
+          // losing its label and the one gaining one move together, not one
+          // after the other. Falls back to a small placeholder before the
+          // real width is measured (first paint only).
+          const widthAnim = chipWidths[category.name];
+          const naturalWidth = labelWidths[category.name] ?? 54;
           return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
-            onPress={() => setSelected(category.name)} className={`h-[50px] flex-row items-center justify-center gap-2 active:opacity-70 ${active ? 'bg-home-sky' : 'bg-home-surface'} ${textVisible ? 'rounded-[18px] px-4' : 'w-[50px] rounded-full'}`}>
-            <Icon name={category.icon} filled={active && category.icon === 'heart'} size={compact ? 21 : 18} color={active ? colors.onSky : colors.muted}/>
-            {textVisible && <Label className={`text-[14px] ${active ? 'font-medium text-home-on-sky' : 'text-home-muted'}`}>{category.name}</Label>}
+            onPress={() => selectCategory(category.name)} className="active:opacity-70">
+            <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-home-sky' : 'bg-home-surface'}`}>
+              <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? colors.onSky : colors.muted}/>
+              <Animated.View style={{
+                overflow: 'hidden',
+                width: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, naturalWidth] }),
+                marginLeft: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 8] }),
+              }}>
+                <Label numberOfLines={1} className={labelClassName}>{category.name}</Label>
+              </Animated.View>
+            </Animated.View>
           </Pressable>;
         })}
       </ScrollView>
-      <DashboardGrid cards={visible} columns={selected === 'Cameras' && !compact ? Math.min(columns, 2) : columns}/>
+      {/* Invisible measurers: a collapsed chip's label is rendered at zero
+          size, so its real natural width can only come from a separate,
+          always-full-size copy — `opacity: 0` (invisible but still laid out
+          and measurable, unlike `display: none`), `position: absolute` (out
+          of this row's own flow, so it doesn't add width or a gap of its
+          own), and no pointer events (not a second, invisible tap target
+          sitting over the real chips). `font-medium`: the label is only ever
+          actually shown while ACTIVE (`labelClassName` above), which is also
+          the only time it's rendered at `font-medium` — a heavier weight
+          measures WIDER than the regular one this used to measure with, so
+          it was undercounting the one width that's ever really on screen.
+          One `onLayout` per name, ever — the text never changes, so nothing
+          re-measures after the first paint. */}
+      {compact && categories.map(category => labelWidths[category.name] === undefined && (
+        <Label key={`measure-${category.name}`} numberOfLines={1}
+          onLayout={event => setLabelWidths(widths => ({ ...widths, [category.name]: event.nativeEvent.layout.width }))}
+          className="text-[14px] font-medium" style={{ position: 'absolute', opacity: 0 }} pointerEvents="none">
+          {category.name}
+        </Label>
+      ))}
+      <Animated.View style={{ opacity: gridOpacity }}>
+        <DashboardGrid cards={visible} columns={selected === 'Cameras' && !compact ? Math.min(columns, 2) : columns}/>
+      </Animated.View>
     </PageScroll>
   </View>;
 }

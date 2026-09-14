@@ -1,5 +1,15 @@
-/** Logical React Native units (CSS px on web), never physical device pixels. */
-export const BREAKPOINTS = { rail: 600, expanded: 1024 } as const;
+/**
+ * Logical React Native units (CSS px on web), never physical device pixels.
+ *
+ * `rail` MUST match `ContentPanel`'s `framedFrom` (`screen-surface.tsx`'s
+ * `PANEL_FRAMED_FROM`) and the header combine threshold there — three
+ * independently-implemented responsive behaviors (nav rail vs. bottom nav,
+ * header external-sibling vs. combined-into-content, panel framed vs.
+ * full-bleed) that all need to flip at the SAME width, or a band of widths
+ * shows one flipped and the others not — e.g. the rail still visible while the
+ * header has already jumped inside the (still full-bleed) panel.
+ */
+export const BREAKPOINTS = { rail: 640, expanded: 1024 } as const;
 export const CONTENT_MAX = 1440;
 export const GRID_GAP = 12;
 

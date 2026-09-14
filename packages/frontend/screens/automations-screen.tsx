@@ -1,6 +1,5 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { AskHeader, ClassicHeader } from '../components/headers';
 import { Icon, type IconName } from '@willo/ui';
 import { AddButton, Label, SectionTitle } from '@willo/ui';
 import { RoutineRow } from '../components/routine-row';
@@ -14,12 +13,12 @@ const upcoming: { id: string; time: string; period: string; name: string; icon: 
   { id: 'security', time: '7:30', period: 'PM', name: 'Nighttime security', icon: 'lock' },
   { id: 'jam', time: '8:00', period: 'PM', name: 'Friday jam', icon: 'speaker' },
 ];
-export function AutomationsScreen({ onNavigate }: ScreenProps) {
+export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, notify } = useHome();
   const { compact, split } = useResponsiveLayout();
   const shown = upcoming.filter(item => !state.dismissedUpcoming.includes(item.id));
-  return <View className="min-h-0 flex-1 bg-white"><AskHeader onNavigate={onNavigate}/>
-    <PageScroll><PageColumns weights={[1, 1.35]}>
+  return <View className="min-h-0 flex-1 bg-white">
+    <PageScroll>{header}<PageColumns weights={[1, 1.35]}>
       <View><SectionTitle>Upcoming</SectionTitle><CardStrip gap={12}>
         {shown.length ? shown.map((item, index) => <View key={item.id}
           className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-home-sky' : 'bg-home-surface'}`}
@@ -43,10 +42,10 @@ export function AutomationsScreen({ onNavigate }: ScreenProps) {
     </PageColumns></PageScroll>
   </View>;
 }
-export function RoutinesScreen({ onNavigate }: ScreenProps) {
+export function RoutinesScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, notify } = useHome();
-  return <View className="min-h-0 flex-1 bg-white"><ClassicHeader title="Automations" onNavigate={onNavigate}/>
-    <PageScroll bottom={96}><PageColumns>
+  return <View className="min-h-0 flex-1 bg-white">
+    <PageScroll bottom={96}>{header}<PageColumns>
       <View><SectionTitle>Household Routines</SectionTitle><View className="gap-2">
         <RoutineRow title="Garage motion light" description="1 starter · 1 action" icon="settings"/>
         <RoutineRow title="Movie mode" description="1 starter · 3 actions" icon="light" onRun={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? 'Movie mode stopped' : 'Movie mode started in demo'); }}/>

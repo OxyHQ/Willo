@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { ClassicHeader } from '../components/headers';
 import { CameraCard } from '../components/camera-card';
 import { Icon, type IconName } from '@willo/ui';
 import { Label, SectionTitle, Tile } from '@willo/ui';
@@ -16,7 +15,7 @@ const categories = [
   { icon: 'wifi', title: 'Wi-Fi', detail: '2 devices', tone: 'green' },
   { icon: 'climate', title: 'Climate', detail: '2 devices', tone: 'peach' },
 ] as const satisfies readonly { icon: IconName; title: string; detail: string; tone: Tone }[];
-export function FavoritesScreen({ onNavigate, withAssistant = false }: ScreenProps & { withAssistant?: boolean }) {
+export function FavoritesScreen({ onNavigate, withAssistant = false, header }: ScreenProps & { withAssistant?: boolean }) {
   const { state, dispatch, setSheet, notify } = useHome();
   const { compact } = useResponsiveLayout();
   const [assistantVacuum, setAssistantVacuum] = useState(true);
@@ -35,8 +34,8 @@ export function FavoritesScreen({ onNavigate, withAssistant = false }: ScreenPro
     { id: 'blinds', estimatedHeight: 80, content: <Tile grow={false} title="Living room blinds" subtitle={state.devices.blinds ? 'Open' : 'Closed'} icon="blinds" tone={state.devices.blinds ? 'blue' : 'neutral'} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: 'blinds' })}/> },
     { id: 'vacuum', estimatedHeight: 80, content: <Tile grow={false} title="Vacuum" subtitle={vacuumRunning ? 'Running' : 'Paused'} icon="vacuum" tone={vacuumRunning ? 'blue' : 'neutral'} onPress={() => withAssistant ? setAssistantVacuum(value => !value) : dispatch({ type: 'TOGGLE_DEVICE', id: 'vacuum' })}/> },
   ];
-  return <View className="min-h-0 flex-1 bg-white"><ClassicHeader title="Spring Street Home" home notifications={!withAssistant} onNavigate={onNavigate}/>
-    <PageScroll><CardStrip>
+  return <View className="min-h-0 flex-1 bg-white">
+    <PageScroll>{header}<CardStrip>
       {displayCategories.map(category => <Pressable key={category.title} accessibilityRole="button" accessibilityLabel={category.title}
         onPress={() => category.title === 'Cameras' ? setSheet({ kind: 'camera', title: 'Backyard camera', garden: true }) : onNavigate(category.title === 'Wi-Fi' ? 'settings' : 'devices')}
         className={`min-h-[100px] justify-between rounded-[23px] p-3.5 active:opacity-70 ${tones[category.tone].tile}`}

@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 export const SCREENS = [
   { id: 'home', title: 'Home', subtitle: 'Favorites, camera & climate', generation: 'modern', number: '01' },
   { id: 'activity', title: 'Activity', subtitle: 'Home brief & event filters', generation: 'modern', number: '02' },
@@ -14,7 +15,11 @@ export const SCREENS = [
 ] as const;
 export type ScreenId = typeof SCREENS[number]['id'];
 export type Navigate = (screen: ScreenId | 'gallery') => void;
-export type ScreenProps = { onNavigate: Navigate };
+// `header` is only set below ContentPanel's framed breakpoint, when
+// ScreenSurface asks a screen to render its own header inline (one shared
+// scroll) instead of the screen surface rendering it as a separate sibling
+// above the panel.
+export type ScreenProps = { onNavigate: Navigate; header?: ReactNode };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
 export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency'];
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency'];

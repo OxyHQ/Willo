@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
 export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage';
 type Props = { name: IconName; size?: number; color?: string; filled?: boolean; strokeWidth?: number };
@@ -57,5 +58,10 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     signal: <><Path d="M4 18v-2M9 18v-6M14 18V8M19 18V4" strokeWidth="3"/></>,
   };
   const fillable = ['heart', 'home', 'lock', 'light', 'play', 'sparkle'].includes(name);
-  return <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled && fillable ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" accessibilityElementsHidden>{symbols[name]}</Svg>;
+  // `accessibilityElementsHidden` is an iOS-only RN prop; react-native-svg's
+  // web build forwards props straight to the DOM rather than translating
+  // them, so passing it on web reaches a real <svg> element and React warns.
+  // Web's own equivalent is `aria-hidden`.
+  const hiddenFromAccessibilityTree = Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true };
+  return <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled && fillable ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...hiddenFromAccessibilityTree}>{symbols[name]}</Svg>;
 }
