@@ -61,13 +61,14 @@ function warmToward(original: string, token: string, amount: number): string {
  *    this everywhere else in the app)
  *  - the pale "device glow" behind the speaker → `infoSubtle` (blue
  *    devices already read as `info` throughout the app — see `tokens.ts`)
- *  - both lamps' glow/shade (the floor lamp's bulb highlight, the table
- *    lamp's shade) → warmed toward `secondary`, the same "light is on"
- *    tone every lit-light tile in the app already uses (`tokens.ts`'s
- *    `yellow` tone) — so the floor lamp's bulb reads as genuinely lit,
- *    not just recolored
- *  - the cat's fur → warmed toward `secondary` too (it's already the same
- *    warm-yellow family)
+ *  - the floor lamp's bulb highlight and the cat's fur → warmed strongly
+ *    toward `secondary`, the same "light is on" tone every lit-light tile
+ *    in the app already uses (`tokens.ts`'s `yellow` tone) — so the floor
+ *    lamp's bulb reads as genuinely lit, not just recolored
+ *  - the table lamp's shade → warmed toward `negative` instead, which
+ *    resolves to a soft salmon-pink for this seed — the shade was always
+ *    pink, not yellow, and a flat token swap to `secondary` overrode that;
+ *    this keeps it in its own original color family, just richer
  *  - skin tones and the thermometer badge → warmed toward `tertiary`
  *    (Willo's own peach/climate accent — `ThermostatCard` already uses
  *    this exact family for temperature)
@@ -98,6 +99,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
   // (Willo's peach/climate tone, same family `ThermostatCard` uses).
   const toLit = (original: string, amount: number) => (isDark ? warmToward(original, themeColors.secondary, amount) : original);
   const toWarmSkin = (original: string, amount: number) => (isDark ? warmToward(original, themeColors.tertiary, amount) : original);
+  const toPink = (original: string, amount: number) => (isDark ? warmToward(original, themeColors.negative, amount) : original);
   const height = width * (888 / 1240);
 
   return (
@@ -125,8 +127,8 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Table lamp */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={toLit('#fbe9e7', 0.6)} d="M313 336L329 337L329 411C330 435 340 452 359 463L278 464C300 452 310 437 313 415Z" />
-        <Path fill={toLit('#fbe7e6', 0.6)} d="M225 306C247 275 273 251 302 250C335 248 374 269 398 290C414 303 425 317 421 326C417 338 397 339 373 340L254 341C231 341 211 329 225 306Z" />
+        <Path fill={toPink('#fbe9e7', 0.5)} d="M313 336L329 337L329 411C330 435 340 452 359 463L278 464C300 452 310 437 313 415Z" />
+        <Path fill={toPink('#fbe7e6', 0.5)} d="M225 306C247 275 273 251 302 250C335 248 374 269 398 290C414 303 425 317 421 326C417 338 397 339 373 340L254 341C231 341 211 329 225 306Z" />
       </G>
 
       {/* Thermometer badge */}
@@ -166,12 +168,12 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Yellow cat, curled tail and paws */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={toLit('#ffedb6', 0.45)} d="M244 801C225 781 222 761 230 739C239 716 257 697 269 674C283 648 284 633 276 612C271 601 264 590 256 582C249 575 239 578 235 584C231 591 236 602 242 612C253 630 259 644 250 665C239 688 219 710 205 732C190 755 187 778 198 800C208 820 225 835 247 838L531 838C550 838 567 826 571 813C574 804 563 796 554 791L566 768C570 762 568 757 562 756C557 754 550 757 545 758C545 753 552 747 549 743C545 737 534 742 528 745C508 753 488 774 469 780C451 786 440 782 424 774L389 747C368 728 347 708 325 706C300 703 277 716 264 738C253 757 249 782 244 801Z" />
+        <Path fill={toLit('#ffedb6', 0.7)} d="M244 801C225 781 222 761 230 739C239 716 257 697 269 674C283 648 284 633 276 612C271 601 264 590 256 582C249 575 239 578 235 584C231 591 236 602 242 612C253 630 259 644 250 665C239 688 219 710 205 732C190 755 187 778 198 800C208 820 225 835 247 838L531 838C550 838 567 826 571 813C574 804 563 796 554 791L566 768C570 762 568 757 562 756C557 754 550 757 545 758C545 753 552 747 549 743C545 737 534 742 528 745C508 753 488 774 469 780C451 786 440 782 424 774L389 747C368 728 347 708 325 706C300 703 277 716 264 738C253 757 249 782 244 801Z" />
         <Path d="M293 751C312 735 335 728 349 734C363 740 367 751 362 768C357 785 349 799 342 811L381 812C397 812 405 822 405 836" />
         <Path d="M437 814C459 814 477 816 491 824L493 836" />
         <Path d="M533 760C542 764 548 774 552 782" />
         <Path d="M499 797L539 795M519 820L549 808" />
-        <Path fill={toLit('#ffedb6', 0.45)} d="M550 835C560 828 570 825 576 836Z" />
+        <Path fill={toLit('#ffedb6', 0.7)} d="M550 835C560 828 570 825 576 836Z" />
         <Path strokeWidth={4.8} d="M574 791C587 766 608 745 630 738M584 795L624 788" />
       </G>
 
@@ -183,13 +185,13 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Raised right forearm and gesturing hand */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={toWarmSkin('#edddba', 0.3)} d="M911 686C919 656 927 622 934 588C937 575 935 566 928 559L919 552C914 549 912 545 915 541L929 549L915 536C909 530 911 526 918 529L942 544C954 552 961 565 960 580L954 677C941 677 926 681 911 686Z" />
+        <Path fill={toWarmSkin('#edddba', 0.45)} d="M911 686C919 656 927 622 934 588C937 575 935 566 928 559L919 552C914 549 912 545 915 541L929 549L915 536C909 530 911 526 918 529L942 544C954 552 961 565 960 580L954 677C941 677 926 681 911 686Z" />
         <Path strokeWidth={4.6} d="M918 538L939 558M927 550L925 557" />
       </G>
 
       {/* Profile and neck */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={toWarmSkin('#eddfc4', 0.3)} d="M1041 629L1025 633L1016 638L1027 641C1023 645 1018 650 1015 656C1010 666 1017 675 1026 680C1018 685 1007 687 992 684L1005 713L1037 727C1037 703 1036 684 1056 674C1065 670 1078 669 1080 660C1082 651 1074 646 1064 650C1058 651 1051 652 1047 647C1043 642 1044 635 1047 630Z" />
+        <Path fill={toWarmSkin('#eddfc4', 0.45)} d="M1041 629L1025 633L1016 638L1027 641C1023 645 1018 650 1015 656C1010 666 1017 675 1026 680C1018 685 1007 687 992 684L1005 713L1037 727C1037 703 1036 684 1056 674C1065 670 1078 669 1080 660C1082 651 1074 646 1064 650C1058 651 1051 652 1047 647C1043 642 1044 635 1047 630Z" />
       </G>
 
       {/* White t-shirt */}
@@ -199,7 +201,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
       </G>
 
       {/* Small fingertips peeking around the phone */}
-      <G stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" fill={toWarmSkin('#efddb5', 0.3)}>
+      <G stroke={ink} strokeWidth={5.1} strokeLinecap="round" strokeLinejoin="round" fill={toWarmSkin('#efddb5', 0.45)}>
         <Path d="M890 548C898 545 903 550 902 554C901 558 896 559 892 559Z" />
         <Path d="M896 560C904 557 909 562 907 566C906 570 901 572 897 570Z" />
         <Path d="M901 574C909 571 913 576 911 580C910 584 906 586 902 582Z" />
@@ -213,7 +215,7 @@ export function SignInIllustration({ width = 200 }: { width?: number }) {
 
       {/* Near arm, hand and thumb resting on the phone */}
       <G stroke={ink} strokeWidth={5.6} strokeLinecap="round" strokeLinejoin="round">
-        <Path fill={toWarmSkin('#f0ddb0', 0.3)} d="M908 787L820 816C808 821 799 817 796 806C790 790 797 768 805 747L837 677C846 657 849 636 848 616C845 607 846 594 850 586L855 578C859 573 862 578 861 584L859 602L868 589C872 583 877 586 874 595L869 614C873 635 867 657 860 677L840 742L825 758L901 732Z" />
+        <Path fill={toWarmSkin('#f0ddb0', 0.45)} d="M908 787L820 816C808 821 799 817 796 806C790 790 797 768 805 747L837 677C846 657 849 636 848 616C845 607 846 594 850 586L855 578C859 573 862 578 861 584L859 602L868 589C872 583 877 586 874 595L869 614C873 635 867 657 860 677L840 742L825 758L901 732Z" />
         <Path d="M825 758L818 760M858 604L852 613M901 733L908 787" />
       </G>
 
