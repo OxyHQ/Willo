@@ -72,8 +72,13 @@ export default function RootLayout() {
             `defaultMode="system"` matches OxyHQ/Mention's own convention
             (`app/_layout.tsx`) — Willo has no dark-mode styling of its own
             yet, so this is the same tradeoff Mention already made, not a
-            new one. */}
-        <BloomProvider defaultMode="system" seed="#00537f">
+            new one. `tertiaryColor`: Bloom's `secondary`/`tertiary` are
+            otherwise auto-DERIVED from the seed via M3 color theory and can
+            land on any hue (for this seed, an unpinned `tertiary` resolves to
+            a brown, not the warm peach the climate card needs) — pinning it
+            to Willo's own `onPeach` keeps that family a real peach at every
+            mode instead of an arbitrary derived color. */}
+        <BloomProvider defaultMode="system" seed="#00537f" tertiaryColor="#8e3205">
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
             <HomeProvider>
               <StatusBar barStyle="dark-content" />

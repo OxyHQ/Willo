@@ -51,7 +51,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // involved) and would otherwise stay the static brand hex regardless of
   // mode. The rest of `tones` still uses `palette.color` as-is until they
   // migrate the same way.
-  const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info };
+  const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info, peach: themeColors.tertiary, neutral: themeColors.textSecondary };
   const iconColor = migratedToneColor[tone] ?? palette.color;
   const [pressed, setPressed] = useState(false);
   // The tile's own measured width, read on every pan update to turn a
