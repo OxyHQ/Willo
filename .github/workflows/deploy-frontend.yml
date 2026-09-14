@@ -39,6 +39,12 @@ jobs:
         run: bunx expo export --platform web
         env:
           EXPO_PUBLIC_OXY_API_URL: https://api.oxy.so
+          # Public client id (ApplicationCredential publicKey, type 'public') —
+          # safe to commit, same as Peable's own equivalent constant. Without
+          # it, OxySignInButton's web OAuth flow no-ops with
+          # `missing-client-id` and nobody can sign in to the deployed app.
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://willo.sh
 
       # Run through `bunx` directly, not `cloudflare/wrangler-action`: that
       # action resolves its own wrangler by looking for a lockfile in
