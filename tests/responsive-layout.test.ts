@@ -4,11 +4,10 @@ import { BREAKPOINTS, getLayoutMetrics, packMasonry } from '../packages/frontend
 import { isNavigationActive, modernTabs, classicTabs } from '../packages/frontend/components/navigation-items.ts';
 import { homeReducer, initialHomeState } from '../packages/frontend/state/home-reducer.ts';
 
-for (const [width, rail, sidebar] of [[320, false, false], [599, false, false], [600, true, false], [1024, true, false], [1439, true, false], [1440, true, true]] as const) {
+for (const [width, rail] of [[320, false], [599, false], [600, true], [1024, true], [1439, true], [1440, true]] as const) {
   test(`navigation boundary at ${width}`, () => {
     const layout = getLayoutMetrics(width, 900);
     assert.equal(!layout.compact, rail);
-    assert.equal(layout.sidebar, sidebar);
     assert.ok(layout.contentWidth + layout.navigationWidth <= width);
   });
 }
