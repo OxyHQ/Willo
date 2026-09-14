@@ -21,6 +21,29 @@ type TadoYamlConfig = {
   entities: string[];
 };
 
+/**
+ * Thrown when this page (served over `https:`) would try to reach a Home
+ * Assistant instance over plain `http:` — a browser refuses that as "mixed
+ * content" before the request ever leaves the page, and a follow-up CORS
+ * failure on top of it, for EVERY instance URL, correct or not (Home
+ * Assistant's own default install has no TLS cert, so `http://` is the
+ * common case, not a typo). No code here can change that: it's the
+ * browser's own security boundary, not a bug in the request. Detecting it
+ * up front avoids attempting (and console-spamming) requests guaranteed to
+ * fail, and lets the caller show an accurate reason instead of a generic
+ * "check the instance URL" message that would be misleading here — the URL
+ * can be exactly right and this will still happen.
+ */
+export class MixedContentError extends Error {
+  constructor(instanceUrl: string) {
+    // Kept short: this surfaces in a small, ~2.7s toast (`home-context.tsx`),
+    // not a modal — the full reasoning lives in this class's own doc comment
+    // for whoever reads the `console.error` this also goes through.
+    super(`Home Assistant must use https:// — this page is secure (https) and can't reach ${instanceUrl}, an insecure address, even if it's typed correctly.`);
+    this.name = 'MixedContentError';
+  }
+}
+
 // The subset of Home Assistant's registry fields needed to resolve which
 // room (area) each device belongs to.
 type RegistryEntity = { entity_id: string; device_id: string | null; area_id: string | null };
@@ -116,6 +139,13 @@ export function createHomeAssistantProvider(credentials: HomeAssistantCredential
   };
 
   async function connect(): Promise<Device[]> {
+    // `typeof window` guard: this same provider code runs on native too,
+    // where there is no page origin/protocol to conflict with — only a web
+    // page loaded over https can hit this at all.
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.protocol !== 'https:') {
+      throw new MixedContentError(instanceUrl);
+    }
+
     // authCode is single-use (OAuth authorization_code grant): it's only
     // present right after login. Every later connection must reuse the
     // refresh_token that came back from that first exchange instead.
