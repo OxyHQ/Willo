@@ -23,12 +23,17 @@ export const colors = {
 export const tones = {
   blue: { tile: 'bg-info-subtle', text: 'text-info-text', color: colors.onBlue },
   sky: { tile: 'bg-primary-subtle', text: 'text-primary-text', color: colors.onSky },
-  yellow: { tile: 'bg-home-yellow', text: 'text-home-on-yellow', color: colors.onYellow },
+  // `secondary` is pinned to this exact yellow in `BloomProvider`
+  // (`app/_layout.tsx`'s `secondaryColor`), not left to the seed's own
+  // auto-derived hue — see that prop's doc comment.
+  yellow: { tile: 'bg-secondary-subtle', text: 'text-secondary-text', color: colors.onYellow },
   // `tertiary` is pinned to this exact peach in `BloomProvider`
   // (`app/_layout.tsx`'s `tertiaryColor`), not left to the seed's own
   // auto-derived hue — see that prop's doc comment.
   peach: { tile: 'bg-tertiary-subtle', text: 'text-tertiary-text', color: colors.onPeach },
-  green: { tile: 'bg-home-green', text: 'text-home-on-green', color: colors.onGreen },
+  // `success`, a status color with a semantically FIXED green hue (like
+  // `blue` → `info`) — Wi-Fi/connected is exactly what it's for.
+  green: { tile: 'bg-success-subtle', text: 'text-success-text', color: colors.onGreen },
   // `muted` is Bloom's own real "inactive surface" token — a closer semantic
   // fit for an OFF device than the generic page `background`.
   neutral: { tile: 'bg-muted', text: 'text-muted-foreground', color: colors.ink },

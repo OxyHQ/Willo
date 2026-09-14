@@ -13,9 +13,9 @@ import { useTheme } from '@oxy.so/bloom/theme';
 // renders with, chosen from its domain — the same domain the provider tags
 // every device with, never guessed from which capabilities happen to be
 // present.
-const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue'; color: string; onColor: string; offColor: string }> = {
-  light: { icon: 'light', tone: 'yellow', color: colors.yellow, onColor: colors.onYellow, offColor: colors.surface },
-  fan: { icon: 'fan', tone: 'blue', color: colors.blue, onColor: colors.onBlue, offColor: colors.surface },
+const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue' }> = {
+  light: { icon: 'light', tone: 'yellow' },
+  fan: { icon: 'fan', tone: 'blue' },
 };
 
 /** One host in the root layout, not one modal per retained router screen. */
@@ -83,14 +83,14 @@ export function Overlays() {
             )}
             {shown.kind === 'device' && (
               <View className="gap-5">
-                <View className="h-[140px] items-center justify-center rounded-[25px] bg-home-yellow">
-                  <Icon name="light" size={34} color={colors.onYellow} filled />
-                  <Label className="mt-3 text-[32px] text-home-on-yellow">{state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}%</Label>
+                <View className="h-[140px] items-center justify-center rounded-[25px] bg-secondary-subtle">
+                  <Icon name="light" size={34} color={themeColors.secondary} filled />
+                  <Label className="mt-3 text-[32px] text-secondary-text">{state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}%</Label>
                 </View>
                 <Slider accessibilityLabel={`${shown.title} brightness`} minimumValue={0} maximumValue={100} step={1}
                   value={state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}
                   onValueChange={value => dispatch({ type: 'SET_BRIGHTNESS', id: shown.id, value })}
-                  minimumTrackTintColor={colors.onYellow} maximumTrackTintColor={colors.yellow} thumbTintColor={colors.onYellow} />
+                  minimumTrackTintColor={themeColors.secondary} maximumTrackTintColor={themeColors.backgroundSecondary} thumbTintColor={themeColors.secondary} />
                 <Pressable accessibilityRole="button" onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: shown.id })}
                   className="items-center rounded-full bg-primary-subtle py-4">
                   <Label className="text-[14px] font-medium text-primary-text">Turn {state.devices[shown.id] ? 'off' : 'on'}</Label>
@@ -103,22 +103,22 @@ export function Overlays() {
               const brightness = getCapability(liveDevice, 'brightness');
               const fanSpeed = getCapability(liveDevice, 'fanSpeed');
               const percent = brightness?.percent ?? fanSpeed?.percent ?? null;
-              const baseAppearance = DEVICE_APPEARANCE[liveDevice.domain] ?? DEVICE_APPEARANCE.light;
-              // `blue` is the one tone migrated to Bloom's theme so far
-              // (`tokens.ts`) — same reasoning as `Tile`'s `migratedToneColor`:
-              // `color`/`onColor` are plain inline values (no CSS variable),
-              // so they need the live theme value directly instead of staying
-              // the static brand hex regardless of mode.
-              const appearance = baseAppearance.tone === 'blue'
-                ? { ...baseAppearance, color: themeColors.infoSubtle, onColor: themeColors.info }
-                : baseAppearance;
+              const appearance = DEVICE_APPEARANCE[liveDevice.domain] ?? DEVICE_APPEARANCE.light;
+              // Both tones are migrated to Bloom's theme now (`tokens.ts`).
+              // A NativeWind class, not `appearance.color` as an inline
+              // `backgroundColor` — Bloom's own `-subtle` tints are only
+              // exposed as real CSS-variable-backed classes, not JS values
+              // (`ThemeColors` only carries a full `*Subtle`/`*SubtleForeground`
+              // pair for `primary` and the status colors, not `secondary`).
+              // `onColor` (the ICON's own fill, and the slider's track/thumb
+              // further below — real component props with no class
+              // equivalent) still needs the live JS value directly.
+              const subtleBgClassName = appearance.tone === 'yellow' ? 'bg-secondary-subtle' : 'bg-info-subtle';
+              const onColor = appearance.tone === 'yellow' ? themeColors.secondary : themeColors.info;
               const on = onOff?.on ?? false;
               return (
                 <View className="gap-5">
-                  <View
-                    className="h-[140px] items-center justify-center rounded-[25px]"
-                    style={{ backgroundColor: on ? appearance.color : appearance.offColor }}
-                  >
+                  <View className={`h-[140px] items-center justify-center rounded-[25px] ${on ? subtleBgClassName : 'bg-muted'}`}>
                     <Icon name={appearance.icon} size={34} color={on ? '#ffffff' : themeColors.textSecondary} filled={on} />
                     <Label className={`mt-3 text-[32px] ${on ? 'text-white' : 'text-foreground'}`}>
                       {on ? (percent != null ? `${percent}%` : 'On') : 'Off'}
@@ -134,9 +134,9 @@ export function Overlays() {
                       onSlidingComplete={value =>
                         sendCommand(liveDevice.id, brightness ? { kind: 'setBrightness', percent: value } : { kind: 'setFanSpeed', percent: value })
                       }
-                      minimumTrackTintColor={appearance.onColor}
-                      maximumTrackTintColor={appearance.color}
-                      thumbTintColor={appearance.onColor}
+                      minimumTrackTintColor={onColor}
+                      maximumTrackTintColor={themeColors.backgroundSecondary}
+                      thumbTintColor={onColor}
                     />
                   )}
                   {onOff && (

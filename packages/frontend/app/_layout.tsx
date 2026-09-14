@@ -77,8 +77,10 @@ export default function RootLayout() {
             land on any hue (for this seed, an unpinned `tertiary` resolves to
             a brown, not the warm peach the climate card needs) — pinning it
             to Willo's own `onPeach` keeps that family a real peach at every
-            mode instead of an arbitrary derived color. */}
-        <BloomProvider defaultMode="system" seed="#00537f" tertiaryColor="#8e3205">
+            mode instead of an arbitrary derived color. Same reasoning for
+            `secondaryColor` → `onYellow`: an unpinned `secondary` resolves to
+            a red for this seed, not the yellow the "light is on" tone needs. */}
+        <BloomProvider defaultMode="system" seed="#00537f" secondaryColor="#625007" tertiaryColor="#8e3205">
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
             <HomeProvider>
               <StatusBar barStyle="dark-content" />
