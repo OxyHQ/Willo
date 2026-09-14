@@ -34,7 +34,7 @@ export function FavoritesScreen({ onNavigate, withAssistant = false, header }: S
     { id: 'blinds', estimatedHeight: 80, content: <Tile grow={false} title="Living room blinds" subtitle={state.devices.blinds ? 'Open' : 'Closed'} icon="blinds" tone={state.devices.blinds ? 'blue' : 'neutral'} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: 'blinds' })}/> },
     { id: 'vacuum', estimatedHeight: 80, content: <Tile grow={false} title="Vacuum" subtitle={vacuumRunning ? 'Running' : 'Paused'} icon="vacuum" tone={vacuumRunning ? 'blue' : 'neutral'} onPress={() => withAssistant ? setAssistantVacuum(value => !value) : dispatch({ type: 'TOGGLE_DEVICE', id: 'vacuum' })}/> },
   ];
-  return <View className="min-h-0 flex-1 bg-white">
+  return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>{header}<CardStrip>
       {displayCategories.map(category => <Pressable key={category.title} accessibilityRole="button" accessibilityLabel={category.title}
         onPress={() => category.title === 'Cameras' ? setSheet({ kind: 'camera', title: 'Backyard camera', garden: true }) : onNavigate(category.title === 'Wi-Fi' ? 'settings' : 'devices')}

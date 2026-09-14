@@ -40,11 +40,11 @@ function AppShell() {
   const hasTabs = !noTabScreens.includes(screen);
 
   return (
-    <View className="min-h-0 min-w-0 flex-1 bg-home-surface" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
+    <View className="min-h-0 min-w-0 flex-1 bg-background" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
       <View style={{ height: insets.top }} />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} modern={modern} onNavigate={onNavigate} />}
-        <View testID="screen-surface" className={`relative min-h-0 min-w-0 flex-1 bg-home-surface ${Platform.OS === 'web' ? '' : 'overflow-hidden'}`}>
+        <View testID="screen-surface" className={`relative min-h-0 min-w-0 flex-1 bg-background ${Platform.OS === 'web' ? '' : 'overflow-hidden'}`}>
           {/* WEB: the window/document is the real scroller (the nav rail above
               and each screen's header pin themselves with `position: sticky`
               against it — see `navigation-rail.tsx`/`screen-surface.tsx`), so
@@ -64,7 +64,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <BloomProvider>
+        {/* `seed`, not a named `colorPreset`: none of Bloom's presets matches
+            Willo's own accent (`onSky` #00537f) closely, and `seed` runs the
+            SAME color engine from Willo's own real brand color instead of an
+            approximation — so Bloom-rendered chrome (ContentPanel, TabBar)
+            matches the rest of the app instead of visibly clashing with it.
+            `defaultMode="system"` matches OxyHQ/Mention's own convention
+            (`app/_layout.tsx`) — Willo has no dark-mode styling of its own
+            yet, so this is the same tradeoff Mention already made, not a
+            new one. */}
+        <BloomProvider defaultMode="system" seed="#00537f">
           <OxyProvider baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}>
             <HomeProvider>
               <StatusBar barStyle="dark-content" />

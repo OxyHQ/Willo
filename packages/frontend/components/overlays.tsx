@@ -7,6 +7,7 @@ import { assets } from '../data/assets';
 import { useHome, type Sheet } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
 import { colors, Icon, IconButton, Label, type IconName } from '@willo/ui';
+import { useTheme } from '@oxy.so/bloom/theme';
 
 // The tone (yellow, blue) and icon a generic on/off-and-adjustable device
 // renders with, chosen from its domain — the same domain the provider tags
@@ -20,6 +21,7 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
   const { state, dispatch, sheet, setSheet, toast, devices, sendCommand } = useHome();
+  const { colors: themeColors } = useTheme();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetRef>(null);
   // Retain content until Bloom finishes the dismissal animation.
@@ -50,21 +52,21 @@ export function Overlays() {
             </View>
             {shown.kind === 'menu' && (
               <>
-                {shown.description && <Label className="mb-3 text-[12px] leading-[18px] text-home-muted">{shown.description}</Label>}
+                {shown.description && <Label className="mb-3 text-[12px] leading-[18px] text-muted-foreground">{shown.description}</Label>}
                 {shown.options.map(option => (
                   <Pressable key={option.label} accessibilityRole="button" accessibilityState={{ selected: option.selected }}
                     onPress={option.onPress}
-                    className={`mb-2 min-h-[53px] flex-row items-center gap-3 rounded-[18px] px-4 py-3 ${option.selected ? 'bg-home-sky' : 'bg-home-surface'}`}>
+                    className={`mb-2 min-h-[53px] flex-row items-center gap-3 rounded-[18px] px-4 py-3 ${option.selected ? 'bg-primary-subtle' : 'bg-home-surface'}`}>
                     <View className="min-w-0 flex-1">
                       <Label className="text-[14px]">{option.label}</Label>
-                      {option.description && <Label className="mt-1 text-[11px] text-home-muted">{option.description}</Label>}
+                      {option.description && <Label className="mt-1 text-[11px] text-muted-foreground">{option.description}</Label>}
                     </View>
-                    {option.selected && <Icon name="check" size={18} color={colors.onSky} />}
+                    {option.selected && <Icon name="check" size={18} color={themeColors.primary} />}
                   </Pressable>
                 ))}
               </>
             )}
-            {shown.kind === 'message' && <Label selectable className="pb-3 text-[14px] leading-[23px] text-home-muted">{shown.description}</Label>}
+            {shown.kind === 'message' && <Label selectable className="pb-3 text-[14px] leading-[23px] text-muted-foreground">{shown.description}</Label>}
             {shown.kind === 'camera' && (
               <>
                 <View className="h-[220px] overflow-hidden rounded-[25px]">
@@ -74,7 +76,7 @@ export function Overlays() {
                     contentFit="cover"
                   />
                 </View>
-                <Label className="mt-4 text-[12px] leading-[18px] text-home-muted">
+                <Label className="mt-4 text-[12px] leading-[18px] text-muted-foreground">
                   {shown.snapshotUrl !== undefined ? 'Live snapshot from Home Assistant.' : 'Static reference image. No live video or audio stream is connected.'}
                 </Label>
               </>
@@ -90,10 +92,10 @@ export function Overlays() {
                   onValueChange={value => dispatch({ type: 'SET_BRIGHTNESS', id: shown.id, value })}
                   minimumTrackTintColor={colors.onYellow} maximumTrackTintColor={colors.yellow} thumbTintColor={colors.onYellow} />
                 <Pressable accessibilityRole="button" onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: shown.id })}
-                  className="items-center rounded-full bg-home-sky py-4">
-                  <Label className="text-[14px] font-medium text-home-on-sky">Turn {state.devices[shown.id] ? 'off' : 'on'}</Label>
+                  className="items-center rounded-full bg-primary-subtle py-4">
+                  <Label className="text-[14px] font-medium text-primary-text">Turn {state.devices[shown.id] ? 'off' : 'on'}</Label>
                 </Pressable>
-                <Label className="text-center text-[11px] text-home-muted">Changes affect this demo session only.</Label>
+                <Label className="text-center text-[11px] text-muted-foreground">Changes affect this demo session only.</Label>
               </View>
             )}
             {shown.kind === 'realDevice' && liveDevice && (() => {
@@ -101,7 +103,15 @@ export function Overlays() {
               const brightness = getCapability(liveDevice, 'brightness');
               const fanSpeed = getCapability(liveDevice, 'fanSpeed');
               const percent = brightness?.percent ?? fanSpeed?.percent ?? null;
-              const appearance = DEVICE_APPEARANCE[liveDevice.domain] ?? DEVICE_APPEARANCE.light;
+              const baseAppearance = DEVICE_APPEARANCE[liveDevice.domain] ?? DEVICE_APPEARANCE.light;
+              // `blue` is the one tone migrated to Bloom's theme so far
+              // (`tokens.ts`) — same reasoning as `Tile`'s `migratedToneColor`:
+              // `color`/`onColor` are plain inline values (no CSS variable),
+              // so they need the live theme value directly instead of staying
+              // the static brand hex regardless of mode.
+              const appearance = baseAppearance.tone === 'blue'
+                ? { ...baseAppearance, color: themeColors.infoSubtle, onColor: themeColors.info }
+                : baseAppearance;
               const on = onOff?.on ?? false;
               return (
                 <View className="gap-5">
@@ -109,8 +119,8 @@ export function Overlays() {
                     className="h-[140px] items-center justify-center rounded-[25px]"
                     style={{ backgroundColor: on ? appearance.color : appearance.offColor }}
                   >
-                    <Icon name={appearance.icon} size={34} color={on ? '#ffffff' : colors.muted} filled={on} />
-                    <Label className="mt-3 text-[32px]" style={{ color: on ? '#ffffff' : colors.ink }}>
+                    <Icon name={appearance.icon} size={34} color={on ? '#ffffff' : themeColors.textSecondary} filled={on} />
+                    <Label className={`mt-3 text-[32px] ${on ? 'text-white' : 'text-foreground'}`}>
                       {on ? (percent != null ? `${percent}%` : 'On') : 'Off'}
                     </Label>
                   </View>
@@ -133,9 +143,9 @@ export function Overlays() {
                     <Pressable
                       accessibilityRole="button"
                       onPress={() => sendCommand(liveDevice.id, { kind: 'setOnOff', on: !on })}
-                      className="items-center rounded-full bg-home-sky py-4"
+                      className="items-center rounded-full bg-primary-subtle py-4"
                     >
-                      <Label className="text-[14px] font-medium text-home-on-sky">Turn {on ? 'off' : 'on'}</Label>
+                      <Label className="text-[14px] font-medium text-primary-text">Turn {on ? 'off' : 'on'}</Label>
                     </Pressable>
                   )}
                 </View>

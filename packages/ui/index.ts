@@ -5,6 +5,7 @@
 
 export { Icon, type IconName } from './components/icon';
 export { default as Level, type Pose } from './components/Level';
+export { useOptimisticValue } from './hooks/use-optimistic-value';
 
 export {
   Label,

@@ -17,5 +17,11 @@
   --color-home-green: #e1f5df;
   --color-home-on-green: #146524;
   --color-home-red: #b3261e;
-  --color-home-border: #e2e5e9;
 }
+/* No `--color-home-border` here — first step of adopting Bloom's color
+   system the way Mention does it (`global.css`'s own comment): Bloom's
+   imported theme.css is the single source of truth for shared neutral
+   utilities like a border color, so a per-app `home-border` alias is NOT
+   re-declared here. Call sites use Bloom's own `border-border`/`bg-border`
+   utilities directly instead — see `event-row.tsx`, `primitives.tsx`'s
+   `Pill`, `emergency-screen.tsx`. */
