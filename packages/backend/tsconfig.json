@@ -1,0 +1,13 @@
+{
+  "//": "Overrides module/moduleResolution to Node16 — the preset's own backend.json default (node10) is deprecated in TS 6+. Mirrors OxyHQ/Mention's own backend tsconfig, which overrides the same default for the same reason.",
+  "extends": "@oxy.so/app-preset/tsconfig/backend.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist",
+    "types": ["node"],
+    "module": "Node16",
+    "moduleResolution": "Node16"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["dist", "**/*.test.ts"]
+}
