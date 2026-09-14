@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useAuth, OxySignInButton } from '@oxy.so/services';
 import { Label } from '@willo/ui';
@@ -8,9 +7,8 @@ import { ContentWidth } from '../layout/page-layout';
 import { SignInIllustration } from './sign-in-illustration';
 
 function SignedOutScreen() {
-  const insets = useSafeAreaInsets();
   return (
-    <View className="min-h-0 min-w-0 flex-1 items-center justify-center bg-background px-6" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={200} />
@@ -24,10 +22,14 @@ function SignedOutScreen() {
 }
 
 /**
- * Gates Willo's own home UI (and the stored Home Assistant session it tries
- * to restore — see `HomeProvider`) behind an Oxy identity. Signed out or
- * still resolving, nothing below mounts: there is no point reconnecting to a
- * Home Assistant instance for a session that isn't signed in to Oxy yet.
+ * Gates Willo's own routed content (and the stored Home Assistant session
+ * `app/index.tsx` tries to restore) behind an Oxy identity — see
+ * `app/_layout.tsx`, which wraps only the routed `<Slot/>`/`<Stack/>` in
+ * this, not the nav rail or bottom tabs: Willo's own chrome stays on
+ * screen whether or not you're signed in, only the part that actually
+ * needs an identity swaps for a sign-in prompt. No background class here
+ * either — the `screen-surface` container this renders inside already
+ * paints `bg-background`.
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { colors: themeColors } = useTheme();
@@ -35,7 +37,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!isAuthResolved) {
     return (
-      <View className="min-h-0 min-w-0 flex-1 items-center justify-center bg-background">
+      <View className="min-h-0 min-w-0 flex-1 items-center justify-center">
         <ActivityIndicator color={themeColors.primary} />
       </View>
     );

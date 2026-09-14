@@ -30,6 +30,11 @@ WebBrowser.maybeCompleteAuthSession();
  * Only the CONTENT (header + `ContentPanel` + a screen's own body, in
  * `screen-surface.tsx`) is per-route and remounts, matching Mention's own
  * header too.
+ *
+ * `AuthGate` wraps only that routed content, not the rail/tabs — Willo's
+ * own chrome should stay on screen whether or not you're signed in to Oxy;
+ * only the part that actually needs an identity (the route itself) swaps
+ * for a sign-in prompt.
  */
 function AppShell() {
   const pathname = usePathname();
@@ -53,7 +58,9 @@ function AppShell() {
               viewport-clamped and would break that, exactly as in
               OxyHQ/Mention's `_layout.tsx`. NATIVE has no document-scroll
               equivalent and keeps `<Stack>`. */}
-          {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+          <AuthGate>
+            {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+          </AuthGate>
         </View>
       </View>
       {compact && hasTabs ? <BottomNav screen={screen} modern={modern} onNavigate={onNavigate} /> : <View style={{ height: insets.bottom }} />}
@@ -87,19 +94,12 @@ export default function RootLayout() {
             clientId={process.env.EXPO_PUBLIC_OXY_CLIENT_ID}
             authRedirectUri={process.env.EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI}
           >
-            {/* Wraps `AuthGate` itself (not just `AppShell`) — the signed-out
-                screen uses `ContentWidth` (`layout/page-layout.tsx`), which
-                is also a `useResponsiveLayout()` consumer, so it needs the
-                same provider the signed-in app shell does. One instance,
-                shared across both states, instead of two. */}
             <ResponsiveProvider>
-              <AuthGate>
-                <HomeProvider>
-                  <StatusBar barStyle="dark-content" />
-                  <AppShell />
-                  <Overlays />
-                </HomeProvider>
-              </AuthGate>
+              <HomeProvider>
+                <StatusBar barStyle="dark-content" />
+                <AppShell />
+                <Overlays />
+              </HomeProvider>
             </ResponsiveProvider>
           </OxyProvider>
         </BloomProvider>
