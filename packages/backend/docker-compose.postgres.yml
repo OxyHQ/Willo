@@ -1,0 +1,39 @@
+##
+## Docker Compose — the local PostgreSQL a developer runs beside the backend.
+##
+## Mirrors OxyHQ/Mention's own `docker-compose.postgres.yml`: plain Postgres
+## (this schema needs no PostGIS/pgvector/pg_trgm), port 5433 rather than 5432
+## so it does not collide with a system Postgres, and a disposable volume-backed
+## database for local development.
+##
+## Usage:
+##   docker compose -f docker-compose.postgres.yml up -d postgres
+##   docker compose -f docker-compose.postgres.yml logs -f postgres
+##   docker compose -f docker-compose.postgres.yml down -v   # wipe (data is disposable)
+##
+## Then in packages/backend/.env:
+##   DATABASE_URL=postgres://willo:willo@127.0.0.1:5433/willo_dev
+##
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: willo-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: willo
+      POSTGRES_PASSWORD: willo
+      POSTGRES_DB: willo_dev
+    ports:
+      - '127.0.0.1:5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U willo -d willo_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    volumes:
+      - willo-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  willo-postgres-data:

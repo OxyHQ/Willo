@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "workspaces": [
+    "packages/backend",
     "packages/frontend",
     "packages/ui"
   ],
@@ -14,7 +15,7 @@
     "web": "bun run --cwd packages/frontend web",
     "android": "bun run --cwd packages/frontend android",
     "ios": "bun run --cwd packages/frontend ios",
-    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck"
+    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck && bun run --cwd packages/backend typecheck"
   },
   "trustedDependencies": [
     "unrs-resolver"
