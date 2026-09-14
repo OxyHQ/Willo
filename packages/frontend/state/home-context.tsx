@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState, type DeviceKey } from './home-reducer';
 import * as storage from '../storage';
-import { createHomeAssistantProvider } from '../providers/home-assistant';
+import { createHomeAssistantProvider, MixedContentError } from '../providers/home-assistant';
 import type { Device, DeviceCommand, SmartHomeProvider } from '../providers/types';
 
 export type SheetOption = { label: string; description?: string; selected?: boolean; onPress: () => void };
@@ -62,7 +62,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Failed to connect to Home Assistant', error);
         setUnauthenticated(true);
-        notify('Could not connect to Home Assistant. Check the instance URL and try again.');
+        notify(
+          error instanceof MixedContentError
+            ? error.message
+            : 'Could not connect to Home Assistant. Check the instance URL and try again.'
+        );
       }
     },
     [onRefreshToken, notify]
