@@ -1,5 +1,5 @@
 /** Logical React Native units (CSS px on web), never physical device pixels. */
-export const BREAKPOINTS = { rail: 600, expanded: 1024, sidebar: 1440 } as const;
+export const BREAKPOINTS = { rail: 600, expanded: 1024 } as const;
 export const CONTENT_MAX = 1440;
 export const GRID_GAP = 12;
 
@@ -10,8 +10,7 @@ export function getLayoutMetrics(width: number, height: number, fontScale = 1) {
   const scale = Number.isFinite(fontScale) && fontScale > 0 ? fontScale : 1;
   const compact = safeWidth < BREAKPOINTS.rail;
   const expanded = safeWidth >= BREAKPOINTS.expanded;
-  const sidebar = safeWidth >= BREAKPOINTS.sidebar;
-  const navigationWidth = compact ? 0 : sidebar ? 184 : 80;
+  const navigationWidth = compact ? 0 : 80;
   const gutter = compact ? 16 : 24;
   const contentWidth = Math.max(0, Math.min(CONTENT_MAX, safeWidth - navigationWidth));
   const pageWidth = Math.max(0, contentWidth - 2 * gutter);
@@ -19,7 +18,7 @@ export function getLayoutMetrics(width: number, height: number, fontScale = 1) {
   const columns = compact ? 2 : Math.max(1, Math.min(4, Math.floor((pageWidth + GRID_GAP) / (minimumCard + GRID_GAP))));
   return {
     width: safeWidth, height: safeHeight, fontScale: scale,
-    compact, expanded, sidebar, navigationWidth, gutter, contentWidth, pageWidth,
+    compact, expanded, navigationWidth, gutter, contentWidth, pageWidth,
     columns, gap: compact ? 8 : GRID_GAP,
     split: pageWidth >= 820 * Math.min(Math.max(scale, 1), 1.4),
   };
