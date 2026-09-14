@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
+import { useAuth } from '@oxy.so/services';
+import { SignInPrompt } from './sign-in-prompt';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
@@ -50,6 +52,7 @@ const webStickyHeaderStyle = Platform.OS === 'web' ? asViewStyle({ position: 'st
 export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const { width, gutter } = useResponsiveLayout();
   const { colors } = useTheme();
+  const { isAuthenticated, isAuthResolved } = useAuth();
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
   // scrolling under it), so a hard-edged solid fill would cut content off with
@@ -119,6 +122,19 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
       wrapColumn = column => <ComposerProvider onNavigate={onNavigate}>{column}</ComposerProvider>;
       break;
     case 'emergency': header = <EmergencyHeader onNavigate={onNavigate}/>; content = <EmergencyScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+  }
+
+  // Swaps CONTENT ONLY (not `header`) for the sign-in prompt while signed
+  // out of Oxy — the same panel below still frames it, so it's not a
+  // separately-styled screen, and whichever screen's own header/nav
+  // context is already on the page stays put. Not a higher-level gate
+  // above `<Slot/>`/`<Stack/>` (`app/_layout.tsx`'s own doc comment on
+  // `AppShell` says why): that would intercept before this component —
+  // and its one shared `ContentPanel` below — ever mounted.
+  if (!isAuthResolved) {
+    content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
+  } else if (!isAuthenticated) {
+    content = <SignInPrompt/>;
   }
 
   return wrapColumn(

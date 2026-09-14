@@ -7,7 +7,6 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { OxyProvider } from '@oxy.so/services';
 import { HomeProvider } from '../state/home-context';
-import { AuthGate } from '../components/auth-gate';
 import { Overlays } from '../components/overlays';
 import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
@@ -31,10 +30,13 @@ WebBrowser.maybeCompleteAuthSession();
  * `screen-surface.tsx`) is per-route and remounts, matching Mention's own
  * header too.
  *
- * `AuthGate` wraps only that routed content, not the rail/tabs — Willo's
- * own chrome should stay on screen whether or not you're signed in to Oxy;
- * only the part that actually needs an identity (the route itself) swaps
- * for a sign-in prompt.
+ * Being signed out of Oxy is handled INSIDE `ScreenSurface` (swapping in
+ * `SignInPrompt` for a screen's normal content, inside the same
+ * `ContentPanel` every screen already gets there) — not up here. Gating at
+ * this level would intercept before any route (and its `ContentPanel`)
+ * ever mounts, which is exactly what left the sign-in screen sitting on the
+ * plain page background instead of the same card surface every other
+ * screen has.
  */
 function AppShell() {
   const pathname = usePathname();
@@ -58,9 +60,7 @@ function AppShell() {
               viewport-clamped and would break that, exactly as in
               OxyHQ/Mention's `_layout.tsx`. NATIVE has no document-scroll
               equivalent and keeps `<Stack>`. */}
-          <AuthGate>
-            {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
-          </AuthGate>
+          {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
         </View>
       </View>
       {compact && hasTabs ? <BottomNav screen={screen} modern={modern} onNavigate={onNavigate} /> : <View style={{ height: insets.bottom }} />}

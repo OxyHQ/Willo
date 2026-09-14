@@ -47,8 +47,8 @@ function warmToward(original: string, token: string, amount: number): string {
 
 /**
  * A vector port of `ilustracion-hogar.svg` (the reference illustration
- * supplied for the signed-out screen — see `auth-gate.tsx`), not a raster
- * image, so it can follow Bloom's own theme instead of a flat baked-in
+ * supplied for the signed-out screen — see `sign-in-prompt.tsx`), not a
+ * raster image, so it can follow Bloom's own theme instead of a flat baked-in
  * palette.
  *
  * Light mode keeps the illustration's own original colors exactly — every
