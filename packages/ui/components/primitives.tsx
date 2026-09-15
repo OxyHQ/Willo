@@ -129,25 +129,31 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
   return <GestureDetector gesture={composedGesture}>
-    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
+    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`}
+      // `isolation: 'isolate'` scopes `mixBlendMode` below to THIS tile's own
+      // stacking context — without it, a blend mode composites against
+      // whatever else shares the nearest ancestor stacking context (other
+      // tiles, page background), not just this tile's own fill.
+      style={{ minHeight: height, borderCurve: 'continuous', isolation: 'isolate' }}>
       {/* `secondary`, not `secondary-subtle`: a solid fill for a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
-      <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
-      {/* The solid fill above is opaque, but `palette.text` is tuned for
-          contrast against the tile's plain `-subtle` background, not against
-          that fill — once the fill reaches roughly where the label sits, it
-          reads as near-invisible. Past the halfway mark the fill has almost
-          certainly reached the label (the icon+gap+padding before it eats a
-          real chunk of a tile this narrow), so the label switches wholesale
-          to `secondaryForeground` (Bloom's contrast-checked "legible on
-          solid secondary" token) instead of trying to track the fill edge
-          pixel-for-pixel with a second, separately-positioned copy of the
-          label — simpler, and nothing to get subtly wrong across platforms. */}
+      {/* Real per-pixel contrast, not a guess at where the fill edge lands:
+          painted white, then blended against whatever is directly behind
+          each pixel (`mixBlendMode: 'difference'` — a real RN StyleSheet
+          property, not a web-only trick; react-native-web passes it straight
+          through to CSS `mix-blend-mode`). `difference` against white
+          computes `255 - background`, i.e. the exact inverse of the fill
+          where it's covered and of the tile's own background where it
+          isn't — the icon and label read correctly at every fill position
+          with no width math, no clipping, no second copy of anything. */}
+      <View className="relative" style={brightness !== undefined ? { mixBlendMode: 'difference' } : undefined}>
+        <Icon name={icon} size={20} color={brightness !== undefined ? '#ffffff' : iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/>
+      </View>
       <View className="min-w-0 flex-1 py-2">
-        <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`} style={clampedBrightness > 50 ? { color: themeColors.secondaryForeground } : undefined}>{title}</Label>
-        {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`} style={clampedBrightness > 50 ? { color: themeColors.secondaryForeground } : undefined}>{subtitle}</Label>}
+        <Label className={`text-[13px] font-medium leading-[17px] ${brightness === undefined ? palette.text : ''}`} style={brightness !== undefined ? { color: '#ffffff', mixBlendMode: 'difference' } : undefined}>{title}</Label>
+        {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${brightness === undefined ? palette.text : ''}`} style={brightness !== undefined ? { color: '#ffffff', mixBlendMode: 'difference' } : undefined}>{subtitle}</Label>}
       </View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
     </View>
