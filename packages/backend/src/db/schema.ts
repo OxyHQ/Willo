@@ -29,13 +29,25 @@ import { createdAt, generatedId, inList, timestamptz, updatedAt } from '@oxy.so/
  *
  * `name` is nullable: a nameless home (someone who never bothered to name
  * their own place) is a completely ordinary row, not a data-quality problem.
+ *
+ * `unit_system` is a Home fact, not a per-device preference: everyone in the
+ * household reads the same thermostat, so they all see it in the same units.
+ * The frontend picks the initial value from the creating device's region;
+ * `metric` is only the column default for Homes created before this existed.
  */
-export const homes = pgTable('homes', {
-  id: generatedId(),
-  name: text(),
-  createdAt: createdAt(),
-  updatedAt: updatedAt(),
-});
+export const UNIT_SYSTEMS = ['metric', 'imperial'] as const;
+
+export const homes = pgTable(
+  'homes',
+  {
+    id: generatedId(),
+    name: text(),
+    unitSystem: text({ enum: UNIT_SYSTEMS }).notNull().default('metric'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check('homes_unit_system_check', sql`${t.unitSystem} in (${sql.raw(inList(UNIT_SYSTEMS))})`)]
+);
 
 /**
  * `owner` may manage the Home Assistant connection and membership; `member`

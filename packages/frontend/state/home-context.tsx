@@ -4,6 +4,7 @@ import { homeReducer, initialHomeState, type HomeAction, type HomeState, type De
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
 import type { Device, DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
+import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
 
 const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
 
@@ -60,6 +61,14 @@ type HomeContextValue = {
    */
   demoMode: boolean;
   setDemoMode: (value: boolean) => void;
+  /**
+   * The Home's shared display units, stored on the Home server-side so every
+   * member sees the same thing. Until a Home has loaded (and in demo mode with
+   * no Home at all) it's this device's own regional default.
+   */
+  unitSystem: UnitSystem;
+  /** Applies immediately, then saves to the Home; a failed save reverts and says so. */
+  setUnitSystem: (value: UnitSystem) => void;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
@@ -101,6 +110,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // a stale pre-render value the way `paired` state would.
   const pairedRef = useRef(false);
   const [demoMode, setDemoModeState] = useState(false);
+  const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(Intl.NumberFormat().resolvedOptions().locale));
 
   useEffect(() => {
     let ignore = false;
@@ -142,6 +152,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
             setSetupStage(pairedRef.current || connected ? 'ready' : 'needs-pairing');
           },
           onHomeName: setRawHomeName,
+          onUnitSystem: setUnitSystemState,
           onPaired: (paired) => {
             pairedRef.current = paired;
           },
@@ -182,7 +193,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(`${WILLO_API_URL}/homes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
-        body: JSON.stringify(name ? { name } : {}),
+        body: JSON.stringify(name ? { name, unitSystem } : { unitSystem }),
       });
       if (!response.ok) throw new Error('Could not create your home.');
       const { home } = (await response.json()) as { home: { id: string; name: string | null } };
@@ -191,7 +202,30 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       setRawHomeName(home.name);
       await connectHome(home.id);
     },
-    [getAccessToken, connectHome]
+    [getAccessToken, connectHome, unitSystem]
+  );
+
+  const setUnitSystem = useCallback(
+    (value: UnitSystem) => {
+      const previous = unitSystem;
+      setUnitSystemState(value);
+      if (!homeId) return;
+      const token = getAccessToken();
+      fetch(`${WILLO_API_URL}/homes/${homeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ unitSystem: value }),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`PATCH /homes/${homeId} answered ${response.status}`);
+        })
+        .catch((error: unknown) => {
+          console.error(`Failed to save unit system "${value}" for Home ${homeId}:`, error);
+          setUnitSystemState(previous);
+          notify('Could not save your units. Try again.');
+        });
+    },
+    [unitSystem, homeId, getAccessToken, notify]
   );
 
   const requestPairingCode = useCallback(async () => {
@@ -228,8 +262,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

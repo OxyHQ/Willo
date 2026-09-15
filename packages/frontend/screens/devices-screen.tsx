@@ -10,6 +10,7 @@ import { RealCameraCard } from '../components/camera-card';
 import { SensorReadingsCard } from '../components/sensor-readings-card';
 import { selectRelevantSensors } from '../providers/sensor-readings';
 import { DEMO_SENSORS } from '../data/demo-sensors';
+import { formatTemperature } from '../providers/unit-system';
 import { type IconName } from '@willo/ui';
 const chunkPairs = <T,>(items: T[]): T[][] =>
   Array.from({ length: Math.ceil(items.length / 2) }, (_, index) => items.slice(index * 2, index * 2 + 2));
@@ -62,7 +63,7 @@ export function DemoLightTile({ id, title }: { id: DeviceKey; title: string }) {
     onLongPress={() => setSheet({ kind: 'device', title, id })}/>;
 }
 export function DevicesScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, setSheet, devices, demoMode } = useHome();
+  const { state, dispatch, setSheet, devices, demoMode, unitSystem } = useHome();
   const device = (id: DeviceKey, title: string, icon: IconName) => <Tile key={id} title={title} subtitle={id.includes('blinds') ? state.devices[id] ? 'Open' : 'Closed' : id === 'vacuum' ? state.devices[id] ? 'Running' : 'Paused' : state.devices[id] ? id === 'tv' ? `On · ${state.brightness[id] ?? 50}%` : 'On' : 'Off'} icon={icon} tone={state.devices[id] || id.includes('blinds') ? 'blue' : 'neutral'} active={state.devices[id]} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id })} onLongPress={id === 'tv' ? () => setSheet({ kind: 'device', title, id }) : undefined}/>;
   // Demo mode never mixes with real devices — see `useHome()`'s `demoMode`
   // doc comment. Real Home Assistant devices are grouped by their actual
@@ -76,7 +77,7 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
   const sensorsByRoom = groupByRoom(selectRelevantSensors(demoMode ? DEMO_SENSORS : devices));
   return <View className="flex-1 bg-card"><PageScroll bottom={96}>{header}<SectionGrid>
     {demoMode && <>
-      <View><SectionTitle>Front room</SectionTitle><View className="flex-row gap-2">{device('tv', 'TV', 'tv')}<Tile title="Thermostat" subtitle="Indoor 70°" icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/></View>
+      <View><SectionTitle>Front room</SectionTitle><View className="flex-row gap-2">{device('tv', 'TV', 'tv')}<Tile title="Thermostat" subtitle={`Indoor ${formatTemperature(70, '°F', unitSystem)}`} icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/></View>
       </View><View><SectionTitle>Living room</SectionTitle><View className="gap-2"><View className="flex-row gap-2"><DemoLightTile id="living-lamp" title="Lamp"/><Tile title="Camera" icon="camera" tone="blue" chevron onPress={() => setSheet({ kind: 'camera', title: 'Living room camera' })}/></View><View className="flex-row gap-2">{device('blinds', 'Blinds', 'blinds')}{device('vacuum', 'Vacuum', 'vacuum')}</View></View>
       </View><View><SectionTitle>Office</SectionTitle><View className="gap-2"><View className="flex-row gap-2">{device('plug', 'Smart plug', 'plug')}<DemoLightTile id="office-lamp" title="Lamp"/></View><View className="flex-row gap-2">{device('office-blinds', 'Blinds', 'blinds')}<View className="flex-1"/></View></View>
       </View>

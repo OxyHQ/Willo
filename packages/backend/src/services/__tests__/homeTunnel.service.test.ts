@@ -123,6 +123,16 @@ test('getLiveDevices returns the Home’s own name, or null when it was never na
   }
 });
 
+test('getLiveDevices returns the Home’s shared unit system', async () => {
+  const owner = newUserId('owner');
+  const { home } = await createHome(owner, 'The Lake House', 'imperial');
+  try {
+    assert.equal((await getLiveDevices(home.id, owner)).unitSystem, 'imperial');
+  } finally {
+    await getDb().delete(homes).where(eq(homes.id, home.id));
+  }
+});
+
 test('getLiveDevices reports paired once a secret exists, independent of live connection state', async () => {
   const owner = newUserId('owner');
   const { home } = await createHome(owner);

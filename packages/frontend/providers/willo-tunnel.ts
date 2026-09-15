@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import type { Device, SmartHomeProvider } from './types';
+import type { UnitSystem } from './unit-system';
 
 const domainOf = (entityId: string) => entityId.split('.')[0];
 
@@ -17,6 +18,8 @@ type WilloTunnelCredentials = {
   onConnectionChange: (connected: boolean) => void;
   /** Same reasoning as `onConnectionChange` — the Home's own name, read off `GET .../devices/live`'s response. */
   onHomeName: (name: string | null) => void;
+  /** Same reasoning as `onHomeName` — the Home's shared unit system, read off the same response. */
+  onUnitSystem: (unitSystem: UnitSystem) => void;
   /**
    * Fired once, from the initial `GET .../devices/live` response only — a
    * Home either has completed pairing or it hasn't, and only an explicit
@@ -59,7 +62,7 @@ function withCameraUrls(devices: Device[], apiBaseUrl: string, homeId: string): 
  * left in this file at all.
  */
 export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): SmartHomeProvider {
-  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName, onPaired } = credentials;
+  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName, onUnitSystem, onPaired } = credentials;
 
   let devices: Device[] = [];
   let socket: Socket | null = null;
@@ -71,9 +74,10 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       headers: authHeaders(getAccessToken),
     });
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
-    const live = (await liveResponse.json()) as { connected: boolean; paired: boolean; devices: Device[]; homeName: string | null };
+    const live = (await liveResponse.json()) as { connected: boolean; paired: boolean; devices: Device[]; homeName: string | null; unitSystem: UnitSystem };
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
     onHomeName(live.homeName);
+    onUnitSystem(live.unitSystem);
     onPaired(live.paired);
     onConnectionChange(live.connected);
 

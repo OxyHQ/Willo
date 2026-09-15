@@ -12,7 +12,7 @@ import { deviceClaims, homeConnections, homes } from '../db/schema';
 import { HOME_CONNECTION_DISPLAY_COLUMNS } from '../db/homeConnectionColumns';
 import { NotFoundError } from '../errors';
 import { config } from '../config';
-import { assertActiveMember, assertActiveOwner } from './homes.service';
+import { assertActiveMember, assertActiveOwner, type UnitSystem } from './homes.service';
 import { isHomeConnected } from '../realtime/tunnelRegistry';
 
 /** Excludes 0/O and 1/I/L — read aloud or typed off a small screen, those are the pairs people actually get wrong. */
@@ -374,6 +374,8 @@ export interface LiveDevicesResult {
   devices: unknown[];
   /** The Home's own name (nullable — naming it is optional at creation). Returned here, not a separate call, since the frontend already fetches this endpoint once on every connect/reconnect and needs both. */
   homeName: string | null;
+  /** The Home's shared unit system — returned here for the same reason as `homeName`. */
+  unitSystem: UnitSystem;
 }
 
 /**
@@ -391,11 +393,14 @@ export async function getLiveDevices(homeId: string, userId: string): Promise<Li
     .from(homeConnections)
     .where(eq(homeConnections.homeId, homeId))
     .limit(1);
-  const [homeRow] = await getDb().select({ name: homes.name }).from(homes).where(eq(homes.id, homeId)).limit(1);
+  const [homeRow] = await getDb().select({ name: homes.name, unitSystem: homes.unitSystem }).from(homes).where(eq(homes.id, homeId)).limit(1);
   return {
     connected: isHomeConnected(homeId),
     paired: connectionRow?.hasSecret ?? false,
     devices: (connectionRow?.deviceSnapshot as unknown[] | null) ?? [],
     homeName: homeRow?.name ?? null,
+    // `assertActiveMember` above already proved the Home row exists; `metric`
+    // only covers it being deleted between that check and this read.
+    unitSystem: homeRow?.unitSystem ?? 'metric',
   };
 }

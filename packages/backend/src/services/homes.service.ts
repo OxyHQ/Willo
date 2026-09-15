@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
-import { homeMembers, homes } from '../db/schema';
+import { homeMembers, homes, type UNIT_SYSTEMS } from '../db/schema';
 import { ForbiddenError, NotFoundError } from '../errors';
 
 export type HomeMemberRow = typeof homeMembers.$inferSelect;
@@ -16,11 +16,13 @@ export interface HomeWithRoster {
   members: HomeMemberRow[];
 }
 
-/** Create a Home; the caller becomes its first active owner. */
-export async function createHome(userId: string, name?: string): Promise<HomeWithRoster> {
+export type UnitSystem = (typeof UNIT_SYSTEMS)[number];
+
+/** Create a Home; the caller becomes its first active owner. Without a `unitSystem` the column default (`metric`) applies. */
+export async function createHome(userId: string, name?: string, unitSystem?: UnitSystem): Promise<HomeWithRoster> {
   const db = getDb();
   return db.transaction(async (tx) => {
-    const [home] = await tx.insert(homes).values({ name: name ?? null }).returning();
+    const [home] = await tx.insert(homes).values({ name: name ?? null, unitSystem }).returning();
     if (!home) throw new Error('Failed to create Home.');
 
     const now = new Date();
@@ -76,6 +78,18 @@ export async function listHomesForUser(userId: string): Promise<HomeWithRoster[]
     if (!home) return [];
     return [{ home, myRole: membership.role, members: membersByHomeId.get(home.id) ?? [membership] }];
   });
+}
+
+/** Change a Home's shared settings. Any active member — the same bar as relabeling a device, since this only changes how the household's own readings are displayed. */
+export async function updateHomeSettings(homeId: string, userId: string, settings: { unitSystem: UnitSystem }): Promise<HomeRow> {
+  await assertActiveMember(homeId, userId);
+  const [home] = await getDb()
+    .update(homes)
+    .set({ unitSystem: settings.unitSystem })
+    .where(eq(homes.id, homeId))
+    .returning();
+  if (!home) throw new NotFoundError('Home not found.');
+  return home;
 }
 
 /** The caller's own membership row for a Home, or `null` if they have none (of any status). */

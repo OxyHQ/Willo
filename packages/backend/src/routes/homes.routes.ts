@@ -12,6 +12,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { getRequiredOxyUserId, requireOxyAuth } from '@oxy.so/core/server';
 import { validateBody } from '../middleware/validate';
+import { UNIT_SYSTEMS } from '../db/schema';
 import * as homesService from '../services/homes.service';
 import * as membersService from '../services/homeMembers.service';
 import * as devicesService from '../services/homeDevices.service';
@@ -36,7 +37,16 @@ function pathParam(value: string | string[] | undefined): string {
 
 const createHomeSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
+  unitSystem: z.enum(UNIT_SYSTEMS).optional(),
 });
+
+// `.strict()`: this is the whole list of Home fields a member may change —
+// anything else in the body is rejected, never silently written.
+const updateHomeSettingsSchema = z
+  .object({
+    unitSystem: z.enum(UNIT_SYSTEMS),
+  })
+  .strict();
 
 const inviteMemberSchema = z.object({
   // Willo has no users-by-username lookup the way Oxy's own accounts API
@@ -65,9 +75,17 @@ const sendCommandSchema = z.object({
 /** POST /homes — create a Home; caller becomes an active owner. */
 router.post('/', validateBody(createHomeSchema), async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const { name } = req.body as z.infer<typeof createHomeSchema>;
-  const result = await homesService.createHome(userId, name);
+  const { name, unitSystem } = req.body as z.infer<typeof createHomeSchema>;
+  const result = await homesService.createHome(userId, name, unitSystem);
   res.status(201).json(result);
+});
+
+/** PATCH /homes/:id — change the Home's shared settings (today: its unit system). Any active member. */
+router.patch('/:id', validateBody(updateHomeSettingsSchema), async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const { unitSystem } = req.body as z.infer<typeof updateHomeSettingsSchema>;
+  const result = await homesService.updateHomeSettings(pathParam(req.params.id), userId, { unitSystem });
+  res.status(200).json(result);
 });
 
 /** GET /homes/me — every Home the caller actively belongs to, with its roster. */

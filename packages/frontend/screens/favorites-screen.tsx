@@ -9,6 +9,7 @@ import { useResponsiveLayout } from '../layout/responsive-context';
 import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { tones, type Tone } from '@willo/ui';
+import { formatTemperature } from '../providers/unit-system';
 const categories = [
   { icon: 'camera', title: 'Cameras', detail: '6 cameras', tone: 'blue' },
   { icon: 'light', title: 'Lighting', detail: '8 lights', tone: 'yellow' },
@@ -16,7 +17,7 @@ const categories = [
   { icon: 'climate', title: 'Climate', detail: '2 devices', tone: 'peach' },
 ] as const satisfies readonly { icon: IconName; title: string; detail: string; tone: Tone }[];
 export function FavoritesScreen({ onNavigate, withAssistant = false, header }: ScreenProps & { withAssistant?: boolean }) {
-  const { state, dispatch, setSheet, notify } = useHome();
+  const { state, dispatch, setSheet, notify, unitSystem } = useHome();
   const { compact } = useResponsiveLayout();
   const [assistantVacuum, setAssistantVacuum] = useState(true);
   const vacuumRunning = withAssistant ? assistantVacuum : state.devices.vacuum;
@@ -24,7 +25,7 @@ export function FavoritesScreen({ onNavigate, withAssistant = false, header }: S
   const cards: DashboardCard[] = [
     { id: 'first', estimatedHeight: 80, content: withAssistant
       ? <Tile grow={false} title="Broadcast" icon="broadcast" onPress={() => setSheet({ kind: 'message', title: 'Broadcast', description: 'Broadcast is represented as a UI shortcut. No microphone is activated and no audio is sent.' })}/>
-      : <Tile grow={false} title="Hallway thermostat" subtitle="Indoor 70°" icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/> },
+      : <Tile grow={false} title="Hallway thermostat" subtitle={`Indoor ${formatTemperature(70, '°F', unitSystem)}`} icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/> },
     { id: 'second', estimatedHeight: 80, content: withAssistant
       ? <Tile grow={false} title="Assistant" icon="microphone" onPress={() => onNavigate('assistant')}/>
       : <Tile grow={false} title="Front door lock" subtitle={state.locked ? 'Locked' : 'Unlocked'} tone={state.locked ? 'blue' : 'neutral'} icon={state.locked ? 'lock' : 'unlock'} active={state.locked} onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/> },

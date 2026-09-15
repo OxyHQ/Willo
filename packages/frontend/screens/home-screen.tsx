@@ -15,6 +15,7 @@ import type { DeviceKey } from '../state/home-reducer';
 import { getCapability, type Device } from '../providers/types';
 import { SENSOR_CARD_LIMIT, selectRelevantSensors } from '../providers/sensor-readings';
 import { DEMO_SENSORS } from '../data/demo-sensors';
+import { formatTemperature } from '../providers/unit-system';
 import { useTheme } from '@oxy.so/bloom/theme';
 
 type Category = 'Favorites' | 'All' | 'Cameras' | 'Lights' | 'Wifi' | 'Climate';
@@ -75,7 +76,7 @@ function FanTile({ fan }: { fan: Device }) {
     onLongPress={() => setSheet({ kind: 'realDevice', title: fan.name, device: fan })}/>;
 }
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, setSheet, devices, sendCommand, demoMode } = useHome();
+  const { state, dispatch, setSheet, devices, sendCommand, demoMode, unitSystem } = useHome();
   const { colors: themeColors } = useTheme();
   const { compact, columns, gutter } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
@@ -144,7 +145,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const lock = <Tile grow={false} title="Front door lock" subtitle={state.locked ? 'Locked' : 'Unlocked'}
     icon={state.locked ? 'lock' : 'unlock'} tone={state.locked ? 'blue' : 'neutral'} active={state.locked}
     onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/>;
-  const weather = <Tile grow={false} title="San Francisco" subtitle="56° · Clear" icon="sun" height={72}
+  const weather = <Tile grow={false} title="San Francisco" subtitle={`${formatTemperature(56, '°F', unitSystem)} · Clear`} icon="sun" height={72}
     onPress={() => message('Weather preview', 'The weather and location are static values from the supplied reference.')}/>;
   const air = <Tile grow={false} title="Outdoor AQI" subtitle="32 · Good" icon="waves" height={72}
     onPress={() => message('Air quality preview', 'AQI 32 is a static reference value, not a live reading.')}/>;

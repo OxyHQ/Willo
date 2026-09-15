@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import { eq } from 'drizzle-orm';
 import { closePostgres, connectPostgres, getDb } from '../../db/postgres';
 import { homes } from '../../db/schema';
-import { createHome, listHomesForUser } from '../homes.service';
+import { NotFoundError } from '../../errors';
+import { createHome, listHomesForUser, updateHomeSettings } from '../homes.service';
 
 before(async () => {
   await connectPostgres();
@@ -72,6 +73,45 @@ test('listHomesForUser omits Homes the caller does not actively belong to', asyn
   try {
     const myHomes = await listHomesForUser(userId);
     assert.equal(myHomes.some((entry) => entry.home.id === home.id), false);
+  } finally {
+    await deleteHome(home.id);
+  }
+});
+
+test('createHome stores the unit system the creating device chose, and defaults to metric without one', async () => {
+  const userId = `user-${crypto.randomUUID()}`;
+  const { home: imperial } = await createHome(userId, 'US House', 'imperial');
+  const { home: unspecified } = await createHome(userId);
+  try {
+    assert.equal(imperial.unitSystem, 'imperial');
+    assert.equal(unspecified.unitSystem, 'metric');
+  } finally {
+    await deleteHome(imperial.id);
+    await deleteHome(unspecified.id);
+  }
+});
+
+test('updateHomeSettings lets an active member change the Home’s unit system', async () => {
+  const userId = `user-${crypto.randomUUID()}`;
+  const { home } = await createHome(userId, 'Test House', 'metric');
+  try {
+    const updated = await updateHomeSettings(home.id, userId, { unitSystem: 'imperial' });
+    assert.equal(updated.unitSystem, 'imperial');
+    const [stored] = await getDb().select().from(homes).where(eq(homes.id, home.id));
+    assert.equal(stored?.unitSystem, 'imperial');
+  } finally {
+    await deleteHome(home.id);
+  }
+});
+
+test('updateHomeSettings refuses someone who is not a member, leaving the Home unchanged', async () => {
+  const ownerId = `user-${crypto.randomUUID()}`;
+  const strangerId = `user-${crypto.randomUUID()}`;
+  const { home } = await createHome(ownerId, 'Test House', 'metric');
+  try {
+    await assert.rejects(updateHomeSettings(home.id, strangerId, { unitSystem: 'imperial' }), NotFoundError);
+    const [stored] = await getDb().select().from(homes).where(eq(homes.id, home.id));
+    assert.equal(stored?.unitSystem, 'metric');
   } finally {
     await deleteHome(home.id);
   }

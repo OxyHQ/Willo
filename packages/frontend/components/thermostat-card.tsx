@@ -5,6 +5,7 @@ import { useResponsiveLayout } from '../layout/responsive-context';
 import { Icon } from '@willo/ui';
 import { IconButton, Label } from '@willo/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { convertTemperature, formatTemperature } from '../providers/unit-system';
 
 // `tertiary` is pinned to Willo's own peach in `BloomProvider`
 // (`app/_layout.tsx`'s `tertiaryColor`), not left to the seed's own
@@ -12,7 +13,11 @@ import { useTheme } from '@oxy.so/bloom/theme';
 // SOLID `tertiary` fill (not the `-subtle` tint the card itself uses) so
 // they read as real, pressable buttons against the card's own softer tone.
 export function ThermostatCard() {
-  const { state, dispatch, setSheet } = useHome();
+  const { state, dispatch, setSheet, unitSystem } = useHome();
+  // The demo reducer counts in whole °F (50–90); only what's displayed follows the Home's unit system.
+  const displayed = convertTemperature(state.temperature, '°F', unitSystem);
+  const minimum = formatTemperature(50, '°F', unitSystem);
+  const maximum = formatTemperature(90, '°F', unitSystem);
   const { compact, fontScale } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
   const sideControls = compact && fontScale <= 1.2;
@@ -24,14 +29,14 @@ export function ThermostatCard() {
     <View className="flex-row items-center gap-2">
       <Icon name="climate" size={20} color={themeColors.tertiary}/><Label className="min-w-0 flex-1 text-[14px] font-medium text-tertiary-text">Downstairs</Label>
       <IconButton icon="chevron" label="Thermostat information" color={themeColors.tertiary} size={16} shape="small"
-        onPress={() => setSheet({ kind: 'message', title: 'Downstairs thermostat', description: 'Use + and − to adjust the demo thermostat from 50°F to 90°F. No physical thermostat is connected.' })}/>
+        onPress={() => setSheet({ kind: 'message', title: 'Downstairs thermostat', description: `Use + and − to adjust the demo thermostat from ${minimum} to ${maximum}. No physical thermostat is connected.` })}/>
     </View>
     <View className="mt-2 flex-row items-center justify-between">
       {sideControls && decrease}
       <View className="min-w-0 flex-1 items-center">
-        <Label selectable testID="thermostat-value" accessibilityLabel={`${state.temperature} degrees Fahrenheit`} accessibilityLiveRegion="polite"
+        <Label selectable testID="thermostat-value" accessibilityLabel={`${displayed.value} degrees ${displayed.unit === '°F' ? 'Fahrenheit' : 'Celsius'}`} accessibilityLiveRegion="polite"
           className={`${compact ? 'text-[65px] leading-[80px]' : 'text-[58px] leading-[72px]'} text-tertiary-text`}
-          style={{ fontVariant: ['tabular-nums'] }}>{state.temperature}</Label>
+          style={{ fontVariant: ['tabular-nums'] }}>{displayed.value}</Label>
       </View>
       {sideControls && increase}
     </View>
