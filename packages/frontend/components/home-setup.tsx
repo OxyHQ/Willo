@@ -4,8 +4,10 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { Label } from '@willo/ui';
 import { ContentWidth } from '../layout/page-layout';
 import { useHome } from '../state/home-context';
+import { LOTTIE_ANIMATIONS } from '../data/lottie-animations';
 import { type Navigate } from '../data/screens';
 import { SignInIllustration } from './sign-in-illustration';
+import { ThemedLottie } from './themed-lottie';
 
 function CreateHomeStep() {
   const { createHome, notify } = useHome();
@@ -29,7 +31,7 @@ function CreateHomeStep() {
     <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
-          <SignInIllustration width={160} />
+          <ThemedLottie animation={LOTTIE_ANIMATIONS.createHome} className="w-[160px]" />
           <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">Let's set up your home</Label>
           <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">Give your home a name — you can change it later.</Label>
           <TextInput
@@ -113,7 +115,7 @@ function PairingStep() {
     <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
-          <SignInIllustration width={160} />
+          <ThemedLottie animation={LOTTIE_ANIMATIONS.connectHomeAssistant} className="w-[160px]" />
           <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">Connect Home Assistant</Label>
           <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">Open the Willo integration on your Home Assistant and enter this code.</Label>
           <View className="mt-6 min-h-[76px] min-w-[220px] items-center justify-center rounded-2xl bg-card px-8 py-5">
