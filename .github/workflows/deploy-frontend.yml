@@ -45,6 +45,12 @@ jobs:
           # `missing-client-id` and nobody can sign in to the deployed app.
           EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
           EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://willo.sh
+          # Willo's own backend — without it, every fetch in
+          # providers/willo-tunnel.ts and state/home-context.tsx resolves to
+          # literally "undefined" (Expo inlines a missing EXPO_PUBLIC_* var
+          # as that string, not a real error), so every request 404s/405s
+          # against https://willo.sh/undefined/... instead of the backend.
+          EXPO_PUBLIC_WILLO_API_URL: https://api.willo.sh
 
       # Run through `bunx` directly, not `cloudflare/wrangler-action`: that
       # action resolves its own wrangler by looking for a lockfile in
