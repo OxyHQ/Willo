@@ -33,7 +33,13 @@ export function SettingsScreen({ onNavigate, header }: ScreenProps) {
     ...homes.map(home => ({
       label: home.name ?? 'Unnamed home',
       selected: home.id === homeId,
-      onPress: () => { setSheet(null); switchHome(home.id); },
+      // Picking the Home you're already on only does something when it isn't
+      // paired yet: there's nothing to switch, so take them to pairing.
+      onPress: () => {
+        setSheet(null);
+        if (home.id !== homeId) switchHome(home.id);
+        else if (setupStage === 'needs-pairing') onNavigate('onboarding');
+      },
     })),
     {
       label: 'Create a new home',
@@ -55,8 +61,11 @@ export function SettingsScreen({ onNavigate, header }: ScreenProps) {
     </> : (
       <View className="mt-3 items-center gap-3 rounded-[24px] bg-muted p-6">
         <Icon name="home" size={26} color={themeColors.textSecondary}/>
-        <Label className="text-center text-[13px] text-muted-foreground">No home set up yet — finish setup to manage devices, rooms and members here, or turn on Demo mode below to preview it.</Label>
-        <Pressable accessibilityRole="button" accessibilityLabel="Set up your home" onPress={() => onNavigate('onboarding')} className="rounded-full bg-primary-subtle px-6 py-3"><Label className="text-[13px] font-medium text-primary-text">Set up your home</Label></Pressable>
+        {/* A Home that exists but was never paired is not "no home": say which one, and that pairing is the missing step. */}
+        <Label className="text-center text-[13px] text-muted-foreground">{setupStage === 'needs-pairing'
+          ? `${homeName} isn’t connected to Home Assistant yet — pair it to manage devices, rooms and members here, or turn on Demo mode below to preview it.`
+          : 'No home set up yet — finish setup to manage devices, rooms and members here, or turn on Demo mode below to preview it.'}</Label>
+        <Pressable accessibilityRole="button" accessibilityLabel={setupStage === 'needs-pairing' ? 'Connect Home Assistant' : 'Set up your home'} onPress={() => onNavigate('onboarding')} className="rounded-full bg-primary-subtle px-6 py-3"><Label className="text-[13px] font-medium text-primary-text">{setupStage === 'needs-pairing' ? 'Connect Home Assistant' : 'Set up your home'}</Label></Pressable>
         {/* Someone who started creating another Home and backed out still has their existing ones. */}
         {homes.length > 0 && <Pressable accessibilityRole="button" accessibilityLabel="Open one of your homes" onPress={chooseHome} className="rounded-full px-6 py-3 active:opacity-70"><Label className="text-[13px] font-medium text-primary-text">Open one of your homes</Label></Pressable>}
       </View>
