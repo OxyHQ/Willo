@@ -11,7 +11,7 @@ import type { UnitSystem } from '../providers/unit-system';
 import { useTheme } from '@oxy.so/bloom/theme';
 const UNIT_SYSTEM_LABELS: Record<UnitSystem, string> = { metric: 'Metric (°C)', imperial: 'Imperial (°F)' };
 export function SettingsScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet, setupStage, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem } = useHome();
+  const { setSheet, setupStage, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome } = useHome();
   const { colors: themeColors } = useTheme();
   const [notifications, setNotifications] = useState(true);
   // A real Home to show settings FOR, or a preview of what they'd look
@@ -27,12 +27,27 @@ export function SettingsScreen({ onNavigate, header }: ScreenProps) {
     selected: option === unitSystem,
     onPress: () => { setUnitSystem(option); setSheet(null); },
   })) });
+  // Every Home this person belongs to, the current one selected, plus a way
+  // to start another — each one is paired with its own Home Assistant.
+  const chooseHome = () => setSheet({ kind: 'menu', title: 'Your homes', options: [
+    ...homes.map(home => ({
+      label: home.name ?? 'Unnamed home',
+      selected: home.id === homeId,
+      onPress: () => { setSheet(null); switchHome(home.id); },
+    })),
+    {
+      label: 'Create a new home',
+      description: 'You’ll pair it with its own Home Assistant',
+      onPress: () => { setSheet(null); startNewHome(); onNavigate('onboarding'); },
+    },
+  ] });
   const section = (title: string, action: () => void) => <Pressable accessibilityRole="button" onPress={action} className="mb-3 mt-7 flex-row items-center justify-between"><Label className="text-[12px]">{title}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-muted"><Icon name="chevron" size={14} color={themeColors.text}/></View></Pressable>;
   const mini = (title: string, icon: IconName, action: () => void) => <Pressable key={title} accessibilityRole="button" onPress={action} className="h-[101px] w-[99px] justify-between rounded-[23px] bg-muted p-3.5 active:opacity-70"><Icon name={icon} size={18} color={themeColors.text}/><Label className="text-[11px] leading-[15px]">{title}</Label></Pressable>;
   return <View className="flex-1 bg-card"><PageScroll>{header}<PageColumns><View>
     <SectionTitle>Home</SectionTitle>
     {hasHomeToShow ? <>
-      <Pressable onPress={() => show('Home details', `${homeName}\n\nNo address is stored for this Home yet.`)} accessibilityRole="button" className="mb-2 mt-3 flex-row items-center justify-between"><Label className="text-[34px] font-semibold">{homeName}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-muted"><Icon name="chevron" size={14} color={themeColors.text}/></View></Pressable>
+      {/* Demo mode's name is the fake "Spring Street" — there are no real Homes behind it to switch between. */}
+      <Pressable onPress={demoMode ? () => show('Home details', `${homeName}\n\nNo address is stored for this Home yet.`) : chooseHome} accessibilityRole="button" accessibilityLabel={demoMode ? homeName : `${homeName}, switch or create a home`} className="mb-2 mt-3 flex-row items-center justify-between"><Label className="text-[34px] font-semibold">{homeName}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-muted"><Icon name={demoMode ? 'chevron' : 'down'} size={14} color={themeColors.text}/></View></Pressable>
       <View className="mt-5 flex-row items-center gap-2"><View className="h-9 w-9 overflow-hidden rounded-full"><Image source={assets.avatar} style={{ width: '100%', height: '100%' }}/></View><Pressable accessibilityRole="button" accessibilityLabel="Household member L" onPress={() => show('Household member', 'L is a sample household member from the reference UI.')} className="h-9 w-9 items-center justify-center rounded-full bg-primary-subtle"><Label className="text-[13px] text-primary-text">L</Label></Pressable><IconButton icon="plus" label="Invite household member" size={15} shape="small" className="bg-muted" onPress={() => show('Invite a household member', 'No invitation is sent in this demo. Connect your own household membership service here.')}/></View>
       <Pressable accessibilityRole="button" accessibilityLabel={`Units, ${UNIT_SYSTEM_LABELS[unitSystem]}`} onPress={chooseUnits} className="mt-5 flex-row items-center gap-3 rounded-[22px] bg-muted p-4 active:opacity-70"><Icon name="thermometer" size={20} color={themeColors.text}/><Label className="flex-1 text-[13px]">Units</Label><Label className="text-[13px] text-muted-foreground">{UNIT_SYSTEM_LABELS[unitSystem]}</Label><Icon name="chevron" size={15} color={themeColors.text}/></Pressable>
       {section('Devices, groups & rooms', () => onNavigate('devices'))}
@@ -42,6 +57,8 @@ export function SettingsScreen({ onNavigate, header }: ScreenProps) {
         <Icon name="home" size={26} color={themeColors.textSecondary}/>
         <Label className="text-center text-[13px] text-muted-foreground">No home set up yet — finish setup to manage devices, rooms and members here, or turn on Demo mode below to preview it.</Label>
         <Pressable accessibilityRole="button" accessibilityLabel="Set up your home" onPress={() => onNavigate('onboarding')} className="rounded-full bg-primary-subtle px-6 py-3"><Label className="text-[13px] font-medium text-primary-text">Set up your home</Label></Pressable>
+        {/* Someone who started creating another Home and backed out still has their existing ones. */}
+        {homes.length > 0 && <Pressable accessibilityRole="button" accessibilityLabel="Open one of your homes" onPress={chooseHome} className="rounded-full px-6 py-3 active:opacity-70"><Label className="text-[13px] font-medium text-primary-text">Open one of your homes</Label></Pressable>}
       </View>
     )}
     </View><View>{hasHomeToShow && <>{section('Services', () => show('Services', 'Service cards are visual references only. No Oxy or video account is connected.'))}

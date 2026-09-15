@@ -38,6 +38,8 @@ export type SmartHomeProvider = {
   connect(): Promise<Device[]>;
   subscribe(onDevices: (devices: Device[]) => void): () => void;
   sendCommand(id: string, command: DeviceCommand): void;
+  /** Closes the connection and drops every subscriber — switching to another Home must not keep receiving this one's device events. */
+  disconnect(): void;
 };
 
 /**

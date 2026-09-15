@@ -53,8 +53,9 @@ export function Overlays() {
             {shown.kind === 'menu' && (
               <>
                 {shown.description && <Label className="mb-3 text-[12px] leading-[18px] text-muted-foreground">{shown.description}</Label>}
-                {shown.options.map(option => (
-                  <Pressable key={option.label} accessibilityRole="button" accessibilityState={{ selected: option.selected }}
+                {/* Index in the key: labels aren't unique (two Homes can share a name, or both be "Unnamed home"). */}
+                {shown.options.map((option, index) => (
+                  <Pressable key={`${index}-${option.label}`} accessibilityRole="button" accessibilityState={{ selected: option.selected }}
                     onPress={option.onPress}
                     className={`mb-2 min-h-[53px] flex-row items-center gap-3 rounded-[18px] px-4 py-3 ${option.selected ? 'bg-primary-subtle' : 'bg-muted'}`}>
                     <View className="min-w-0 flex-1">

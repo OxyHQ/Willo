@@ -38,6 +38,9 @@ export type Sheet =
  */
 export type HomeSetupStage = 'resolving' | 'needs-home' | 'needs-pairing' | 'ready';
 
+/** One Home the signed-in person actively belongs to, as listed by `GET /homes/me`. */
+export type HomeSummary = { id: string; name: string | null };
+
 type HomeContextValue = {
   state: HomeState;
   dispatch: React.Dispatch<HomeAction>;
@@ -69,6 +72,14 @@ type HomeContextValue = {
   unitSystem: UnitSystem;
   /** Applies immediately, then saves to the Home; a failed save reverts and says so. */
   setUnitSystem: (value: UnitSystem) => void;
+  /** Every Home the signed-in person actively belongs to. Empty until `GET /homes/me` answers (or if it never does). */
+  homes: HomeSummary[];
+  /** The Home this device is currently showing, or `null` while none is selected (first launch, or mid "create a new home"). */
+  homeId: string | null;
+  /** Leaves the current Home — closing its connection so none of its devices leak into the next — and connects to `id` instead. Remembered on this device. */
+  switchHome: (id: string) => void;
+  /** Leaves the current Home and puts this device back at `needs-home`, so onboarding creates and pairs a new one. The caller navigates to `onboarding`. */
+  startNewHome: () => void;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
@@ -97,12 +108,18 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const getAccessToken = useCallback(() => oxyServices.getAccessToken(), [oxyServices]);
 
   const [devices, setDevices] = useState<Device[]>([]);
+  const [homes, setHomes] = useState<HomeSummary[]>([]);
   const [homeId, setHomeId] = useState<string | null>(null);
   const [rawHomeName, setRawHomeName] = useState<string | null>(null);
   const [setupStage, setSetupStage] = useState<HomeSetupStage>('resolving');
   const [tunnelConnected, setTunnelConnected] = useState(false);
   const providerRef = useRef<SmartHomeProvider | null>(null);
   const hasInitialized = useRef(false);
+  // The Home the latest `connectHome` call is for. Every callback from an
+  // older call checks it and does nothing once the person has switched away,
+  // so a slow connect to the Home they just left can never overwrite the
+  // devices, name or setup stage of the one they're on now.
+  const connectingHomeIdRef = useRef<string | null>(null);
   // Written by `onPaired` before `onConnectionChange` ever reads it (see
   // `willo-tunnel.ts`'s `connect()` — both fire synchronously off the same
   // initial fetch, in that order) — a ref, not state, so the FIRST
@@ -142,33 +159,86 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
 
   const connectHome = useCallback(
     async (id: string) => {
+      connectingHomeIdRef.current = id;
+      const isCurrent = () => connectingHomeIdRef.current === id;
+      const provider = createWilloTunnelProvider({
+        apiBaseUrl: WILLO_API_URL ?? '',
+        homeId: id,
+        getAccessToken,
+        onConnectionChange: (connected) => {
+          if (!isCurrent()) return;
+          setTunnelConnected(connected);
+          setSetupStage(pairedRef.current || connected ? 'ready' : 'needs-pairing');
+        },
+        onHomeName: (name) => {
+          if (isCurrent()) setRawHomeName(name);
+        },
+        onUnitSystem: (value) => {
+          if (isCurrent()) setUnitSystemState(value);
+        },
+        onPaired: (paired) => {
+          if (isCurrent()) pairedRef.current = paired;
+        },
+      });
+      // Held before `connect()` resolves, not after: leaving this Home while
+      // it's still connecting has to be able to disconnect it.
+      providerRef.current = provider;
       try {
-        const provider = createWilloTunnelProvider({
-          apiBaseUrl: WILLO_API_URL ?? '',
-          homeId: id,
-          getAccessToken,
-          onConnectionChange: (connected) => {
-            setTunnelConnected(connected);
-            setSetupStage(pairedRef.current || connected ? 'ready' : 'needs-pairing');
-          },
-          onHomeName: setRawHomeName,
-          onUnitSystem: setUnitSystemState,
-          onPaired: (paired) => {
-            pairedRef.current = paired;
-          },
-        });
         const initialDevices = await provider.connect();
-        providerRef.current = provider;
+        if (!isCurrent()) return;
         setDevices(initialDevices);
         provider.subscribe(setDevices);
       } catch (error) {
-        console.error('Failed to connect to Willo:', error);
+        if (!isCurrent()) return;
+        console.error(`Failed to connect to Willo Home ${id}:`, error);
         notify('Could not reach Willo. Check your connection and try again.');
         setSetupStage('needs-pairing');
       }
     },
     [getAccessToken, notify]
   );
+
+  /** Closes the current Home's connection and clears everything read from it. */
+  const leaveCurrentHome = useCallback(() => {
+    connectingHomeIdRef.current = null;
+    providerRef.current?.disconnect();
+    providerRef.current = null;
+    pairedRef.current = false;
+    setDevices([]);
+    setRawHomeName(null);
+    setTunnelConnected(false);
+  }, []);
+
+  const loadHomes = useCallback(async (): Promise<HomeSummary[]> => {
+    const token = getAccessToken();
+    const response = await fetch(`${WILLO_API_URL}/homes/me`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new Error(`GET /homes/me answered ${response.status}`);
+    const result = (await response.json()) as { home: HomeSummary }[];
+    const summaries = result.map(({ home }) => ({ id: home.id, name: home.name }));
+    setHomes(summaries);
+    return summaries;
+  }, [getAccessToken]);
+
+  const switchHome = useCallback(
+    (id: string) => {
+      if (id === homeId) return;
+      leaveCurrentHome();
+      setSetupStage('resolving');
+      setHomeId(id);
+      storage.setItemAsync('homeId', id).catch((error: unknown) => console.error(`Failed to remember Home ${id} on this device:`, error));
+      connectHome(id);
+    },
+    [homeId, leaveCurrentHome, connectHome]
+  );
+
+  const startNewHome = useCallback(() => {
+    leaveCurrentHome();
+    setHomeId(null);
+    setSetupStage('needs-home');
+    storage.deleteItemAsync('homeId').catch((error: unknown) => console.error('Failed to forget the current Home on this device:', error));
+  }, [leaveCurrentHome]);
 
   useEffect(() => {
     // Waits on Oxy auth to resolve before doing anything, and — like the
@@ -178,15 +248,35 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     hasInitialized.current = true;
 
     (async () => {
-      const storedHomeId = isAuthenticated ? await storage.getItemAsync('homeId') : null;
-      if (!storedHomeId) {
+      if (!isAuthenticated) {
         setSetupStage('needs-home');
         return;
       }
-      setHomeId(storedHomeId);
-      await connectHome(storedHomeId);
+      const storedHomeId = await storage.getItemAsync('homeId');
+      // The person's real Homes decide which one opens: the one this device
+      // last used if they still belong to it, otherwise their first. That's
+      // what lets a new device (or a reinstall) find an existing Home instead
+      // of offering to create another. If the list can't be loaded, the
+      // stored Home is still tried exactly as before — a flaky request must
+      // never push someone who has a Home into setup.
+      let activeHomeId = storedHomeId;
+      try {
+        const myHomes = await loadHomes();
+        activeHomeId = myHomes.find((home) => home.id === storedHomeId)?.id ?? myHomes[0]?.id ?? null;
+      } catch (error) {
+        console.error(`Failed to load Homes; falling back to this device's stored Home (${storedHomeId ?? 'none'}):`, error);
+      }
+      if (!activeHomeId) {
+        setSetupStage('needs-home');
+        return;
+      }
+      if (activeHomeId !== storedHomeId) {
+        await storage.setItemAsync('homeId', activeHomeId);
+      }
+      setHomeId(activeHomeId);
+      await connectHome(activeHomeId);
     })();
-  }, [isAuthResolved, isAuthenticated, connectHome]);
+  }, [isAuthResolved, isAuthenticated, connectHome, loadHomes]);
 
   const createHome = useCallback(
     async (name?: string) => {
@@ -196,8 +286,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(name ? { name, unitSystem } : { unitSystem }),
       });
       if (!response.ok) throw new Error('Could not create your home.');
-      const { home } = (await response.json()) as { home: { id: string; name: string | null } };
+      const { home } = (await response.json()) as { home: HomeSummary };
       await storage.setItemAsync('homeId', home.id);
+      setHomes((current) => [...current, { id: home.id, name: home.name }]);
       setHomeId(home.id);
       setRawHomeName(home.name);
       await connectHome(home.id);
@@ -262,8 +353,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

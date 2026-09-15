@@ -66,6 +66,10 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
 
   let devices: Device[] = [];
   let socket: Socket | null = null;
+  // Set by `disconnect()`. Checked after `connect()`'s own fetch resolves, so
+  // a disconnect that lands mid-connect (switching Homes quickly) never
+  // opens a socket or reports state for the Home being left.
+  let isDisconnected = false;
   const listeners = new Set<(devices: Device[]) => void>();
   const emit = () => listeners.forEach((listener) => listener(devices));
 
@@ -75,6 +79,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     });
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
     const live = (await liveResponse.json()) as { connected: boolean; paired: boolean; devices: Device[]; homeName: string | null; unitSystem: UnitSystem };
+    if (isDisconnected) return [];
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
     onHomeName(live.homeName);
     onUnitSystem(live.unitSystem);
@@ -93,6 +98,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       socket?.on('connect', onConnect);
       socket?.on('connect_error', reject);
     });
+    if (isDisconnected || !socket) return [];
 
     socket.on('home:devices-snapshot', (snapshot: Device[]) => {
       devices = withCameraUrls(snapshot, apiBaseUrl, homeId);
@@ -109,6 +115,13 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
 
   return {
     connect,
+    disconnect() {
+      isDisconnected = true;
+      socket?.removeAllListeners();
+      socket?.disconnect();
+      socket = null;
+      listeners.clear();
+    },
     subscribe(onDevices) {
       listeners.add(onDevices);
       return () => listeners.delete(onDevices);
