@@ -22,5 +22,5 @@ export type Navigate = (screen: ScreenId | 'gallery') => void;
 // above the panel.
 export type ScreenProps = { onNavigate: Navigate; header?: ReactNode };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
-export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency'];
+export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency', 'onboarding'];
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency', 'onboarding'];
