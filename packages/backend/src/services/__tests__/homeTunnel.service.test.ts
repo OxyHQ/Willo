@@ -110,6 +110,19 @@ test('applyDeviceUpdate creates, then replaces, one device in the cached snapsho
   }
 });
 
+test('getLiveDevices returns the Home’s own name, or null when it was never named', async () => {
+  const owner = newUserId('owner');
+  const { home: named } = await createHome(owner, 'The Lake House');
+  const { home: unnamed } = await createHome(owner);
+  try {
+    assert.equal((await getLiveDevices(named.id, owner)).homeName, 'The Lake House');
+    assert.equal((await getLiveDevices(unnamed.id, owner)).homeName, null);
+  } finally {
+    await getDb().delete(homes).where(eq(homes.id, named.id));
+    await getDb().delete(homes).where(eq(homes.id, unnamed.id));
+  }
+});
+
 test('a non-member cannot read a Home’s live devices', async () => {
   const owner = newUserId('owner');
   const outsider = newUserId('outsider');

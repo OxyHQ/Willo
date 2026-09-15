@@ -5,7 +5,6 @@ import { PageScroll, ContentWidth } from '../layout/page-layout';
 import { Icon } from '@willo/ui';
 import { IconButton, Label } from '@willo/ui';
 import { assets } from '../data/assets';
-import { HOME_NAME } from '../components/headers';
 import { type ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
@@ -16,10 +15,11 @@ const clips = [
   { title: 'Rabbits eat colorful plants', time: '2:10 PM', image: assets.flowers },
 ];
 export function AssistantHeader({ onNavigate }: ScreenProps) {
-  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label="Back to home" onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">Ask {HOME_NAME}</Label></View></ContentWidth>;
+  const { homeName } = useHome();
+  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label="Back to home" onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">Ask {homeName}</Label></View></ContentWidth>;
 }
 export function AssistantScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet } = useHome();
+  const { setSheet, homeName } = useHome();
   const { colors: themeColors } = useTheme();
   const [input, setInput] = useState('');
   const [question, setQuestion] = useState('Did something eat my plants?');
@@ -39,6 +39,6 @@ export function AssistantScreen({ onNavigate, header }: ScreenProps) {
       <Label selectable className="text-[13px] leading-[20px]">{showClips ? plantAnswer : 'This is a local interface demo, not a connected AI assistant. Try asking about the plants or rabbits to explore the example camera results.'}</Label>
       {showClips && <><Label className="mb-3 mt-6 px-1 text-[13px] font-medium">Mon, Sep 29</Label><View className="gap-2">{clips.map(clip)}</View><Label className="mb-3 mt-5 px-1 text-[13px] font-medium">Sun, Sep 28</Label>{clip({ title: 'Rabbits in the garden', time: '4:35 PM', image: assets.rabbit })}</>}
     </PageScroll>
-    <ContentWidth maxWidth={808}><View className="bg-card pb-3 pt-2"><View className="flex-row items-center rounded-full bg-home-surface pl-4 pr-1"><TextInput accessibilityLabel={`Ask ${HOME_NAME}`} placeholder={`Ask ${HOME_NAME}`} placeholderTextColor={themeColors.textSecondary} value={input} onChangeText={setInput} onSubmitEditing={submit} returnKeyType="send" maxLength={300} className="h-[48px] flex-1 text-[13px] text-foreground"/><IconButton icon="send" size={19} label="Send question" disabled={!input.trim()} color={themeColors.primary} onPress={submit}/></View><Pressable onPress={() => setSheet({ kind: 'message', title: 'About this preview', description: 'The disclaimer and sample conversation reproduce the supplied reference. This demo does not use Gemini or any other AI service.' })} accessibilityRole="button" className="py-3"><Label className="text-center text-[9px] text-muted-foreground">Gemini can make mistakes, so double check it. <Label className="text-[9px] text-muted-foreground underline">Learn more</Label></Label></Pressable></View></ContentWidth>
+    <ContentWidth maxWidth={808}><View className="bg-card pb-3 pt-2"><View className="flex-row items-center rounded-full bg-home-surface pl-4 pr-1"><TextInput accessibilityLabel={`Ask ${homeName}`} placeholder={`Ask ${homeName}`} placeholderTextColor={themeColors.textSecondary} value={input} onChangeText={setInput} onSubmitEditing={submit} returnKeyType="send" maxLength={300} className="h-[48px] flex-1 text-[13px] text-foreground"/><IconButton icon="send" size={19} label="Send question" disabled={!input.trim()} color={themeColors.primary} onPress={submit}/></View><Pressable onPress={() => setSheet({ kind: 'message', title: 'About this preview', description: 'The disclaimer and sample conversation reproduce the supplied reference. This demo does not use Gemini or any other AI service.' })} accessibilityRole="button" className="py-3"><Label className="text-center text-[9px] text-muted-foreground">Gemini can make mistakes, so double check it. <Label className="text-[9px] text-muted-foreground underline">Learn more</Label></Label></Pressable></View></ContentWidth>
   </KeyboardAvoidingView>;
 }

@@ -15,6 +15,8 @@ type WilloTunnelCredentials = {
   getAccessToken: () => string | null;
   /** Not part of `SmartHomeProvider` (every screen that lists devices only needs `Device[]`) — an extra credential-bag field this ONE concrete provider reports through, the same shape `createHomeAssistantProvider`'s old `onRefreshToken` used. */
   onConnectionChange: (connected: boolean) => void;
+  /** Same reasoning as `onConnectionChange` — the Home's own name, read off `GET .../devices/live`'s response. */
+  onHomeName: (name: string | null) => void;
 };
 
 function authHeaders(getAccessToken: () => string | null): Record<string, string> {
@@ -50,7 +52,7 @@ function withCameraUrls(devices: Device[], apiBaseUrl: string, homeId: string): 
  * left in this file at all.
  */
 export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): SmartHomeProvider {
-  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange } = credentials;
+  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName } = credentials;
 
   let devices: Device[] = [];
   let socket: Socket | null = null;
@@ -62,9 +64,10 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       headers: authHeaders(getAccessToken),
     });
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
-    const live = (await liveResponse.json()) as { connected: boolean; devices: Device[] };
+    const live = (await liveResponse.json()) as { connected: boolean; devices: Device[]; homeName: string | null };
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
     onConnectionChange(live.connected);
+    onHomeName(live.homeName);
 
     socket = io(`${apiBaseUrl}/homes`, { auth: { token: getAccessToken() }, transports: ['websocket'] });
 

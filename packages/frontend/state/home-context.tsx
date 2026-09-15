@@ -37,6 +37,8 @@ type HomeContextValue = {
   notify: (message: string) => void;
   devices: Device[];
   setupStage: HomeSetupStage;
+  /** The Home's own name, or a generic fallback for one created without a name — always ready to display, never null. */
+  homeName: string;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   sendCommand: (id: string, command: DeviceCommand) => void;
@@ -64,6 +66,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [homeId, setHomeId] = useState<string | null>(null);
+  const [rawHomeName, setRawHomeName] = useState<string | null>(null);
+  const homeName = rawHomeName ?? 'My Home';
   const [setupStage, setSetupStage] = useState<HomeSetupStage>('resolving');
   const providerRef = useRef<SmartHomeProvider | null>(null);
   const hasInitialized = useRef(false);
@@ -76,6 +80,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           homeId: id,
           getAccessToken,
           onConnectionChange: (connected) => setSetupStage(connected ? 'ready' : 'needs-pairing'),
+          onHomeName: setRawHomeName,
         });
         const initialDevices = await provider.connect();
         providerRef.current = provider;
@@ -116,9 +121,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify(name ? { name } : {}),
       });
       if (!response.ok) throw new Error('Could not create your home.');
-      const { home } = (await response.json()) as { home: { id: string } };
+      const { home } = (await response.json()) as { home: { id: string; name: string | null } };
       await storage.setItemAsync('homeId', home.id);
       setHomeId(home.id);
+      setRawHomeName(home.name);
       await connectHome(home.id);
     },
     [getAccessToken, connectHome]
@@ -143,8 +149,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, createHome, requestPairingCode, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, createHome, requestPairingCode, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

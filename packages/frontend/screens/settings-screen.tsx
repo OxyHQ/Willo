@@ -9,14 +9,14 @@ import { type ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 export function SettingsScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet } = useHome();
+  const { setSheet, homeName } = useHome();
   const { colors: themeColors } = useTheme();
   const [notifications, setNotifications] = useState(true);
   const show = (title: string, description: string) => setSheet({ kind: 'message', title, description });
   const section = (title: string, action: () => void) => <Pressable accessibilityRole="button" onPress={action} className="mb-3 mt-7 flex-row items-center justify-between"><Label className="text-[12px]">{title}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-home-surface"><Icon name="chevron" size={14}/></View></Pressable>;
   const mini = (title: string, icon: IconName, action: () => void) => <Pressable key={title} accessibilityRole="button" onPress={action} className="h-[101px] w-[99px] justify-between rounded-[23px] bg-home-surface p-3.5 active:opacity-70"><Icon name={icon} size={18}/><Label className="text-[11px] leading-[15px]">{title}</Label></Pressable>;
   return <View className="flex-1 bg-card"><PageScroll>{header}<PageColumns><View>
-    <Pressable onPress={() => show('Home details', '156 Waller\n156 Waller Street\n\nSample address from the supplied reference.')} accessibilityRole="button" className="mb-2 mt-5 flex-row items-center justify-between"><Label className="text-[24px]">156 Waller</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-home-surface"><Icon name="chevron" size={14}/></View></Pressable><Label className="text-[12px] text-muted-foreground">156 Waller Street</Label>
+    <Pressable onPress={() => show('Home details', `${homeName}\n\nNo address is stored for this Home yet.`)} accessibilityRole="button" className="mb-2 mt-5 flex-row items-center justify-between"><Label className="text-[24px]">{homeName}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-home-surface"><Icon name="chevron" size={14}/></View></Pressable>
     <View className="mt-5 flex-row items-center gap-2"><View className="h-9 w-9 overflow-hidden rounded-full"><Image source={assets.avatar} style={{ width: '100%', height: '100%' }}/></View><Pressable accessibilityRole="button" accessibilityLabel="Household member L" onPress={() => show('Household member', 'L is a sample household member from the reference UI.')} className="h-9 w-9 items-center justify-center rounded-full bg-primary-subtle"><Label className="text-[13px] text-primary-text">L</Label></Pressable><IconButton icon="plus" label="Invite household member" size={15} shape="small" className="bg-home-surface" onPress={() => show('Invite a household member', 'No invitation is sent in this demo. Connect your own household membership service here.')}/></View>
     {section('Devices, groups & rooms', () => onNavigate('devices'))}
     <CardStrip>{mini('Hallway\nthermostat', 'thermometer', () => onNavigate('home'))}{mini('Front door\nlock', 'lock', () => onNavigate('home'))}{mini('Office WiFi', 'wifi', () => show('Office WiFi', 'Wi-Fi settings placeholder. No router or network is connected.'))}{mini('Living room', 'light', () => onNavigate('devices'))}</CardStrip>

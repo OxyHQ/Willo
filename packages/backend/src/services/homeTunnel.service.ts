@@ -8,7 +8,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
-import { homeConnections } from '../db/schema';
+import { homeConnections, homes } from '../db/schema';
 import { HOME_CONNECTION_DISPLAY_COLUMNS } from '../db/homeConnectionColumns';
 import { NotFoundError } from '../errors';
 import { assertActiveMember, assertActiveOwner } from './homes.service';
@@ -186,15 +186,22 @@ export async function applyDeviceUpdate(homeId: string, device: { id: string } &
 export interface LiveDevicesResult {
   connected: boolean;
   devices: unknown[];
+  /** The Home's own name (nullable — naming it is optional at creation). Returned here, not a separate call, since the frontend already fetches this endpoint once on every connect/reconnect and needs both. */
+  homeName: string | null;
 }
 
 /** Any active member. `connected` is live (the registry), `devices` is the last snapshot the tunnel reported — never a synchronous round trip to the home itself. */
 export async function getLiveDevices(homeId: string, userId: string): Promise<LiveDevicesResult> {
   await assertActiveMember(homeId, userId);
-  const [row] = await getDb()
+  const [connectionRow] = await getDb()
     .select(HOME_CONNECTION_DISPLAY_COLUMNS)
     .from(homeConnections)
     .where(eq(homeConnections.homeId, homeId))
     .limit(1);
-  return { connected: isHomeConnected(homeId), devices: (row?.deviceSnapshot as unknown[] | null) ?? [] };
+  const [homeRow] = await getDb().select({ name: homes.name }).from(homes).where(eq(homes.id, homeId)).limit(1);
+  return {
+    connected: isHomeConnected(homeId),
+    devices: (connectionRow?.deviceSnapshot as unknown[] | null) ?? [],
+    homeName: homeRow?.name ?? null,
+  };
 }

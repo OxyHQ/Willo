@@ -8,14 +8,10 @@ import { useResponsiveLayout } from '../layout/responsive-context';
 import { Icon } from '@willo/ui';
 import { Avatar, IconButton, Label } from '@willo/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
-// The demo's one hardcoded home name — every "Ask {home}" and the account
-// menu's title read from here instead of repeating the literal, so they can
-// only ever say the same thing.
-export const HOME_NAME = 'Spring Street';
 export function useAccountMenu(onNavigate: Navigate) {
-  const { setSheet, dispatch, notify } = useHome();
-  return () => setSheet({ kind: 'menu', title: `${HOME_NAME} Home`, description: 'Reference UI demo · Changes stay in this session.', options: [
-    { label: `${HOME_NAME} Home`, selected: true, onPress: () => setSheet(null) },
+  const { setSheet, dispatch, notify, homeName } = useHome();
+  return () => setSheet({ kind: 'menu', title: homeName, description: 'Reference UI demo · Changes stay in this session.', options: [
+    { label: homeName, selected: true, onPress: () => setSheet(null) },
     { label: 'Home settings', onPress: () => { setSheet(null); onNavigate('settings'); } },
     { label: 'Classic favorites', onPress: () => { setSheet(null); onNavigate('favorites'); } },
     { label: 'Reset demo controls', onPress: () => { dispatch({ type: 'RESET' }); setSheet(null); notify('Demo controls reset'); } },
@@ -23,6 +19,7 @@ export function useAccountMenu(onNavigate: Navigate) {
 }
 export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
   const account = useAccountMenu(onNavigate);
+  const { homeName } = useHome();
   const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
   // No background class: this always sits directly on a `bg-background`
@@ -43,11 +40,11 @@ export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
           way as that panel, not as a plain page element. `card` is real white
           in light mode (not `sidebar`, which is a slightly tinted off-white)
           and resolves to a sensible raised dark tone in dark mode. */}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Ask ${HOME_NAME}`} onPress={() => onNavigate('assistant')}
+      <Pressable accessibilityRole="button" accessibilityLabel={`Ask ${homeName}`} onPress={() => onNavigate('assistant')}
         className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70"
         style={{ maxWidth: compact ? undefined : 520 }}>
         <View className="h-7 w-7 items-center justify-center rounded-full bg-background"><Icon name="home" size={17} color={themeColors.textSecondary} filled/></View>
-        <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">Ask {HOME_NAME}</Label>
+        <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">Ask {homeName}</Label>
       </Pressable>
       {!compact && <View className="flex-1"/>}
       <IconButton icon="plus" label="Create automation" onPress={() => onNavigate('composer')} className="bg-card"/>
