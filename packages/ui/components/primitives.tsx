@@ -191,8 +191,20 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       </View>
       <View className="min-w-0 flex-1 py-2">
         {brightness !== undefined ? <>
-          <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: blendSource, mixBlendMode: 'difference', userSelect: 'none' }}>{title}</Text>
-          {subtitle && <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: blendSource, mixBlendMode: 'difference', userSelect: 'none' }}>{subtitle}</Text>}
+          {/* `mixBlendMode` directly on `Text`'s own style has no visible
+              effect at all here (confirmed: the label just renders as a
+              flat, static color, never reacting to the fill) — unlike the
+              icon above, where the SAME property on the wrapping `View`
+              works correctly. Wrapping the label in a `View` that carries
+              `mixBlendMode`, exactly like the icon, instead of setting it on
+              the `Text` itself, is the one arrangement actually confirmed to
+              blend. */}
+          <View style={{ mixBlendMode: 'difference' }}>
+            <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: blendSource, userSelect: 'none' }}>{title}</Text>
+          </View>
+          {subtitle && <View style={{ mixBlendMode: 'difference' }}>
+            <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: blendSource, userSelect: 'none' }}>{subtitle}</Text>
+          </View>}
         </> : <>
           <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>
           {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}
