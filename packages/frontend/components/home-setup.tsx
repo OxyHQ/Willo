@@ -57,16 +57,27 @@ function CreateHomeStep() {
   );
 }
 
+/** `mm:ss`, floored — never shows a misleadingly-rounded-up "1:00" with 0.4s left. */
+function formatCountdown(remainingMs: number): string {
+  const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function PairingStep() {
-  const { requestPairingCode, notify } = useHome();
+  const { requestPairingCode, pairingCode: pairing, notify } = useHome();
   const { colors: themeColors } = useTheme();
-  const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  // Ticks once a second only to re-render the countdown below — the actual
+  // expiry math re-reads `pairing.expiresAt`/`Date.now()` fresh every render,
+  // this is just what triggers those re-renders.
+  const [now, setNow] = useState(() => Date.now());
 
   const generate = useCallback(async () => {
     setLoading(true);
     try {
-      setPairing(await requestPairingCode());
+      await requestPairingCode();
     } catch (error) {
       console.error('Failed to request a pairing code:', error);
       notify('Could not generate a pairing code. Try again.');
@@ -75,12 +86,28 @@ function PairingStep() {
     }
   }, [requestPairingCode, notify]);
 
-  // Only on mount — after that, a fresh code is requested only when the
-  // user explicitly presses "Generate a new code" below.
+  const expiresAtMs = pairing ? new Date(pairing.expiresAt).getTime() : null;
+  const expired = expiresAtMs !== null && expiresAtMs <= now;
+
+  // Request a code on mount ONLY if there isn't already a still-valid one —
+  // `pairingCode` now lives in HomeProvider, so it survives this screen
+  // remounting (navigating away and back, a web reload). Requesting a fresh
+  // code unconditionally on every mount used to silently invalidate
+  // whatever code the person might be mid-typing into Home Assistant, with
+  // no warning at all.
   useEffect(() => {
-    generate();
+    if (!pairing || expired) generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The live countdown — ticks only while a non-expired code is showing, so
+  // this doesn't run a timer forever in the background once one has expired
+  // or before the first code has loaded.
+  useEffect(() => {
+    if (!pairing || expired) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [pairing, expired]);
 
   return (
     <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
@@ -96,7 +123,14 @@ function PairingStep() {
               <ActivityIndicator color={themeColors.primary} />
             )}
           </View>
-          <Label className="mt-3 text-center text-[12px] text-muted-foreground">This code expires in 15 minutes.</Label>
+          {pairing && (
+            <Label
+              className={`mt-3 text-center text-[12px] ${expired ? '' : 'text-muted-foreground'}`}
+              style={expired ? { color: themeColors.error } : undefined}
+            >
+              {expired ? 'This code has expired — generate a new one.' : `Expires in ${formatCountdown(expiresAtMs! - now)}.`}
+            </Label>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Generate a new pairing code"

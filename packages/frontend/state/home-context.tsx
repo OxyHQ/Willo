@@ -82,6 +82,18 @@ type HomeContextValue = {
   startNewHome: () => void;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
+  /**
+   * The most recently issued pairing code for the current Home, or `null`
+   * before one's been requested. Lives here, not as local state on the
+   * pairing screen (`PairingStep` in `home-setup.tsx`), specifically so it
+   * SURVIVES that screen unmounting — navigating away and back (Settings and
+   * back, a web reload) used to silently request a brand-new code every
+   * remount, which invalidates the previous one server-side
+   * (`issuePairingCode` nulls any existing secret AND replaces the prior
+   * code) with no warning, right as someone might be mid-typing the old one
+   * into Home Assistant.
+   */
+  pairingCode: { code: string; expiresAt: string } | null;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
   fetchEvents: () => Promise<HomeActivityEvent[]>;
   sendCommand: (id: string, command: DeviceCommand) => void;
@@ -128,6 +140,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const pairedRef = useRef(false);
   const [demoMode, setDemoModeState] = useState(false);
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(Intl.NumberFormat().resolvedOptions().locale));
+  const [pairingCode, setPairingCode] = useState<{ code: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -207,6 +220,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     setDevices([]);
     setRawHomeName(null);
     setTunnelConnected(false);
+    // A pairing code is scoped to whichever Home issued it — carrying one
+    // over to a different Home (after switchHome/startNewHome) would show a
+    // code that types into the WRONG Home's tunnel.
+    setPairingCode(null);
   }, []);
 
   const loadHomes = useCallback(async (): Promise<HomeSummary[]> => {
@@ -332,7 +349,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     // `onPaired` to catch up, so a mid-session re-pair (an owner replacing
     // their Home Assistant Green) can't race a stale `true` here.
     pairedRef.current = false;
-    return (await response.json()) as { code: string; expiresAt: string };
+    const result = (await response.json()) as { code: string; expiresAt: string };
+    setPairingCode(result);
+    return result;
   }, [homeId, getAccessToken]);
 
   const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
@@ -353,8 +372,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }
