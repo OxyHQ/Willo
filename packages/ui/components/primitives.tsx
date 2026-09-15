@@ -135,23 +135,21 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
-  // Bloom's own `secondaryForeground` (the M3-engine-computed "legible on
-  // solid secondary" answer) is mathematically correct in BOTH modes — dark
-  // mode measures 14.2:1 contrast, light mode 5.39:1 — it was never actually
-  // buggy. In DARK mode it's overridden with `colors.onYellow` anyway, on a
-  // deliberate design call: a warm olive reads as this tone's own brand
-  // identity, where Bloom's binary black answer reads as generic (the
-  // FILL itself is bright there, so black genuinely is legible — this is a
-  // preference, not a correction). In LIGHT mode the fill is a dark olive/
-  // mustard (`rgb(128 104 0)`, confirmed directly from Bloom's own resolved
-  // tokens, NOT assumed), not a bright yellow — a hand-picked mid-tone gold
-  // had too little contrast against it, and Bloom's own white answer is the
-  // one already proven correct for that exact fill, so light mode uses it
-  // directly instead of guessing another static hex. Only `yellow` has a
-  // pair today; other tones skip the on-fill treatment (`undefined` — the
-  // base label/icon color underneath reads fine at every brightness with no
-  // clip overlay at all) rather than guess at a value nothing has confirmed.
-  const onFillColor: Partial<Record<Tone, string>> = { yellow: isDark ? colors.onYellow : themeColors.secondaryForeground };
+  // Bloom's own real per-tone "legible on solid fill" tokens — the M3-engine
+  // answer for text/icon color sitting directly on top of each tone's solid
+  // `bg-{tone}` fill above, straight from `useTheme()`, no local computation.
+  // `yellow` keeps ONE deliberate exception in dark mode: `colors.onYellow`
+  // (a warm olive) over Bloom's own `secondaryForeground`, for brand-identity
+  // reasons, not because Bloom's answer is wrong — both are legible there, this
+  // is a style preference. `neutral` has no fill/on-fill case in practice (an
+  // off device), so it is left with no on-fill treatment, same as today.
+  const onFillColor: Partial<Record<Tone, string>> = {
+    sky: themeColors.primaryForeground,
+    yellow: isDark ? colors.onYellow : themeColors.secondaryForeground,
+    peach: themeColors.tertiaryForeground,
+    blue: themeColors.infoForeground,
+    green: themeColors.successForeground,
+  };
   const fillTextColor = onFillColor[tone];
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
