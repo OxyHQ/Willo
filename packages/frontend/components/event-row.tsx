@@ -1,13 +1,61 @@
 import React from 'react';
-import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
-import { type HomeEvent } from '../data/events';
+import { type HomeActivityEvent } from '../providers/types';
 import { useHome } from '../state/home-context';
-import { Icon } from '@willo/ui';
+import { Icon, type IconName } from '@willo/ui';
 import { Label } from '@willo/ui';
-export function EventRow({ event, card = false }: { event: HomeEvent; card?: boolean }) {
+
+/** What to show for one event — title and icon are both derived from the same `eventType`/`active` pair, so every screen that renders an event reads it the same way. */
+export function describeEvent(event: HomeActivityEvent): { title: string; icon: IconName } {
+  switch (event.eventType) {
+    case 'motion':
+      return { title: event.active ? 'Motion detected' : 'Motion cleared', icon: 'activity' };
+    case 'contact':
+      return { title: event.active ? 'Opened' : 'Closed', icon: event.active ? 'unlock' : 'lock' };
+    case 'safety':
+      return { title: event.active ? 'Alert' : 'Alert cleared', icon: 'alert' };
+    default:
+      return { title: event.active === false ? 'Cleared' : 'Triggered', icon: 'bell' };
+  }
+}
+
+export function formatEventTime(occurredAt: string): string {
+  return new Date(occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+/** 'Today'/'Yesterday' for the common case, a short date otherwise — this feed has no fixed two-day window the way the old demo data did. */
+export function dayBucket(occurredAt: string): string {
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(new Date(occurredAt))) / (24 * 60 * 60 * 1000));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return new Date(occurredAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
+export function EventRow({ event, card = false }: { event: HomeActivityEvent; card?: boolean }) {
   const { setSheet } = useHome();
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${event.title}, ${event.time}`} onPress={() => event.image ? setSheet({ kind: 'camera', title: event.location, garden: event.garden }) : setSheet({ kind: 'message', title: event.title, description: `${event.time} · ${event.day}\nThis is a sample security event from the reference UI.` })} className={`flex-row items-center gap-3 ${card ? 'mb-2 min-h-[82px] rounded-[22px] bg-home-surface px-3 py-3' : 'min-h-[87px] py-2'}`}>
-    <Icon name={event.category === 'security' ? 'home' : 'camera'} size={18}/><View className={`min-w-0 flex-1 flex-row items-center gap-2 ${!card ? 'border-b border-border pb-3 pt-1' : ''}`}><View className="min-w-0 flex-1 gap-1"><Label className="text-[12px] leading-[16px]">{event.title}</Label><Label className="text-[10px] leading-[14px] text-muted-foreground">{event.time}{event.location ? ` · ${event.location}` : ''}</Label></View>{event.image && <View className={`overflow-hidden ${card ? 'h-[54px] w-[54px] rounded-[14px]' : 'h-[70px] w-[102px] rounded-lg'}`}><Image source={event.image} style={{ width: '100%', height: '100%' }} contentFit="cover"/></View>}</View>
-  </Pressable>;
+  const { title, icon } = describeEvent(event);
+  const location = event.room ? `${event.name} · ${event.room}` : event.name;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${formatEventTime(event.occurredAt)}`}
+      onPress={() =>
+        setSheet({
+          kind: 'message',
+          title,
+          description: `${location}\n${formatEventTime(event.occurredAt)} · ${dayBucket(event.occurredAt)}`,
+        })
+      }
+      className={`flex-row items-center gap-3 ${card ? 'mb-2 min-h-[82px] rounded-[22px] bg-home-surface px-3 py-3' : 'min-h-[87px] py-2'}`}
+    >
+      <Icon name={icon} size={18} />
+      <View className={`min-w-0 flex-1 gap-1 ${!card ? 'border-b border-border pb-3 pt-1' : ''}`}>
+        <Label className="text-[12px] leading-[16px]">{title}</Label>
+        <Label className="text-[10px] leading-[14px] text-muted-foreground">
+          {formatEventTime(event.occurredAt)} · {location}
+        </Label>
+      </View>
+    </Pressable>
+  );
 }

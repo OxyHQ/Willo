@@ -3,7 +3,7 @@ import { useAuth, useOxy } from '@oxy.so/services';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState, type DeviceKey } from './home-reducer';
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
-import type { Device, DeviceCommand, SmartHomeProvider } from '../providers/types';
+import type { Device, DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
 
 const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
 
@@ -41,6 +41,8 @@ type HomeContextValue = {
   homeName: string;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
+  /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
+  fetchEvents: () => Promise<HomeActivityEvent[]>;
   sendCommand: (id: string, command: DeviceCommand) => void;
   /** `{ Authorization: 'Bearer …' }`, or `{}` if no session token is available yet — for the rare direct fetch/`<Image>` load (camera snapshots) that needs to authenticate itself outside the provider. */
   getAuthHeaders: () => Record<string, string>;
@@ -141,6 +143,16 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     return (await response.json()) as { code: string; expiresAt: string };
   }, [homeId, getAccessToken]);
 
+  const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
+    if (!homeId) return [];
+    const token = getAccessToken();
+    const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/events`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new Error('Could not load activity.');
+    return (await response.json()) as HomeActivityEvent[];
+  }, [homeId, getAccessToken]);
+
   const sendCommand = useCallback((id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command), []);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
@@ -149,8 +161,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }

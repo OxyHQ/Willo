@@ -9,7 +9,8 @@ export type DeviceCapability =
   | { kind: 'color'; color: string | null }
   | { kind: 'fanSpeed'; percent: number | null }
   | { kind: 'camera'; snapshotUrl: string | null }
-  | { kind: 'measurement'; value: number | null; unit: string | null; deviceClass: string | null };
+  | { kind: 'measurement'; value: number | null; unit: string | null; deviceClass: string | null }
+  | { kind: 'binarySensor'; active: boolean; deviceClass: string | null };
 
 export type Device = {
   id: string;
@@ -37,4 +38,25 @@ export type SmartHomeProvider = {
   connect(): Promise<Device[]>;
   subscribe(onDevices: (devices: Device[]) => void): () => void;
   sendCommand(id: string, command: DeviceCommand): void;
+};
+
+/**
+ * Willo's own activity categories — see the backend's `schema.ts` `homeEvents`
+ * doc comment for why this vocabulary is deliberately open-ended (room for a
+ * future AI-driven `person`/`animal`/`package` category without a shape
+ * change; nothing that reads this way yet).
+ */
+export const HOME_EVENT_TYPES = ['motion', 'contact', 'safety', 'other'] as const;
+export type HomeEventType = (typeof HOME_EVENT_TYPES)[number];
+
+/** One real state transition from a `binarySensor`-capable device — `/activity`'s data source, mirroring `GET /homes/:id/events`'s response shape exactly. */
+export type HomeActivityEvent = {
+  id: string;
+  entityId: string;
+  name: string;
+  room: string | null;
+  eventType: HomeEventType;
+  deviceClass: string | null;
+  active: boolean | null;
+  occurredAt: string;
 };
