@@ -4,10 +4,6 @@ Smart home control by Oxy. Connects to a Home Assistant instance and gives you a
 
 Built with Expo (React Native).
 
-## Origin
-
-Willo is a fast, native-feeling smart home control app.
-
 ## Development
 
 ```sh
