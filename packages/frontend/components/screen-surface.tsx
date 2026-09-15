@@ -60,18 +60,20 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const router = useRouter();
   // Setup lives at its own `/onboarding` route (`app/onboarding.tsx`), not a
   // modal over whatever the user happened to be on — landing there straight
-  // after sign-in is a normal navigation, not an interruption. The home
-  // screen is the one exception: it shows `HomeSetupPrompt` inline instead of
-  // redirecting immediately (see that component's doc comment), so only
-  // OTHER screens redirect here. Once setup finishes, a Home sitting on
-  // `/onboarding` itself gets sent back to `/`.
+  // after sign-in is a normal navigation, not an interruption. `home` and
+  // `settings` are the two exceptions that never redirect: home shows
+  // `HomeSetupPrompt` inline instead (see that component's doc comment), and
+  // settings has to stay reachable pre-setup or there would be no way to
+  // reach its Demo mode toggle — the one thing a Home with nothing set up
+  // yet can still turn on. Every other screen redirects. Once setup
+  // finishes, a Home sitting on `/onboarding` itself gets sent back to `/`.
   useEffect(() => {
     if (!isAuthResolved || !isAuthenticated || setupStage === 'resolving') return;
     if (setupStage === 'ready') {
       if (screen === 'onboarding') router.replace('/');
       return;
     }
-    if (screen !== 'home' && screen !== 'onboarding') router.replace('/onboarding');
+    if (screen !== 'home' && screen !== 'onboarding' && screen !== 'settings') router.replace('/onboarding');
   }, [isAuthResolved, isAuthenticated, setupStage, screen, router]);
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
@@ -163,7 +165,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
     content = <SignInPrompt/>;
   } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen === 'home') {
     content = <HomeSetupPrompt onNavigate={onNavigate}/>;
-  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen !== 'onboarding') {
+  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen !== 'onboarding' && screen !== 'settings') {
     content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
   }
 

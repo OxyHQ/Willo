@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, View } from 'react-native';
-import { RealCameraCard } from '../components/camera-card';
+import { CameraCard, RealCameraCard } from '../components/camera-card';
+import { DemoLightTile } from './devices-screen';
 import { Icon, type IconName } from '@willo/ui';
 import { Label, Tile, useOptimisticValue } from '@willo/ui';
 import { ThermostatCard } from '../components/thermostat-card';
@@ -50,7 +51,7 @@ function LightTile({ light }: { light: Device }) {
     onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}/>;
 }
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, setSheet, devices, sendCommand } = useHome();
+  const { state, dispatch, setSheet, devices, sendCommand, demoMode } = useHome();
   const { colors: themeColors } = useTheme();
   const { compact, columns, gutter } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
@@ -99,10 +100,15 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   }
   const full = compact ? 2 : 1;
   const message = (title: string, description: string) => setSheet({ kind: 'message', title, description });
-  const lights = devices.filter(d => d.domain === 'light');
-  const cameras = devices.filter(d => d.domain === 'camera');
-  const fan = devices.find(d => d.domain === 'fan');
-  const sensors = devices.filter(d => d.domain === 'sensor');
+  // Demo mode never mixes with real devices — see `useHome()`'s own doc
+  // comment on `demoMode`. Forcing these to empty here (rather than at the
+  // `base` entries below) means every derived list — `extraLightCards`,
+  // `extraCameraCards`, the "no lights/cameras found" fallbacks — stays
+  // correct for free instead of needing its own demoMode check.
+  const lights = demoMode ? [] : devices.filter(d => d.domain === 'light');
+  const cameras = demoMode ? [] : devices.filter(d => d.domain === 'camera');
+  const fan = demoMode ? undefined : devices.find(d => d.domain === 'fan');
+  const sensors = demoMode ? [] : devices.filter(d => d.domain === 'sensor');
   const noLights = <Tile grow={false} height={80} title="No lights found" subtitle="Check Home Assistant" icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
   const noCameras = <Tile grow={false} height={80} title="No cameras found" subtitle="Check Home Assistant" icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
@@ -135,25 +141,32 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
       return <View key={sensor.id} className="flex-row items-center justify-between gap-3"><Label className="min-w-0 flex-1 text-[11px]">{sensor.name}</Label><Label className="text-[11px]">{measurement?.value != null ? `${measurement.value}${measurement.unit ?? ''}` : '—'}</Label></View>; })}
   </View>;
   const base = {
-    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras },
+    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
     lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
-    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[0] ? <LightTile light={lights[0]}/> : noLights },
+    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="living-lamp" title="Lamp"/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
     thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
     weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: 72, content: weather },
     air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: 72, content: air },
-    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: fanTile },
+    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', 'Fan', 'fan') : fanTile },
     tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: 80, content: device('tv', 'TV', 'tv') },
     garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: 80, content: device('garage', 'Garage', 'garage') },
     speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', 'Speaker', 'speaker') },
-    garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: cameras[1] ? cameraTile(cameras[1], 240) : noCameras },
+    garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: demoMode ? <CameraCard garden height={240}/> : (cameras[1] ? cameraTile(cameras[1], 240) : noCameras) },
     plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', 'Plug', 'plug') },
     sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 196, content: sensorList },
-    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: lights[1] ? <LightTile light={lights[1]}/> : noLights },
+    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title="Lamp"/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
     wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title="Office WiFi" subtitle="Settings preview" icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
-  const order: (keyof typeof base)[] = compact
+  // Demo-only tiles (no real Home Assistant equivalent — see `useHome()`'s
+  // `demoMode` doc comment) only ever appear WITH the rest of the demo
+  // catalog; `sensors` only means anything against real data, so it's the
+  // one real-only tile hidden in demo mode instead.
+  const DEMO_ONLY_CARDS: (keyof typeof base)[] = ['tv', 'garage', 'speaker', 'plug', 'lock'];
+  const hiddenCards = new Set<keyof typeof base>(demoMode ? ['sensors'] : DEMO_ONLY_CARDS);
+  const orderBase: (keyof typeof base)[] = compact
     ? ['camera', 'lock', 'light', 'thermostat', 'weather', 'air']
     : ['camera', 'light', 'thermostat', 'fan', 'lock', 'tv', 'air', 'garage', 'speaker', 'garden', 'weather', 'plug', 'sensors', 'floor'];
+  const order = orderBase.filter(id => !hiddenCards.has(id));
   // Beyond the favorite slots above, the full Lights/Cameras tabs list every
   // real light or camera Home Assistant reports, not just a fixed pair.
   const extraLightCards: HomeCard[] = lights.slice(2).map((light, index) => ({
@@ -163,10 +176,10 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     id: `camera-${camera.id}`, category: 'Cameras', lane: index % 2, estimatedHeight: 170, content: cameraTile(camera, 170),
   }));
   const visible: HomeCard[] = selected === 'Favorites' ? order.map(id => base[id])
-    : selected === 'All' ? [...order, ...(Object.keys(base) as (keyof typeof base)[]).filter(id => !order.includes(id))].map(id => ({ ...base[id], lane: undefined }))
+    : selected === 'All' ? [...order, ...(Object.keys(base) as (keyof typeof base)[]).filter(id => !order.includes(id) && !hiddenCards.has(id))].map(id => ({ ...base[id], lane: undefined }))
     : selected === 'Lights' ? [...Object.values(base).filter(card => card.category === 'Lights'), ...extraLightCards].map(card => ({ ...card, lane: undefined }))
     : selected === 'Cameras' ? [...Object.values(base).filter(card => card.category === 'Cameras'), ...extraCameraCards].map(card => ({ ...card, lane: undefined, span: compact ? 2 : 1 }))
-    : Object.values(base).filter(card => card.category === selected).map(card => ({ ...card, lane: undefined }));
+    : Object.values(base).filter(card => card.category === selected && !hiddenCards.has(card.id as keyof typeof base)).map(card => ({ ...card, lane: undefined }));
   return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>
       {header}

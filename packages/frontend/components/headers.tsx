@@ -9,11 +9,10 @@ import { Icon } from '@willo/ui';
 import { Avatar, IconButton, Label } from '@willo/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 export function useAccountMenu(onNavigate: Navigate) {
-  const { setSheet, dispatch, notify, homeName } = useHome();
-  return () => setSheet({ kind: 'menu', title: homeName, description: 'Reference UI demo · Changes stay in this session.', options: [
+  const { setSheet, homeName } = useHome();
+  return () => setSheet({ kind: 'menu', title: homeName, options: [
     { label: homeName, selected: true, onPress: () => setSheet(null) },
     { label: 'Home settings', onPress: () => { setSheet(null); onNavigate('settings'); } },
-    { label: 'Reset demo controls', onPress: () => { dispatch({ type: 'RESET' }); setSheet(null); notify('Demo controls reset'); } },
   ] });
 }
 export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {

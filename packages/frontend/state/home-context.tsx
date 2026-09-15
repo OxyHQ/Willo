@@ -50,6 +50,16 @@ type HomeContextValue = {
   tunnelConnected: boolean;
   /** The Home's own name, or a generic fallback for one created without a name — always ready to display, never null. */
   homeName: string;
+  /**
+   * When on, device-listing screens (Home, Devices) show ONLY the built-in
+   * demo catalog and hide real Home Assistant devices — never a mix of the
+   * two. Lets someone preview what a fully-stocked smart home looks and
+   * feels like before (or instead of) connecting any real devices. Persisted
+   * locally (a device-level preference, not Home data — nothing server-side
+   * needs to know about it).
+   */
+  demoMode: boolean;
+  setDemoMode: (value: boolean) => void;
   createHome: (name?: string) => Promise<void>;
   requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
@@ -91,6 +101,29 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // `onConnectionChange` call in that same synchronous sequence never reads
   // a stale pre-render value the way `paired` state would.
   const pairedRef = useRef(false);
+  const [demoMode, setDemoModeState] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    storage.getItemAsync('demoMode').then((value) => {
+      if (!ignore) setDemoModeState(value === 'true');
+    });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const setDemoMode = useCallback(
+    (value: boolean) => {
+      setDemoModeState(value);
+      storage.setItemAsync('demoMode', value ? 'true' : 'false').catch((error: unknown) => console.error('Failed to save demo mode:', error));
+      // Always start demo mode from a clean, predictable catalog rather than
+      // wherever a previous demo session's toggling/dragging happened to
+      // leave it.
+      if (value) dispatch({ type: 'RESET' });
+    },
+    [dispatch]
+  );
 
   const connectHome = useCallback(
     async (id: string) => {
@@ -190,8 +223,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }
