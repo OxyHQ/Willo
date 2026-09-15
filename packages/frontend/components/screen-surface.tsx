@@ -55,7 +55,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const { width, gutter } = useResponsiveLayout();
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
-  const { setupStage } = useHome();
+  const { setupStage, homeName } = useHome();
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
   // scrolling under it), so a hard-edged solid fill would cut content off with
@@ -106,8 +106,8 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   let wrapColumn: (column: React.ReactNode) => React.ReactNode = column => column;
   switch (screen) {
     case 'home': header = <AskHeader onNavigate={onNavigate}/>; content = <HomeScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'favorites': header = <ClassicHeader title="Spring Street Home" home notifications onNavigate={onNavigate}/>; content = <FavoritesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'favorites-assistant': header = <ClassicHeader title="Spring Street Home" home onNavigate={onNavigate}/>; content = <FavoritesScreen withAssistant onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'favorites': header = <ClassicHeader title={homeName} home notifications onNavigate={onNavigate}/>; content = <FavoritesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'favorites-assistant': header = <ClassicHeader title={homeName} home onNavigate={onNavigate}/>; content = <FavoritesScreen withAssistant onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'devices': header = <ClassicHeader title="Devices" onNavigate={onNavigate}/>; content = <DevicesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'activity': header = <AskHeader onNavigate={onNavigate}/>; content = <ActivityScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'timeline':
@@ -163,7 +163,14 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
           wrapper below instead of the shared column, so it doesn't also push
           the header down. */}
       {!combineHeader && (
-        <View style={webStickyHeaderStyle} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
+        // `bg-background`, not transparent: on web this is `position: sticky`
+        // over real document scroll, so the screen's own scrolling content
+        // passes BEHIND it, not away from it — without an opaque fill here,
+        // that content shows straight through the header as it scrolls past.
+        // Mobile's combined header has no such problem (see `bleedHeader`'s
+        // gradient instead, which needs to fade rather than hard-cut), so
+        // this only applies to this branch.
+        <View className="bg-background" style={webStickyHeaderStyle} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
           {header}
         </View>
       )}
