@@ -16,35 +16,6 @@ const IS_WEB = Platform.OS === 'web';
 function setBodyCursorHidden(hidden: boolean) {
   if (IS_WEB && typeof document !== 'undefined') document.body.style.cursor = hidden ? 'none' : '';
 }
-function hexToRgb(hex: string): [number, number, number] | null {
-  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
-  return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : null;
-}
-function toHexByte(value: number): string {
-  return Math.min(255, Math.max(0, Math.round(value))).toString(16).padStart(2, '0');
-}
-/**
- * `mixBlendMode: 'difference'` (used by `Tile`'s brightness fill below)
- * paints `|source - backdrop|` per pixel. A flat white source always gives
- * the RAW RGB inverse of whatever's behind it — for a warm, dark fill color
- * that's a cool, light one (this app's `secondary` fill inverts to blue, not
- * a color anyone chose). Solving the same equation for a CHOSEN result
- * instead of guessing a source keeps the exact same technique — still one
- * continuously blended layer, no clipping, no second element — while making
- * the result over `backdrop` land on `desiredResult` exactly: since
- * `|source - backdrop| = desiredResult` when `source = |desiredResult -
- * backdrop|`, that's the source this returns. Falls back to white (the
- * previous behavior) if either color isn't a plain `#rrggbb` hex string —
- * every color this is actually called with comes straight from Bloom's own
- * theme, which returns hex, but this degrades safely rather than crashing
- * if that ever isn't true.
- */
-function blendSourceFor(desiredResult: string, backdrop: string): string {
-  const result = hexToRgb(desiredResult);
-  const back = hexToRgb(backdrop);
-  if (!result || !back) return '#ffffff';
-  return `#${toHexByte(Math.abs(result[0] - back[0]))}${toHexByte(Math.abs(result[1] - back[1]))}${toHexByte(Math.abs(result[2] - back[2]))}`;
-}
 /**
  * Every piece of text in the app goes through here, so this is the one place
  * to make text unselectable by default — no per-screen opt-out to remember.
@@ -157,58 +128,35 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
-  // Solved, not white: see `blendSourceFor`'s own doc comment. Over the
-  // fill, this makes the blend land on the theme's real `secondaryForeground`
-  // token exactly, instead of the raw (and here, blue) RGB inverse of the
-  // fill color.
-  const blendSource = brightness !== undefined ? blendSourceFor(themeColors.secondaryForeground, themeColors.secondary) : undefined;
-  // `mixBlendMode: 'difference'` really is real on native (confirmed in RN's
-  // own Fabric C++ for both iOS and Android, not just react-native-web's
-  // passthrough), so it stays: painted with `blendSource`, it renders as
-  // that color's difference from whatever sits directly behind each pixel —
-  // the fill where covered, the tile's own background where it isn't —
-  // continuously, with no width math, no clipping, no duplicate render.
-  // `isolation: 'isolate'` on the tile scopes the blend to just this tile,
-  // not neighboring ones.
+  // Not `mixBlendMode`: three different arrangements of it (on the Text
+  // directly, on a wrapping View, with a solved-not-white source color)
+  // were each tried and each failed to render any real per-pixel blending
+  // in practice, despite `mixBlendMode` being a real, typed RN/Fabric style
+  // property in principle. Whatever the actual cause, chasing it further
+  // isn't worth it when a plain color swap is trivially reliable instead.
   //
-  // The label previously didn't visibly react to this at all — `Label`
-  // unconditionally applies `text-foreground` (its own baked-in class,
-  // unrelated to whatever `className` a caller passes it), and that
-  // class-driven color was winning over the inline `style` override. The
-  // icon never had this problem: its color is an SVG `fill` attribute set
-  // directly by a prop, never a competing CSS class. Rendering the label
-  // with a plain `Text` here (bypassing `Label` and its forced class
-  // entirely, only while brightness is set) removes that competition rather
-  // than trying to out-specificity it.
+  // Real geometry, not a flat guess: `px-4` (16), the icon itself (20),
+  // `gap-3` (12) before the label starts — converted to a percent of the
+  // tile's own measured width (`width.current`, already tracked below for
+  // the drag gesture) so the icon and label each switch to their on-fill
+  // contrast color only once the fill has actually reached that element,
+  // not at one shared, arbitrary split point.
+  const TILE_PADDING_PX = 16;
+  const ICON_SIZE_PX = 20;
+  const ICON_LABEL_GAP_PX = 12;
+  const iconOverFill = brightness !== undefined && width.current > 0 && clampedBrightness > ((TILE_PADDING_PX + ICON_SIZE_PX / 2) / width.current) * 100;
+  const labelOverFill = brightness !== undefined && width.current > 0 && clampedBrightness > ((TILE_PADDING_PX + ICON_SIZE_PX + ICON_LABEL_GAP_PX) / width.current) * 100;
+  const onFillStyle = { color: themeColors.secondaryForeground };
   return <GestureDetector gesture={composedGesture}>
-    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous', isolation: 'isolate' }}>
+    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
       {/* `secondary`, not `secondary-subtle`: a solid fill for a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
-      <View className="relative" style={brightness !== undefined ? { mixBlendMode: 'difference' } : undefined}>
-        <Icon name={icon} size={20} color={blendSource ?? iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/>
-      </View>
+      <View className="relative"><Icon name={icon} size={20} color={iconOverFill ? themeColors.secondaryForeground : iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
       <View className="min-w-0 flex-1 py-2">
-        {brightness !== undefined ? <>
-          {/* `mixBlendMode` directly on `Text`'s own style has no visible
-              effect at all here (confirmed: the label just renders as a
-              flat, static color, never reacting to the fill) — unlike the
-              icon above, where the SAME property on the wrapping `View`
-              works correctly. Wrapping the label in a `View` that carries
-              `mixBlendMode`, exactly like the icon, instead of setting it on
-              the `Text` itself, is the one arrangement actually confirmed to
-              blend. */}
-          <View style={{ mixBlendMode: 'difference' }}>
-            <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: blendSource, userSelect: 'none' }}>{title}</Text>
-          </View>
-          {subtitle && <View style={{ mixBlendMode: 'difference' }}>
-            <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: blendSource, userSelect: 'none' }}>{subtitle}</Text>
-          </View>}
-        </> : <>
-          <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>
-          {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}
-        </>}
+        <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`} style={labelOverFill ? onFillStyle : undefined}>{title}</Label>
+        {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`} style={labelOverFill ? onFillStyle : undefined}>{subtitle}</Label>}
       </View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
     </View>
