@@ -22,10 +22,16 @@ preview_urls = false
 # `binding = "ASSETS"` is what makes `worker.ts` able to call `env.ASSETS.fetch`
 # instead of the asset serve happening implicitly with no script at all — the
 # HTTP->HTTPS redirect in `worker.ts` has to run before every other request.
+#
+# `run_worker_first = true` is required for that: without it, Cloudflare's
+# default behavior serves a request that matches a static asset (e.g. `/`)
+# DIRECTLY, never invoking `worker.ts` at all — verified live, the redirect
+# had no effect on `http://willo.sh/` until this was added.
 [assets]
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = true
 
 [[routes]]
 pattern = "willo.sh"
