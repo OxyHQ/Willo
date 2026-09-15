@@ -5,12 +5,13 @@
  * `homeConnections` doc comment for the full row lifecycle this file drives.
  */
 
-import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
 import { deviceClaims, homeConnections, homes } from '../db/schema';
 import { HOME_CONNECTION_DISPLAY_COLUMNS } from '../db/homeConnectionColumns';
 import { NotFoundError } from '../errors';
+import { config } from '../config';
 import { assertActiveMember, assertActiveOwner } from './homes.service';
 import { isHomeConnected } from '../realtime/tunnelRegistry';
 
@@ -34,6 +35,44 @@ function generateTunnelSecret(): string {
 
 function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
+}
+
+/**
+ * `device_claims.pending_secret` is the one column in this database that
+ * ever holds a tunnel secret in plaintext (see `completeDeviceClaim`'s doc
+ * comment for why it can't avoid that the way `completePairing` does) — this
+ * key encrypts it at rest, so a raw DB read/backup during that brief window
+ * alone isn't enough to recover it; the app's own runtime config is a
+ * separate credential an attacker would also need. Read lazily, not at
+ * `config` import time, so an environment that never exercises the device
+ * claim flow (every test file that doesn't touch it, a future service split)
+ * doesn't need this set — but the moment `completeDeviceClaim` or
+ * `getDeviceClaimStatus` actually runs without it configured, this throws
+ * loudly rather than silently storing/returning an unencrypted secret.
+ */
+function getClaimEncryptionKey(): Buffer {
+  if (!config.tunnelClaimEncryptionKey) {
+    throw new Error('TUNNEL_CLAIM_ENCRYPTION_KEY is not set — required to issue or complete a device claim. Generate one with `openssl rand -hex 32`.');
+  }
+  return Buffer.from(config.tunnelClaimEncryptionKey, 'hex');
+}
+
+/** AES-256-GCM: a fresh random IV per call (never reused with the same key), the auth tag appended so tampering is detected on decrypt, everything packed into one `base64url` string so the column stays a plain `text`. */
+function encryptPendingSecret(plaintext: string): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', getClaimEncryptionKey(), iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString('base64url');
+}
+
+function decryptPendingSecret(encoded: string): string {
+  const raw = Buffer.from(encoded, 'base64url');
+  const iv = raw.subarray(0, 12);
+  const authTag = raw.subarray(12, 28);
+  const ciphertext = raw.subarray(28);
+  const decipher = createDecipheriv('aes-256-gcm', getClaimEncryptionKey(), iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
 }
 
 export interface IssuedPairingCode {
@@ -175,10 +214,12 @@ export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceCl
     if (!row.homeId) throw new Error('A claimed device_claims row has no homeId — completeDeviceClaim should always set both together.');
 
     if (row.pendingSecret) {
-      // Single delivery: hand the plaintext secret back exactly once, then
-      // clear it in the same call so the next poll gets `secret: null`.
+      // Single delivery: decrypt, hand the plaintext secret back exactly
+      // once, then clear the (still-encrypted) column in the same call so
+      // the next poll gets `secret: null`.
+      const secret = decryptPendingSecret(row.pendingSecret);
       await getDb().update(deviceClaims).set({ pendingSecret: null }).where(eq(deviceClaims.id, row.id));
-      return { status: 'claimed', homeId: row.homeId, secret: row.pendingSecret };
+      return { status: 'claimed', homeId: row.homeId, secret };
     }
     return { status: 'claimed', homeId: row.homeId, secret: null };
   }
@@ -190,9 +231,9 @@ export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceCl
  * Owner-only. Attaches a Home to a claim a device already created
  * (`issueDeviceClaim`), generating a fresh tunnel secret for that Home the
  * same way `completePairing` does. Unlike `completePairing`, the secret is
- * not returned here — it is stashed in `pendingSecret` for the device's own
- * next `getDeviceClaimStatus` poll to collect, since the caller of THIS
- * function is the Oxy app, not the device.
+ * not returned here — it is stashed, ENCRYPTED (`encryptPendingSecret`), in
+ * `pendingSecret` for the device's own next `getDeviceClaimStatus` poll to
+ * collect, since the caller of THIS function is the Oxy app, not the device.
  */
 export async function completeDeviceClaim(claimCode: string, homeId: string, userId: string): Promise<void> {
   await assertActiveOwner(homeId, userId);
@@ -223,7 +264,7 @@ export async function completeDeviceClaim(claimCode: string, homeId: string, use
 
     await tx
       .update(deviceClaims)
-      .set({ status: 'claimed', homeId, pendingSecret: secret, claimedAt })
+      .set({ status: 'claimed', homeId, pendingSecret: encryptPendingSecret(secret), claimedAt })
       .where(eq(deviceClaims.id, row.id));
   });
 }

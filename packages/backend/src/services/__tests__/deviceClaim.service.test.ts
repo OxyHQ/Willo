@@ -60,6 +60,27 @@ test('issuing a device claim, then completing it, delivers the tunnel secret to 
   }
 });
 
+test('the tunnel secret is encrypted at rest between completion and the device collecting it', async () => {
+  const owner = newUserId('owner');
+  const { home } = await createHome(owner);
+  try {
+    const { claimCode, claimToken } = await issueDeviceClaim();
+    await completeDeviceClaim(claimCode, home.id, owner);
+
+    const [row] = await getDb().select({ pendingSecret: deviceClaims.pendingSecret }).from(deviceClaims).where(eq(deviceClaims.claimCode, claimCode)).limit(1);
+    assert.ok(row?.pendingSecret, 'expected a pending secret to be stored after completion');
+    // The stored value must not be (or contain) the plaintext secret this
+    // poll is about to return — if it did, encryption isn't actually
+    // happening and a raw DB read would recover the real tunnel secret.
+    const { secret } = await getDeviceClaimStatus(claimToken) as { secret: string };
+    assert.ok(secret);
+    assert.notEqual(row.pendingSecret, secret);
+    assert.ok(!row.pendingSecret.includes(secret));
+  } finally {
+    await getDb().delete(homes).where(eq(homes.id, home.id));
+  }
+});
+
 test('a device claim reports pending until claimed, then expires on its own once past its TTL', async () => {
   const { claimCode, claimToken } = await issueDeviceClaim();
   try {

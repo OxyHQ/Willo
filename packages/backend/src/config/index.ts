@@ -20,6 +20,15 @@ const envSchema = z.object({
   // credentials, in addition to the built-in *.oxy.so family createOxyCors
   // always allows.
   CORS_ORIGINS: z.string().optional(),
+  // Encrypts `device_claims.pending_secret` at rest (AES-256-GCM) — the one
+  // column in this database that ever holds a tunnel secret in plaintext,
+  // for the brief window between an owner completing a device claim and the
+  // device's own next poll collecting it. Optional at the schema level (so
+  // importing `config` never breaks an environment/test that doesn't touch
+  // this feature) but required in practice the moment that code path runs —
+  // see `services/homeTunnel.service.ts`'s `getClaimEncryptionKey`, the
+  // only place this is read. 64 hex characters = 32 raw bytes.
+  TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -37,4 +46,5 @@ export const config = {
   corsOrigins: env.CORS_ORIGINS
     ? env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
     : [],
+  tunnelClaimEncryptionKey: env.TUNNEL_CLAIM_ENCRYPTION_KEY,
 };
