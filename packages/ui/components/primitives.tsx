@@ -135,27 +135,21 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
       <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
-      <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
-      {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
       {/* The solid fill above is opaque, but `palette.text` is tuned for
-          contrast against the TILE's plain `-subtle` background, not against
-          that fill — past the point the fill reaches, the label reads as
-          near-invisible (e.g. dark `secondary-text` on the near-identical
-          solid `secondary` yellow). A second copy of the same labels, in
-          `secondaryForeground` (Bloom's own contrast-checked "legible on
-          solid secondary" token), clipped to exactly the fill's width, keeps
-          the label readable at every brightness instead of only some of them.
-          `pointerEvents="none"` on both wrapper and children: this overlay
-          must never intercept the drag gesture the tile itself handles. */}
-      {brightness !== undefined && (
-        <View pointerEvents="none" className="absolute inset-0 flex-row items-center gap-3 overflow-hidden px-4" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}>
-          <View className="relative" style={{ opacity: 0 }}><Icon name={icon} size={20} color={iconColor}/></View>
-          <View className="min-w-0 flex-1 py-2">
-            <Label style={{ color: themeColors.secondaryForeground }} className="text-[13px] font-medium leading-[17px]">{title}</Label>
-            {subtitle && <Label style={{ color: themeColors.secondaryForeground }} className="mt-0.5 text-[11px] leading-[14px]">{subtitle}</Label>}
-          </View>
-        </View>
-      )}
+          contrast against the tile's plain `-subtle` background, not against
+          that fill — once the fill reaches roughly where the label sits, it
+          reads as near-invisible. Past the halfway mark the fill has almost
+          certainly reached the label (the icon+gap+padding before it eats a
+          real chunk of a tile this narrow), so the label switches wholesale
+          to `secondaryForeground` (Bloom's contrast-checked "legible on
+          solid secondary" token) instead of trying to track the fill edge
+          pixel-for-pixel with a second, separately-positioned copy of the
+          label — simpler, and nothing to get subtly wrong across platforms. */}
+      <View className="min-w-0 flex-1 py-2">
+        <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`} style={clampedBrightness > 50 ? { color: themeColors.secondaryForeground } : undefined}>{title}</Label>
+        {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`} style={clampedBrightness > 50 ? { color: themeColors.secondaryForeground } : undefined}>{subtitle}</Label>}
+      </View>
+      {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
     </View>
   </GestureDetector>;
 }
