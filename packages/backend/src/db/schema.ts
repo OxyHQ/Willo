@@ -1,7 +1,7 @@
 /**
  * Willo backend — Postgres schema.
  *
- * Five tables. This is a brand-new, small service: it does not
+ * Six tables. This is a brand-new, small service: it does not
  * replicate OxyHQ/oxy's heavyweight schema-migration apparatus (no
  * deferred-foreign-key ledger — there is nothing here to defer — and no
  * generic table-scanning invariant-test suite). What IS kept, because it is
@@ -248,5 +248,65 @@ export const homeEvents = pgTable(
     // "This Home's most recent activity first" — the only query `/activity` makes.
     index('home_events_home_id_occurred_at_idx').on(t.homeId, t.occurredAt),
     check('home_events_event_type_check', sql`${t.eventType} in (${sql.raw(inList(HOME_EVENT_TYPES))})`),
+  ]
+);
+
+/**
+ * Lifecycle for a `device_claims` row — see the table's own doc comment for
+ * the full flow. `expired` is written by `homeTunnel.service.ts`'s
+ * `getDeviceClaimStatus` the first time a still-`pending` row is read past
+ * its `expiresAt`; nothing sweeps these rows proactively.
+ */
+export const DEVICE_CLAIM_STATUSES = ['pending', 'claimed', 'expired'] as const;
+
+/**
+ * `device_claims` — the DEVICE-initiated counterpart to `home_connections`'s
+ * pairing fields (`pairingCode`/`pairingCodeExpiresAt`): there the app knows
+ * the Home first and hands the device a code; here the device knows nothing
+ * about any Home yet and asks for a claim on its own, so this row starts
+ * independent of any `homeId` and only gains one once an owner claims it.
+ * See `homeTunnel.service.ts`'s `issueDeviceClaim`/`getDeviceClaimStatus`/
+ * `completeDeviceClaim` for the three functions that drive it, and
+ * `routes/tunnel.routes.ts` / `routes/homes.routes.ts` for the routes.
+ *
+ *   1. PENDING: `issueDeviceClaim` (public, no Oxy auth) inserts this row —
+ *      `claimCode` (shown to a person, e.g. via QR) and `claimTokenHash` (the
+ *      device's own bearer credential for polling its status) are both set,
+ *      `homeId`/`pendingSecret`/`claimedAt` are null.
+ *   2. CLAIMED: `completeDeviceClaim` (owner only, authenticated Oxy call)
+ *      looks the row up by `claimCode`, generates a NEW tunnel secret,
+ *      upserts it into `home_connections` for the given Home, and sets
+ *      `status = 'claimed'`, `homeId`, `pendingSecret` (the plaintext secret,
+ *      briefly held here — see that function's own doc comment for the
+ *      security tradeoff this implies), `claimedAt`.
+ *   3. DELIVERED: the device's own poll (`getDeviceClaimStatus`, authenticated
+ *      by `claimTokenHash` alone) reads `pendingSecret` and clears it in the
+ *      same call — single delivery, mirroring `completePairing`'s "the
+ *      secret is returned exactly once" contract. `status` stays `claimed`
+ *      forever after; only `pendingSecret` moves from set to null.
+ *   4. EXPIRED: a row that reached `expiresAt` while still `pending` — see
+ *      `DEVICE_CLAIM_STATUSES`'s doc comment.
+ *
+ * `claimTokenHash` IS THE SENSITIVE COLUMN, exactly like `home_connections.
+ * tunnelSecretHash` — a SHA-256 digest, never the raw token, which is
+ * returned to the device once, at `issueDeviceClaim`.
+ */
+export const deviceClaims = pgTable(
+  'device_claims',
+  {
+    id: generatedId(),
+    claimCode: text().notNull(),
+    claimTokenHash: text().notNull(),
+    status: text({ enum: DEVICE_CLAIM_STATUSES }).notNull().default('pending'),
+    homeId: text().references(() => homes.id, { onDelete: 'cascade' }),
+    /** Plaintext tunnel secret, set by `completeDeviceClaim`, cleared by the device's own next `getDeviceClaimStatus` poll — see the table's doc comment, step 3. */
+    pendingSecret: text(),
+    createdAt: createdAt(),
+    expiresAt: timestamptz().notNull(),
+    claimedAt: timestamptz(),
+  },
+  (t) => [
+    unique('device_claims_claim_code_key').on(t.claimCode),
+    check('device_claims_status_check', sql`${t.status} in (${sql.raw(inList(DEVICE_CLAIM_STATUSES))})`),
   ]
 );

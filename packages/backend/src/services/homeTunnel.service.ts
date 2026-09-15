@@ -8,7 +8,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
-import { homeConnections, homes } from '../db/schema';
+import { deviceClaims, homeConnections, homes } from '../db/schema';
 import { HOME_CONNECTION_DISPLAY_COLUMNS } from '../db/homeConnectionColumns';
 import { NotFoundError } from '../errors';
 import { assertActiveMember, assertActiveOwner } from './homes.service';
@@ -95,6 +95,137 @@ export async function completePairing(code: string): Promise<CompletedPairing> {
     .where(eq(homeConnections.id, row.id));
 
   return { homeId: row.homeId, secret };
+}
+
+export interface IssuedDeviceClaim {
+  claimCode: string;
+  /** Returned ONCE. Hashed at rest (`claimTokenHash`), exactly like a tunnel secret — see `hashSecret`. */
+  claimToken: string;
+  expiresAt: Date;
+}
+
+/**
+ * Public, DEVICE-initiated counterpart to `issuePairingCode`: no caller
+ * identity to check, because no Home is known yet — the device is asking to
+ * be claimed by whichever owner scans/types its code next. See
+ * `routes/tunnel.routes.ts`'s `POST /tunnel/claim`, and `schema.ts`'s
+ * `deviceClaims` doc comment for the row's full lifecycle.
+ */
+export async function issueDeviceClaim(): Promise<IssuedDeviceClaim> {
+  const claimCode = generatePairingCode();
+  const claimToken = generateTunnelSecret();
+  const expiresAt = new Date(Date.now() + PAIRING_CODE_TTL_MS);
+
+  await getDb()
+    .insert(deviceClaims)
+    .values({ claimCode, claimTokenHash: hashSecret(claimToken), expiresAt });
+
+  return { claimCode, claimToken, expiresAt };
+}
+
+export type DeviceClaimStatus =
+  | { status: 'pending' }
+  | {
+      status: 'claimed';
+      homeId: string;
+      /**
+       * Present only on the FIRST `claimed` read after `completeDeviceClaim`
+       * — mirrors `completePairing`'s "the secret is returned exactly once"
+       * contract, stretched across two separate requests instead of one (the
+       * app's claim call and the device's later poll can't share a
+       * response). `null` here means exactly one thing: an earlier poll
+       * already collected it, not that claiming failed.
+       */
+      secret: string | null;
+    }
+  | { status: 'expired' };
+
+/**
+ * Called by the device itself, authenticated by the claim token alone (there
+ * is no Oxy session on this side, same reasoning as `completePairing`) — see
+ * `routes/tunnel.routes.ts`'s `GET /tunnel/claim/status`.
+ */
+export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceClaimStatus> {
+  const [row] = await getDb()
+    .select({
+      id: deviceClaims.id,
+      status: deviceClaims.status,
+      homeId: deviceClaims.homeId,
+      pendingSecret: deviceClaims.pendingSecret,
+      expiresAt: deviceClaims.expiresAt,
+    })
+    .from(deviceClaims)
+    .where(eq(deviceClaims.claimTokenHash, hashSecret(claimToken)))
+    .limit(1);
+
+  if (!row) {
+    throw new NotFoundError('This device claim is invalid.');
+  }
+
+  if (row.status === 'pending' && row.expiresAt.getTime() < Date.now()) {
+    await getDb().update(deviceClaims).set({ status: 'expired' }).where(eq(deviceClaims.id, row.id));
+    return { status: 'expired' };
+  }
+
+  if (row.status === 'expired') {
+    return { status: 'expired' };
+  }
+
+  if (row.status === 'claimed') {
+    if (!row.homeId) throw new Error('A claimed device_claims row has no homeId — completeDeviceClaim should always set both together.');
+
+    if (row.pendingSecret) {
+      // Single delivery: hand the plaintext secret back exactly once, then
+      // clear it in the same call so the next poll gets `secret: null`.
+      await getDb().update(deviceClaims).set({ pendingSecret: null }).where(eq(deviceClaims.id, row.id));
+      return { status: 'claimed', homeId: row.homeId, secret: row.pendingSecret };
+    }
+    return { status: 'claimed', homeId: row.homeId, secret: null };
+  }
+
+  return { status: 'pending' };
+}
+
+/**
+ * Owner-only. Attaches a Home to a claim a device already created
+ * (`issueDeviceClaim`), generating a fresh tunnel secret for that Home the
+ * same way `completePairing` does. Unlike `completePairing`, the secret is
+ * not returned here — it is stashed in `pendingSecret` for the device's own
+ * next `getDeviceClaimStatus` poll to collect, since the caller of THIS
+ * function is the Oxy app, not the device.
+ */
+export async function completeDeviceClaim(claimCode: string, homeId: string, userId: string): Promise<void> {
+  await assertActiveOwner(homeId, userId);
+
+  const normalized = claimCode.trim().toUpperCase();
+  const [row] = await getDb()
+    .select({ id: deviceClaims.id, status: deviceClaims.status, expiresAt: deviceClaims.expiresAt })
+    .from(deviceClaims)
+    .where(eq(deviceClaims.claimCode, normalized))
+    .limit(1);
+
+  if (!row || row.status !== 'pending' || row.expiresAt.getTime() < Date.now()) {
+    throw new NotFoundError('This claim code is invalid or has expired.');
+  }
+
+  const secret = generateTunnelSecret();
+  const secretHash = hashSecret(secret);
+  const claimedAt = new Date();
+
+  await getDb().transaction(async (tx) => {
+    await tx
+      .insert(homeConnections)
+      .values({ homeId, provider: 'home_assistant', tunnelSecretHash: secretHash })
+      .onConflictDoUpdate({
+        target: [homeConnections.homeId],
+        set: { tunnelSecretHash: secretHash, pairingCode: null, pairingCodeExpiresAt: null },
+      });
+
+    await tx
+      .update(deviceClaims)
+      .set({ status: 'claimed', homeId, pendingSecret: secret, claimedAt })
+      .where(eq(deviceClaims.id, row.id));
+  });
 }
 
 /**

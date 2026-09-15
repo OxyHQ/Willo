@@ -52,6 +52,10 @@ const upsertDeviceMetadataSchema = z.object({
   isFavorite: z.boolean().optional(),
 });
 
+const claimDeviceSchema = z.object({
+  claimCode: z.string().trim().min(1, 'claimCode is required'),
+});
+
 const sendCommandSchema = z.object({
   domain: z.string().trim().min(1, 'domain is required'),
   service: z.string().trim().min(1, 'service is required'),
@@ -129,6 +133,18 @@ router.post('/:id/pairing-code', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
   const result = await tunnelService.issuePairingCode(pathParam(req.params.id), userId);
   res.status(201).json(result);
+});
+
+/**
+ * POST /homes/:id/claim-device — the DEVICE-initiated counterpart to
+ * `/pairing-code`: attach this Home to a claim a device already created via
+ * `POST /tunnel/claim`. Owner only.
+ */
+router.post('/:id/claim-device', validateBody(claimDeviceSchema), async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const { claimCode } = req.body as z.infer<typeof claimDeviceSchema>;
+  await tunnelService.completeDeviceClaim(claimCode, pathParam(req.params.id), userId);
+  res.status(200).json({ ok: true });
 });
 
 /** GET /homes/:id/devices/live — cached device list + whether the tunnel is currently connected. Any active member. */
