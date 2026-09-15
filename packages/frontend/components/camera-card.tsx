@@ -24,7 +24,7 @@ export function RealCameraCard({ camera, height = 194, width }: { camera: Device
   // tunnel), which is Oxy-authenticated — never a raw Home Assistant URL, so
   // this needs the same bearer header every other backend call carries.
   const uri = snapshotUrl ? `${snapshotUrl}?_=${refreshKey}` : undefined;
-  return <View className="relative overflow-hidden rounded-[27px] bg-home-surface" style={{ height, width }}>
+  return <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${camera.name}`} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl })} className="absolute inset-0">
       {uri ? <Image source={{ uri, headers: getAuthHeaders() }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
     </Pressable>
@@ -38,7 +38,7 @@ export function RealCameraCard({ camera, height = 194, width }: { camera: Device
 export function CameraCard({ garden = false, height = 194, showBadge = true, label, width }: { garden?: boolean; height?: number; showBadge?: boolean; label?: string; width?: number }) {
   const { setSheet } = useHome();
   const [muted, setMuted] = useState(true);
-  return <View className="relative overflow-hidden rounded-[27px] bg-home-surface" style={{ height, width }}>
+  return <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${garden ? 'backyard' : 'living room'} camera preview`} onPress={() => setSheet({ kind: 'camera', title: garden ? 'Backyard camera' : 'Living room camera', garden })} className="absolute inset-0"><Image source={garden ? assets.garden : assets.livingRoom} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>
     <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between"><View className="flex-row items-center gap-2"><View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]"/><Label className="text-[13px] font-medium text-white" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}>Live</Label></View>{showBadge && <Label className="text-[13px] text-white">Cam</Label>}</View>
     {(garden || label) && <Label pointerEvents="none" className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white" style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}>{label ?? 'Yard cam'}</Label>}

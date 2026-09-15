@@ -1,5 +1,5 @@
 export const colors = {
-  ink: '#202124', muted: '#5f6368', surface: '#f1f4f9', nav: '#f0f5ff',
+  ink: '#202124', muted: '#5f6368', nav: '#f0f5ff',
   blue: '#d9e1ff', onBlue: '#064aba', sky: '#c1e8fc', onSky: '#00537f',
   yellow: '#fff0c8', yellowFill: '#ffe182', onYellow: '#625007',
   peach: '#ffddd1', peachButton: '#ffb799', onPeach: '#8e3205',

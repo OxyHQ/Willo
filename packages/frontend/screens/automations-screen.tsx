@@ -22,7 +22,7 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
     <PageScroll>{header}<PageColumns weights={[1, 1.35]}>
       <View><SectionTitle>Upcoming</SectionTitle><CardStrip gap={12}>
         {shown.length ? shown.map((item, index) => <View key={item.id}
-          className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-primary-subtle' : 'bg-home-surface'}`}
+          className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-primary-subtle' : 'bg-muted'}`}
           style={{ width: compact ? 156 : split ? '100%' : 196, gap: 32 }}>
           <View className="flex-row items-center justify-between"><Icon name={item.icon} size={23} color={index === 0 ? themeColors.primary : themeColors.text}/>
             <Pressable accessibilityRole="button" accessibilityLabel={`Dismiss ${item.name}`} onPress={() => dispatch({ type: 'DISMISS_UPCOMING', id: item.id })}
@@ -31,7 +31,7 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
           <View><Label className={`text-[33px] leading-[41px] ${index === 0 ? 'text-primary-text' : ''}`}>{item.time}<Label className={`text-[12px] ${index === 0 ? 'text-primary-text' : ''}`}> {item.period}</Label></Label>
             <Label className={`mt-1 text-[11px] leading-[15px] ${index === 0 ? 'text-primary-text' : ''}`}>Today · {item.name}</Label>
           </View>
-        </View>) : <View className="w-full rounded-3xl bg-home-surface p-5"><Label className="text-[13px] text-muted-foreground">No upcoming routines in this demo.</Label></View>}
+        </View>) : <View className="w-full rounded-3xl bg-muted p-5"><Label className="text-[13px] text-muted-foreground">No upcoming routines in this demo.</Label></View>}
       </CardStrip></View>
       <View><SectionTitle right="+ Add" onPress={() => onNavigate('composer')}>Your automations</SectionTitle><View className="gap-2">
         <RoutineRow title="Wake up" description="At sunrise, turn on bedroom lights and open blinds" icon="light"/>

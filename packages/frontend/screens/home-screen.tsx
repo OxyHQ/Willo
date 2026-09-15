@@ -212,7 +212,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           if (!compact) {
             return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
               onPress={() => selectCategory(category.name)}
-              className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-primary-subtle' : 'bg-home-surface'}`}>
+              className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? themeColors.primary : themeColors.textSecondary}/>
               <Label className={labelClassName}>{category.name}</Label>
             </Pressable>;
@@ -229,7 +229,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           const naturalWidth = labelWidths[category.name] ?? 54;
           return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
             onPress={() => selectCategory(category.name)} className="active:opacity-70">
-            <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-primary-subtle' : 'bg-home-surface'}`}>
+            <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? themeColors.primary : themeColors.textSecondary}/>
               <Animated.View style={{
                 overflow: 'hidden',

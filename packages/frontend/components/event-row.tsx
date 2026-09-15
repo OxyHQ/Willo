@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { type HomeActivityEvent } from '../providers/types';
 import { useHome } from '../state/home-context';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { Icon, type IconName } from '@willo/ui';
 import { Label } from '@willo/ui';
 
@@ -34,6 +35,7 @@ export function dayBucket(occurredAt: string): string {
 
 export function EventRow({ event, card = false }: { event: HomeActivityEvent; card?: boolean }) {
   const { setSheet } = useHome();
+  const { colors: themeColors } = useTheme();
   const { title, icon } = describeEvent(event);
   const location = event.room ? `${event.name} · ${event.room}` : event.name;
   return (
@@ -47,9 +49,9 @@ export function EventRow({ event, card = false }: { event: HomeActivityEvent; ca
           description: `${location}\n${formatEventTime(event.occurredAt)} · ${dayBucket(event.occurredAt)}`,
         })
       }
-      className={`flex-row items-center gap-3 ${card ? 'mb-2 min-h-[82px] rounded-[22px] bg-home-surface px-3 py-3' : 'min-h-[87px] py-2'}`}
+      className={`flex-row items-center gap-3 ${card ? 'mb-2 min-h-[82px] rounded-[22px] bg-muted px-3 py-3' : 'min-h-[87px] py-2'}`}
     >
-      <Icon name={icon} size={18} />
+      <Icon name={icon} size={18} color={themeColors.text} />
       <View className={`min-w-0 flex-1 gap-1 ${!card ? 'border-b border-border pb-3 pt-1' : ''}`}>
         <Label className="text-[12px] leading-[16px]">{title}</Label>
         <Label className="text-[10px] leading-[14px] text-muted-foreground">
