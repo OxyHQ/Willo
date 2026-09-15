@@ -1,7 +1,7 @@
 /**
  * Willo backend — Postgres schema.
  *
- * Four tables, one migration. This is a brand-new, small service: it does not
+ * Five tables. This is a brand-new, small service: it does not
  * replicate OxyHQ/oxy's heavyweight schema-migration apparatus (no
  * deferred-foreign-key ledger — there is nothing here to defer — and no
  * generic table-scanning invariant-test suite). What IS kept, because it is
@@ -189,5 +189,64 @@ export const homeConnections = pgTable(
       'home_connections_provider_check',
       sql`${t.provider} in (${sql.raw(inList(HOME_CONNECTION_PROVIDERS))})`
     ),
+  ]
+);
+
+/**
+ * Willo's own semantic categories for a `home_events` row — NOT Home
+ * Assistant's `device_class` verbatim (that's kept alongside, in
+ * `deviceClass`, for anything finer-grained a screen wants). `motion`/
+ * `contact`/`safety` are derived today from a binary_sensor's `device_class`
+ * (see `homeEvents.service.ts`'s `categorizeDeviceClass`); `other` covers a
+ * `device_class` that mapping doesn't recognize. `text` + CHECK, matching
+ * this file's own convention, is deliberate here for another reason too:
+ * this vocabulary is meant to grow — a future AI-driven detection event
+ * (`person`, `animal`, `package`, off a camera feed rather than a sensor)
+ * is a CHECK-widening migration, not a new table or column, when that
+ * pipeline gets built. Nothing that pipeline needs exists yet.
+ */
+export const HOME_EVENT_TYPES = ['motion', 'contact', 'safety', 'other'] as const;
+
+/**
+ * `home_events` — a Home's real activity history (`/activity`'s data
+ * source), one row per state TRANSITION. Deliberately narrower than every
+ * device state change the tunnel reports: only entities with a
+ * `binarySensor` capability produce a row here (`realtime/tunnelNamespace.ts`'s
+ * `state_changed` handler is the one caller). A light dimming is routine
+ * device control, not "activity" — matching what Apple/Google Home's own
+ * activity feeds actually show. Never written from the initial
+ * `state_snapshot` a reconnect sends: that would log a spurious "event" for
+ * every sensor's current, unchanged state on every reconnect. Home
+ * Assistant's own `EVENT_STATE_CHANGED` fires only on a genuine transition,
+ * so no additional de-duplication is needed here.
+ *
+ * `entityId`/`deviceClass` are opaque, no FK — same reasoning as
+ * `home_device_metadata.entityId`: this row must outlive a since-removed
+ * sensor.
+ *
+ * `active` is nullable: every event today is a real on/off transition, but a
+ * future detection-style event (no natural on/off pairing) can leave it
+ * null instead of being forced to fake one.
+ */
+export const homeEvents = pgTable(
+  'home_events',
+  {
+    id: generatedId(),
+    homeId: text()
+      .notNull()
+      .references(() => homes.id, { onDelete: 'cascade' }),
+    entityId: text().notNull(),
+    name: text().notNull(),
+    room: text(),
+    eventType: text({ enum: HOME_EVENT_TYPES }).notNull(),
+    deviceClass: text(),
+    active: boolean(),
+    occurredAt: timestamptz().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    // "This Home's most recent activity first" — the only query `/activity` makes.
+    index('home_events_home_id_occurred_at_idx').on(t.homeId, t.occurredAt),
+    check('home_events_event_type_check', sql`${t.eventType} in (${sql.raw(inList(HOME_EVENT_TYPES))})`),
   ]
 );

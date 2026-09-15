@@ -16,6 +16,7 @@ import * as homesService from '../services/homes.service';
 import * as membersService from '../services/homeMembers.service';
 import * as devicesService from '../services/homeDevices.service';
 import * as tunnelService from '../services/homeTunnel.service';
+import * as eventsService from '../services/homeEvents.service';
 import { sendCommand as sendTunnelCommand, requestCameraSnapshot } from '../realtime/tunnelRegistry';
 
 const router = Router();
@@ -134,6 +135,13 @@ router.post('/:id/pairing-code', async (req: Request, res: Response) => {
 router.get('/:id/devices/live', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
   const result = await tunnelService.getLiveDevices(pathParam(req.params.id), userId);
+  res.status(200).json(result);
+});
+
+/** GET /homes/:id/events — this Home's real activity history (motion/door/safety sensor transitions). Any active member. */
+router.get('/:id/events', async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const result = await eventsService.listEvents(pathParam(req.params.id), userId);
   res.status(200).json(result);
 });
 

@@ -21,12 +21,42 @@ import {
   markTunnelDisconnected,
   saveDeviceSnapshot,
 } from '../services/homeTunnel.service';
+import { recordBinarySensorEvent, type BinarySensorTransition } from '../services/homeEvents.service';
 import { emitToHome } from './socketRegistry';
 import { registerTunnelSocket, resolveCameraSnapshot, unregisterTunnelSocket } from './tunnelRegistry';
 
 const TUNNEL_NAMESPACE = '/tunnel';
 
 type TunnelSocket = Socket & { data: { homeId?: string } };
+
+/**
+ * A `state_changed` device carries a `binarySensor` capability only when
+ * it's the kind of entity Willo's activity feed cares about (motion, doors,
+ * safety sensors — see `schema.ts`'s `homeEvents` doc comment). Every other
+ * device (a light, a fan, a camera) returns `null` here and produces no
+ * activity row, by design.
+ */
+function extractBinarySensorTransition(device: { id: string } & Record<string, unknown>): BinarySensorTransition | null {
+  const capabilities = device.capabilities;
+  if (!Array.isArray(capabilities)) return null;
+
+  const binarySensor = capabilities.find(
+    (capability): capability is { kind: 'binarySensor'; active: boolean; deviceClass: string | null } =>
+      typeof capability === 'object' &&
+      capability !== null &&
+      (capability as { kind?: unknown }).kind === 'binarySensor' &&
+      typeof (capability as { active?: unknown }).active === 'boolean'
+  );
+  if (!binarySensor) return null;
+
+  return {
+    entityId: device.id,
+    name: typeof device.name === 'string' ? device.name : device.id,
+    room: typeof device.room === 'string' ? device.room : null,
+    deviceClass: binarySensor.deviceClass,
+    active: binarySensor.active,
+  };
+}
 
 export function createTunnelNamespace(io: SocketIOServer): void {
   const namespace = io.of(TUNNEL_NAMESPACE);
@@ -75,6 +105,13 @@ export function createTunnelNamespace(io: SocketIOServer): void {
       applyDeviceUpdate(homeId, device)
         .then(() => emitToHome(homeId, 'home:device-updated', device))
         .catch((error: unknown) => console.error(`Failed to apply device update for Home ${homeId}:`, error));
+
+      const transition = extractBinarySensorTransition(device);
+      if (transition) {
+        recordBinarySensorEvent(homeId, transition).catch((error: unknown) =>
+          console.error(`Failed to record activity event for Home ${homeId}:`, error)
+        );
+      }
     });
 
     socket.on('camera_snapshot_result', (payload: { requestId?: string; imageBase64?: string }) => {
