@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
+import { Dialog } from '@oxy.so/bloom/dialog';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Label } from '@willo/ui';
 import { ContentWidth } from '../layout/page-layout';
@@ -25,7 +26,7 @@ function CreateHomeStep() {
   }, [createHome, name, notify]);
 
   return (
-    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
+    <View className="items-center px-6 py-2">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={160} />
@@ -82,7 +83,7 @@ function PairingStep() {
   }, []);
 
   return (
-    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
+    <View className="items-center px-6 py-2">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={160} />
@@ -120,9 +121,28 @@ function PairingStep() {
  * entirely — there is no URL, no "Advanced" toggle, and no OAuth left for a
  * person to see. `ScreenSurface` renders this in place of a screen's normal
  * content whenever `useHome()`'s `setupStage` isn't `'ready'` yet, inside
- * the same `ContentPanel` every real screen already gets.
+ * the same `ContentPanel` every real screen already gets — so the sidebar
+ * and header stay visible underneath while this renders as a real Bloom
+ * `Dialog` on top (bottom sheet on mobile, centered on desktop), not as
+ * flat panel content.
+ *
+ * `dismissOnBackdrop={false}` (which also disables Escape — see Bloom's
+ * `Dialog.web.tsx`) and no `actions`/close button: setup is mandatory, there
+ * is no home to show underneath yet, so there is no legitimate way to
+ * dismiss this short of finishing it.
  */
 export function HomeSetupFlow() {
   const { setupStage } = useHome();
-  return setupStage === 'needs-pairing' ? <PairingStep /> : <CreateHomeStep />;
+  return (
+    <Dialog
+      open={setupStage !== 'ready'}
+      onClose={() => {}}
+      dismissOnBackdrop={false}
+      placement={{ base: 'bottom', md: 'center' }}
+      contentPadding={0}
+      label="Set up your home"
+    >
+      {setupStage === 'needs-pairing' ? <PairingStep /> : <CreateHomeStep />}
+    </Dialog>
+  );
 }
