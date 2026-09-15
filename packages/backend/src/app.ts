@@ -3,6 +3,7 @@ import { OxyServices } from '@oxy.so/core';
 import { createOxyAuthMiddleware, createOxyCors } from '@oxy.so/core/server';
 import { config } from './config';
 import homesRouter from './routes/homes.routes';
+import tunnelRouter from './routes/tunnel.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { ecosystemActivityMiddleware } from './ecosystemActivity';
 
@@ -28,8 +29,13 @@ export function createApp(oxy: OxyServices): Express {
 
   // Every route under /homes requires a verified Oxy session. Composed here
   // (optional-then-require) rather than per-router, since this whole API has
-  // no public route besides /health.
+  // no public route besides /health and /tunnel.
   app.use('/homes', createOxyAuthMiddleware(oxy), homesRouter);
+
+  // /tunnel has NO Oxy auth — its caller is a Home Assistant integration,
+  // authenticated by a pairing code or tunnel secret instead (see
+  // `routes/tunnel.routes.ts`).
+  app.use('/tunnel', tunnelRouter);
 
   // Last: turns a thrown/rejected domain error into a typed JSON response.
   app.use(errorHandler);

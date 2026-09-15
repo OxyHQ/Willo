@@ -20,7 +20,7 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
-  const { state, dispatch, sheet, setSheet, toast, devices, sendCommand } = useHome();
+  const { state, dispatch, sheet, setSheet, toast, devices, sendCommand, getAuthHeaders } = useHome();
   const { colors: themeColors } = useTheme();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetRef>(null);
@@ -71,7 +71,7 @@ export function Overlays() {
               <>
                 <View className="h-[220px] overflow-hidden rounded-[25px]">
                   <Image
-                    source={shown.snapshotUrl ? { uri: shown.snapshotUrl } : shown.garden ? assets.garden : assets.livingRoom}
+                    source={shown.snapshotUrl ? { uri: shown.snapshotUrl, headers: getAuthHeaders() } : shown.garden ? assets.garden : assets.livingRoom}
                     style={{ width: '100%', height: '100%' }}
                     contentFit="cover"
                   />

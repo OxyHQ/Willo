@@ -13,17 +13,20 @@ import { Label } from '@willo/ui';
 const SNAPSHOT_REFRESH_MS = 8000;
 
 export function RealCameraCard({ camera, height = 194, width }: { camera: Device; height?: number; width?: number }) {
-  const { setSheet } = useHome();
+  const { setSheet, getAuthHeaders } = useHome();
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => setRefreshKey(key => key + 1), SNAPSHOT_REFRESH_MS);
     return () => clearInterval(interval);
   }, []);
   const snapshotUrl = getCapability(camera, 'camera')?.snapshotUrl ?? null;
-  const uri = snapshotUrl ? `${snapshotUrl}&_=${refreshKey}` : undefined;
+  // The snapshot is Willo's OWN backend endpoint now (relayed over the
+  // tunnel), which is Oxy-authenticated — never a raw Home Assistant URL, so
+  // this needs the same bearer header every other backend call carries.
+  const uri = snapshotUrl ? `${snapshotUrl}?_=${refreshKey}` : undefined;
   return <View className="relative overflow-hidden rounded-[27px] bg-home-surface" style={{ height, width }}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${camera.name}`} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl })} className="absolute inset-0">
-      {uri ? <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
+      {uri ? <Image source={{ uri, headers: getAuthHeaders() }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
     </Pressable>
     <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
       <View className="flex-row items-center gap-2"><View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]"/><Label className="text-[13px] font-medium text-white" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}>Live</Label></View>

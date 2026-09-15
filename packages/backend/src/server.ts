@@ -4,6 +4,7 @@ import { config } from './config';
 import { connectPostgres } from './db/postgres';
 import { createApp, createOxyClient } from './app';
 import { createHomesNamespace } from './realtime/homesNamespace';
+import { createTunnelNamespace } from './realtime/tunnelNamespace';
 import { startEcosystemActivity, stopEcosystemActivity } from './ecosystemActivity';
 
 async function main(): Promise<void> {
@@ -24,6 +25,7 @@ async function main(): Promise<void> {
     cors: { origin: config.corsOrigins, credentials: true },
   });
   createHomesNamespace(io, oxy);
+  createTunnelNamespace(io);
 
   server.listen(config.port, () => {
     isReady = true;

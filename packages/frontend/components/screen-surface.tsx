@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
+import { HomeSetupFlow } from './home-setup';
+import { useHome } from '../state/home-context';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
@@ -53,6 +55,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const { width, gutter } = useResponsiveLayout();
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
+  const { setupStage } = useHome();
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
   // scrolling under it), so a hard-edged solid fill would cut content off with
@@ -124,17 +127,26 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
     case 'emergency': header = <EmergencyHeader onNavigate={onNavigate}/>; content = <EmergencyScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
   }
 
-  // Swaps CONTENT ONLY (not `header`) for the sign-in prompt while signed
-  // out of Oxy — the same panel below still frames it, so it's not a
-  // separately-styled screen, and whichever screen's own header/nav
-  // context is already on the page stays put. Not a higher-level gate
-  // above `<Slot/>`/`<Stack/>` (`app/_layout.tsx`'s own doc comment on
-  // `AppShell` says why): that would intercept before this component —
-  // and its one shared `ContentPanel` below — ever mounted.
+  // Swaps CONTENT ONLY (not `header`) for the sign-in prompt / home setup
+  // flow while not ready yet — the same panel below still frames it, so
+  // it's not a separately-styled screen, and whichever screen's own
+  // header/nav context is already on the page stays put. Not a
+  // higher-level gate above `<Slot/>`/`<Stack/>` (`app/_layout.tsx`'s own
+  // doc comment on `AppShell` says why): that would intercept before this
+  // component — and its one shared `ContentPanel` below — ever mounted.
+  //
+  // TWO independent gates, checked in order: Oxy identity first (nothing
+  // below needs a Home at all without one), then whether THIS device has a
+  // connected Home (`useHome()`'s `setupStage` — see `state/home-context.tsx`).
+  // A Home Assistant instance can only ever be reached over its own tunnel
+  // now, never directly from the browser, so "connected" here means the
+  // tunnel is up, not merely that a Home row exists.
   if (!isAuthResolved) {
     content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
   } else if (!isAuthenticated) {
     content = <SignInPrompt/>;
+  } else if (setupStage !== 'ready') {
+    content = <HomeSetupFlow/>;
   }
 
   return wrapColumn(

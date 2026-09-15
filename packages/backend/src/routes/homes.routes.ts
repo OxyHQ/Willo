@@ -15,7 +15,8 @@ import { validateBody } from '../middleware/validate';
 import * as homesService from '../services/homes.service';
 import * as membersService from '../services/homeMembers.service';
 import * as devicesService from '../services/homeDevices.service';
-import * as connectionService from '../services/homeConnection.service';
+import * as tunnelService from '../services/homeTunnel.service';
+import { sendCommand as sendTunnelCommand, requestCameraSnapshot } from '../realtime/tunnelRegistry';
 
 const router = Router();
 
@@ -50,16 +51,11 @@ const upsertDeviceMetadataSchema = z.object({
   isFavorite: z.boolean().optional(),
 });
 
-const setConnectionSchema = z
-  .object({
-    instanceUrl: z.string().url('instanceUrl must be a valid URL'),
-    clientId: z.string().trim().min(1, 'clientId is required'),
-    authCode: z.string().trim().min(1).optional(),
-    refreshToken: z.string().trim().min(1).optional(),
-  })
-  .refine((body) => Boolean(body.authCode) !== Boolean(body.refreshToken), {
-    message: 'Provide exactly one of authCode or refreshToken',
-  });
+const sendCommandSchema = z.object({
+  domain: z.string().trim().min(1, 'domain is required'),
+  service: z.string().trim().min(1, 'service is required'),
+  serviceData: z.record(z.string(), z.unknown()).default({}),
+});
 
 /** POST /homes — create a Home; caller becomes an active owner. */
 router.post('/', validateBody(createHomeSchema), async (req: Request, res: Response) => {
@@ -127,26 +123,37 @@ router.put('/:id/devices/:entityId', validateBody(upsertDeviceMetadataSchema), a
   res.status(200).json(result);
 });
 
-/** PUT /homes/:id/connection — set/replace the HA connection. Owner only. */
-router.put('/:id/connection', validateBody(setConnectionSchema), async (req: Request, res: Response) => {
+/** POST /homes/:id/pairing-code — issue a code to enter into the Home Assistant integration's config flow. Owner only. */
+router.post('/:id/pairing-code', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const input = req.body as z.infer<typeof setConnectionSchema>;
-  const result = await connectionService.setConnection(pathParam(req.params.id), userId, input);
+  const result = await tunnelService.issuePairingCode(pathParam(req.params.id), userId);
+  res.status(201).json(result);
+});
+
+/** GET /homes/:id/devices/live — cached device list + whether the tunnel is currently connected. Any active member. */
+router.get('/:id/devices/live', async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const result = await tunnelService.getLiveDevices(pathParam(req.params.id), userId);
   res.status(200).json(result);
 });
 
-/** GET /homes/:id/connection — connection info WITHOUT the raw refresh token. Any active member. */
-router.get('/:id/connection', async (req: Request, res: Response) => {
+/** POST /homes/:id/devices/:entityId/command — relay a command to the Home's tunnel. Any active member. Fire-and-forget, matching the app's existing command pattern. */
+router.post('/:id/devices/:entityId/command', validateBody(sendCommandSchema), async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const connection = await connectionService.getConnectionForDisplay(pathParam(req.params.id), userId);
-  res.status(200).json({ connected: connection !== null, connection });
+  const homeId = pathParam(req.params.id);
+  await homesService.assertActiveMember(homeId, userId);
+  const { domain, service, serviceData } = req.body as z.infer<typeof sendCommandSchema>;
+  sendTunnelCommand(homeId, { domain, service, entityId: pathParam(req.params.entityId), serviceData });
+  res.status(202).json({ accepted: true });
 });
 
-/** POST /homes/:id/connection/token — the token broker. Any active member. */
-router.post('/:id/connection/token', async (req: Request, res: Response) => {
+/** GET /homes/:id/devices/:entityId/camera — request a fresh snapshot over the tunnel. Any active member. */
+router.get('/:id/devices/:entityId/camera', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const result = await connectionService.brokerAccessToken(pathParam(req.params.id), userId);
-  res.status(200).json(result);
+  const homeId = pathParam(req.params.id);
+  await homesService.assertActiveMember(homeId, userId);
+  const image = await requestCameraSnapshot(homeId, pathParam(req.params.entityId));
+  res.status(200).contentType('image/jpeg').send(image);
 });
 
 export default router;

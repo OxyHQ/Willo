@@ -13,7 +13,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { boolean, check, index, jsonb, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { createdAt, generatedId, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 /**
@@ -139,21 +139,31 @@ export const homeDeviceMetadata = pgTable(
 export const HOME_CONNECTION_PROVIDERS = ['home_assistant'] as const;
 
 /**
- * `home_connections` — the Home Assistant connection for a Home, moved here
- * from per-browser storage (`packages/frontend/storage.ts`) so every member's
- * client can use the same house connection instead of only the one device
- * that originally logged in.
+ * `home_connections` — the Home Assistant TUNNEL for a Home: a Home
+ * Assistant custom integration holds a persistent outbound Socket.IO
+ * connection to this backend (`realtime/tunnelNamespace.ts`), so the browser
+ * never talks to Home Assistant directly (that was the old design — a direct
+ * browser→HA OAuth + WebSocket connection — and it is unfixably broken by
+ * browser Mixed-Content policy the moment HA isn't on HTTPS, which is the
+ * common case). One row per Home (`homeId` is UNIQUE), covering its whole
+ * lifecycle:
  *
- * `refreshToken` IS THE SENSITIVE COLUMN in this schema. Home Assistant
- * rotates it on every `/auth/token` exchange, so this backend is the only
- * thing that may ever read or exchange it — see
- * `db/homeConnectionColumns.ts` for the narrow selector every OTHER read path
- * must use instead, and `services/homeConnection.service.ts`'s
- * `brokerAccessToken` for the one function allowed to select this column.
+ *   1. UNPAIRED: `pairingCode`/`pairingCodeExpiresAt` set, `tunnelSecretHash`
+ *      null. Created by `POST /homes/:id/pairing-code` (owner only).
+ *   2. PAIRED, never connected: the HA integration exchanged the code for a
+ *      secret (`POST /tunnel/pair` — no Oxy auth, the code IS the auth).
+ *      `tunnelSecretHash` set, pairing fields cleared (single-use).
+ *   3. CONNECTED at least once: `connectedAt`/`lastSeenAt`/`deviceSnapshot`
+ *      populated by `realtime/tunnelNamespace.ts` as the integration reports
+ *      state. `lastSeenAt` also tracks the most recent disconnect, so
+ *      "currently online" is `lastSeenAt` within a short grace window, not a
+ *      separate boolean this row would have to keep in sync on a crash.
  *
- * One connection per Home for this pass (`homeId` is UNIQUE) — the CHECK
- * above is what makes a second provider later a migration on this table
- * rather than a reason to add a second one.
+ * `tunnelSecretHash` IS THE SENSITIVE COLUMN — a SHA-256 digest, never the
+ * raw secret (which is shown to the integration exactly once, at pairing,
+ * and never stored). See `db/homeConnectionColumns.ts` for the narrow
+ * selector every read path other than `services/homeTunnel.service.ts`'s
+ * `authenticateTunnel` must use.
  */
 export const homeConnections = pgTable(
   'home_connections',
@@ -163,9 +173,13 @@ export const homeConnections = pgTable(
       .notNull()
       .references(() => homes.id, { onDelete: 'cascade' }),
     provider: text({ enum: HOME_CONNECTION_PROVIDERS }).notNull(),
-    instanceUrl: text().notNull(),
-    clientId: text().notNull(),
-    refreshToken: text().notNull(),
+    pairingCode: text(),
+    pairingCodeExpiresAt: timestamptz(),
+    tunnelSecretHash: text(),
+    connectedAt: timestamptz(),
+    lastSeenAt: timestamptz(),
+    /** The last full device list the integration reported (`state_snapshot`/`state_changed`), served back to the browser by `GET /homes/:id/devices/live` without waiting on a live round trip to the home. */
+    deviceSnapshot: jsonb(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
