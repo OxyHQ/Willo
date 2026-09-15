@@ -1,7 +1,33 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
-export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage';
+export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage' | 'alia-mini' | 'add-bold' | 'remove-bold';
+/**
+ * Icons whose own source art uses a DIFFERENT coordinate space than every
+ * other icon here's shared `0 0 24 24` — `alia-mini` is a Google Material
+ * Symbols glyph (`viewBox="0 -960 960 960"`, a solid filled path, not the
+ * stroke line-art the rest of this set draws by hand). Rendered as a nested
+ * `<Svg>` with ITS OWN viewBox rather than hand-converting the path's
+ * coordinates into the 24-unit grid: an SVG viewBox already does that exact
+ * scale/offset math correctly by definition, so this can't get the
+ * transform wrong the way a manually computed `matrix(...)` could.
+ */
+const NESTED_VIEWBOX_ICONS: Partial<Record<IconName, { viewBox: string; path: string }>> = {
+  'alia-mini': {
+    viewBox: '0 -960 960 960',
+    path: 'M360-200q-116 0-198-82T80-480q0-38 18.5-86t64.5-91.5q46-43.5 123-73T480-760q117 0 194 29.5t123 73q46 43.5 64.5 91.5t18.5 86q0 116-82 198t-198 82H360Zm6-80h228q63 0 114.5-33.5T784-400H176q24 53 75.5 86.5T366-280Zm114-120Zm0-40Zm-320-40h640q0-30-16-65t-53.5-65q-37.5-30-99-50T480-680q-90 0-151 20t-98.5 50q-37.5 30-54 65T160-480Zm320 0Z',
+  },
+  // Material Symbols `add_2` / `remove` at weight 700 — the thermostat's
+  // +/- steppers, heavier than the hand-drawn `plus`/`minus` line icons.
+  'add-bold': {
+    viewBox: '0 -960 960 960',
+    path: 'M412-74v-338H74v-136h338v-338h136v338h338v136H548v338H412Z',
+  },
+  'remove-bold': {
+    viewBox: '0 -960 960 960',
+    path: 'M154-412v-136h652v136H154Z',
+  },
+};
 type Props = { name: IconName; size?: number; color?: string; filled?: boolean; strokeWidth?: number };
 /** Small SVG glyphs, shared across native and web; no platform-specific icon font. */
 export function Icon({ name, size = 22, color = '#202124', filled = false, strokeWidth = 1.75 }: Props) {
@@ -56,6 +82,13 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     moon: <Path d="M21 14a9 9 0 0 1-11-11A9 9 0 1 0 21 14Z"/>,
     battery: <><Rect x="2" y="6" width="17" height="12" rx="1" fill={color}/><Path d="M21 10v4" strokeWidth="2.5"/></>,
     signal: <><Path d="M4 18v-2M9 18v-6M14 18V8M19 18V4" strokeWidth="3"/></>,
+    // Never actually read — `alia-mini` returns via the `NESTED_VIEWBOX_ICONS`
+    // branch below before this map is indexed. Present only so this object
+    // stays a real `Record<IconName, ...>`, checked exhaustively by TS
+    // against every icon name that exists.
+    'alia-mini': null,
+    'add-bold': null,
+    'remove-bold': null,
   };
   const fillable = ['heart', 'home', 'lock', 'light', 'play', 'sparkle'].includes(name);
   // `accessibilityElementsHidden` is an iOS-only RN prop; react-native-svg's
@@ -63,5 +96,11 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
   // them, so passing it on web reaches a real <svg> element and React warns.
   // Web's own equivalent is `aria-hidden`.
   const hiddenFromAccessibilityTree = Platform.OS === 'web' ? { 'aria-hidden': true } : { accessibilityElementsHidden: true };
+  const nested = NESTED_VIEWBOX_ICONS[name];
+  if (nested) {
+    // A solid Material Symbols glyph, always filled — there's no stroke
+    // variant of this art the way the hand-drawn icons above have one.
+    return <Svg width={size} height={size} viewBox={nested.viewBox} {...hiddenFromAccessibilityTree}><Path d={nested.path} fill={color}/></Svg>;
+  }
   return <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled && fillable ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...hiddenFromAccessibilityTree}>{symbols[name]}</Svg>;
 }

@@ -23,9 +23,9 @@ export function ThermostatCard() {
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const sideControls = compact && fontScale <= 1.2;
-  const decrease = <IconButton icon="minus" label={t('thermostat.decrease')} color={themeColors.tertiaryForeground} shape={sideControls ? 'stepper' : 'regular'}
+  const decrease = <IconButton icon="remove-bold" label={t('thermostat.decrease')} color={themeColors.tertiaryForeground} shape={sideControls ? 'stepper' : 'regular'}
     className="bg-tertiary" disabled={state.temperature <= 50} onPress={() => dispatch({ type: 'TEMPERATURE', delta: -1 })}/>;
-  const increase = <IconButton icon="plus" label={t('thermostat.increase')} color={themeColors.tertiaryForeground} shape={sideControls ? 'stepper' : 'regular'}
+  const increase = <IconButton icon="add-bold" label={t('thermostat.increase')} color={themeColors.tertiaryForeground} shape={sideControls ? 'stepper' : 'regular'}
     className="bg-tertiary" disabled={state.temperature >= 90} onPress={() => dispatch({ type: 'TEMPERATURE', delta: 1 })}/>;
   return <View className="rounded-[28px] bg-tertiary-subtle p-4">
     <View className="flex-row items-center gap-2">
