@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Willo backend image (@willo/backend).
+# Willo backend image (@willo.sh/backend).
 #
 # Bun-native: runs its TypeScript entrypoint directly under Bun
 # (`bun packages/backend/src/server.ts`, matching the package's own `start`

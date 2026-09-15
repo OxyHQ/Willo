@@ -1,5 +1,5 @@
 // Shared, app-agnostic UI components and design tokens for Willo. This
-// package must never import from `@willo/frontend` (or reach into
+// package must never import from `@willo.sh/frontend` (or reach into
 // packages/frontend by relative path) — screens, routing, and app state
 // live there. See AGENTS.md.
 

@@ -1,4 +1,4 @@
-# Deploy the Willo backend (@willo/backend) to AWS ECS Fargate.
+# Deploy the Willo backend (@willo.sh/backend) to AWS ECS Fargate.
 #
 # Modeled closely on ~/Oxy/Peable's own deploy-aws.yml (Bun-native image,
 # mutable :latest task-definition reuse, OIDC -> ECR -> ECS). The ECR repo

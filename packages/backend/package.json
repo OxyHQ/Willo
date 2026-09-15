@@ -1,5 +1,5 @@
 {
-  "name": "@willo/backend",
+  "name": "@willo.sh/backend",
   "private": true,
   "type": "commonjs",
   "main": "src/server.ts",

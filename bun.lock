@@ -6,7 +6,7 @@
       "name": "willo",
     },
     "packages/backend": {
-      "name": "@willo/backend",
+      "name": "@willo.sh/backend",
       "dependencies": {
         "@oxy.so/core": "^1.1.2",
         "@oxy.so/db": "^1.0.0",
@@ -24,7 +24,7 @@
       },
     },
     "packages/frontend": {
-      "name": "@willo/frontend",
+      "name": "@willo.sh/frontend",
       "dependencies": {
         "@emotion/native": "^11.11.0",
         "@emotion/react": "^11.14.0",
@@ -850,9 +850,9 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
-    "@willo/backend": ["@willo/backend@workspace:packages/backend"],
+    "@willo.sh/backend": ["@willo.sh/backend@workspace:packages/backend"],
 
-    "@willo/frontend": ["@willo/frontend@workspace:packages/frontend"],
+    "@willo.sh/frontend": ["@willo.sh/frontend@workspace:packages/frontend"],
 
     "@willo.sh/ui": ["@willo.sh/ui@workspace:packages/ui"],
 

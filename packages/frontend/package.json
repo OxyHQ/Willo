@@ -1,5 +1,5 @@
 {
-  "name": "@willo/frontend",
+  "name": "@willo.sh/frontend",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
