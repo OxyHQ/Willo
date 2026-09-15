@@ -50,6 +50,27 @@ function LightTile({ light }: { light: Device }) {
     onPress={() => sendCommand(light.id, { kind: 'setOnOff', on: !onOff?.on })}
     onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}/>;
 }
+/** Same reasoning as `LightTile` above — a real component, not a plain
+ * function called during render, so `useOptimisticValue` (a hook) obeys
+ * the rules of hooks instead of sitting behind a conditional early return. */
+function FanTile({ fan }: { fan: Device }) {
+  const { setSheet, sendCommand } = useHome();
+  const onOff = getCapability(fan, 'onOff');
+  const speedCapability = getCapability(fan, 'fanSpeed');
+  // Not every fan HA reports supports a variable speed — a plain on/off fan
+  // has no `fanSpeed` capability at all, and gets no slider, matching
+  // `LightTile`'s own `dimmable` reasoning exactly.
+  const adjustable = speedCapability !== undefined;
+  const [percent, setPercent] = useOptimisticValue(adjustable ? (onOff?.on ? speedCapability.percent ?? 100 : 0) : 0);
+  const on = adjustable ? percent > 0 : (onOff?.on ?? false);
+  return <Tile grow={false} height={80} title={fan.name}
+    subtitle={on ? (adjustable ? `On · ${percent}%` : 'On') : 'Off'}
+    icon="fan" tone={on ? 'blue' : 'neutral'} active={on}
+    brightness={adjustable ? percent : undefined}
+    onBrightnessChange={adjustable ? next => { setPercent(next); sendCommand(fan.id, next === 0 ? { kind: 'setOnOff', on: false } : { kind: 'setFanSpeed', percent: next }); } : undefined}
+    onPress={() => sendCommand(fan.id, { kind: 'setOnOff', on: !onOff?.on })}
+    onLongPress={() => setSheet({ kind: 'realDevice', title: fan.name, device: fan })}/>;
+}
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand, demoMode } = useHome();
   const { colors: themeColors } = useTheme();
@@ -124,16 +145,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     onPress={() => message('Weather preview', 'The weather and location are static values from the supplied reference.')}/>;
   const air = <Tile grow={false} title="Outdoor AQI" subtitle="32 · Good" icon="waves" height={72}
     onPress={() => message('Air quality preview', 'AQI 32 is a static reference value, not a live reading.')}/>;
-  const fanTile = (() => {
-    if (!fan) return <Tile grow={false} height={80} title="No fan found" subtitle="Check Home Assistant" icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
-    const onOff = getCapability(fan, 'onOff');
-    const speed = getCapability(fan, 'fanSpeed');
-    return <Tile grow={false} height={80} title={fan.name}
-      subtitle={onOff?.on ? (speed?.percent != null ? `On · ${speed.percent}%` : 'On') : 'Off'}
-      icon="fan" tone={onOff?.on ? 'blue' : 'neutral'} active={onOff?.on}
-      onPress={() => sendCommand(fan.id, { kind: 'setOnOff', on: !onOff?.on })}
-      onLongPress={() => setSheet({ kind: 'realDevice', title: fan.name, device: fan })}/>;
-  })();
+  const noFan = <Tile grow={false} height={80} title="No fan found" subtitle="Check Home Assistant" icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const sensorList = <View className="gap-3 rounded-[24px] bg-home-surface p-4">
     <View className="flex-row items-center gap-2"><Icon name="home" size={16}/><Label className="min-w-0 flex-1 text-[12px]">Indoor readings</Label></View>
     {sensors.length === 0 && <Label className="text-[11px] text-muted-foreground">No sensors found</Label>}
@@ -147,7 +159,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
     weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: 72, content: weather },
     air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: 72, content: air },
-    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', 'Fan', 'fan') : fanTile },
+    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', 'Fan', 'fan') : (fan ? <FanTile fan={fan}/> : noFan) },
     tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: 80, content: device('tv', 'TV', 'tv') },
     garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: 80, content: device('garage', 'Garage', 'garage') },
     speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', 'Speaker', 'speaker') },
