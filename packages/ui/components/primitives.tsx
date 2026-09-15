@@ -44,7 +44,7 @@ export function SectionTitle({ children, right, onPress }: { children: React.Rea
 }
 export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, chevron = false, active, height = 80, grow = true }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; brightness?: number; onBrightnessChange?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
   const palette = tones[tone];
-  const { colors: themeColors } = useTheme();
+  const { colors: themeColors, isDark } = useTheme();
   // Tones migrated to Bloom's own theme so far (`tokens.ts`) need the SAME
   // live value their `bg-*-subtle`/`text-*-text` classes already track via
   // CSS, since `palette.color` is a plain inline prop (no CSS variable
@@ -53,6 +53,13 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // migrate the same way.
   const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info, yellow: themeColors.secondary, peach: themeColors.tertiary, green: themeColors.success, neutral: themeColors.textSecondary };
   const iconColor = migratedToneColor[tone] ?? palette.color;
+  // The brightness fill's solid color, by tone — `bg-{tone}` pairs with
+  // each tone's own `bg-{tone}-subtle` (`tones.ts`) the same way
+  // `ThermostatCard`'s solid `bg-tertiary` buttons pair with its
+  // `bg-tertiary-subtle` card. Falls back to `bg-secondary`: `neutral` (an
+  // off device) has no real solid counterpart and brightness on an off
+  // device isn't a case that actually occurs in practice.
+  const fillClassName: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue: 'bg-info', yellow: 'bg-secondary', peach: 'bg-tertiary', green: 'bg-success' };
   const [pressed, setPressed] = useState(false);
   // The tile's own measured width, read on every pan update to turn a
   // touch's X position into a 0-100 percent. A plain ref, not state: only the
@@ -128,12 +135,30 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
+  // Bloom's own `secondaryForeground` (the M3-engine-computed "legible on
+  // solid secondary" answer) is mathematically correct in BOTH modes — dark
+  // mode measures 14.2:1 contrast, light mode 5.39:1 — it was never actually
+  // buggy. In DARK mode it's overridden with `colors.onYellow` anyway, on a
+  // deliberate design call: a warm olive reads as this tone's own brand
+  // identity, where Bloom's binary black answer reads as generic (the
+  // FILL itself is bright there, so black genuinely is legible — this is a
+  // preference, not a correction). In LIGHT mode the fill is a dark olive/
+  // mustard (`rgb(128 104 0)`, confirmed directly from Bloom's own resolved
+  // tokens, NOT assumed), not a bright yellow — a hand-picked mid-tone gold
+  // had too little contrast against it, and Bloom's own white answer is the
+  // one already proven correct for that exact fill, so light mode uses it
+  // directly instead of guessing another static hex. Only `yellow` has a
+  // pair today; other tones skip the on-fill treatment (`undefined` — the
+  // base label/icon color underneath reads fine at every brightness with no
+  // clip overlay at all) rather than guess at a value nothing has confirmed.
+  const onFillColor: Partial<Record<Tone, string>> = { yellow: isDark ? colors.onYellow : themeColors.secondaryForeground };
+  const fillTextColor = onFillColor[tone];
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
-      {/* `secondary`, not `secondary-subtle`: a solid fill for a real
+      {/* The tone's own solid color, not its `-subtle` tint: a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
-      {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
+      {brightness !== undefined && <View pointerEvents="none" className={`absolute bottom-0 left-0 top-0 ${fillClassName[tone] ?? 'bg-secondary'}`} style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
       <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
       <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
@@ -155,17 +180,22 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           it. Only basic `position`/`width`/`overflow` are used — no blend
           mode, no gradient-clip-text, both of which turned out not to
           reliably work through this app's actual styling pipeline. */}
-      {brightness !== undefined && width.current > 0 && (
+      {brightness !== undefined && width.current > 0 && fillTextColor !== undefined && (
         <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 overflow-hidden" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}>
           <View className="flex-row items-center gap-3 px-4" style={{ width: width.current, height: '100%' }}>
-            {/* `colors.onYellow` — this app's own already-established
-                "readable text on a yellow surface" color (the same one
-                `palette.color`/`text-secondary-text` use elsewhere in this
-                exact tone), not a guessed light or white value. */}
-            <View className="relative"><Icon name={icon} size={20} color={colors.onYellow} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
+            <View className="relative"><Icon name={icon} size={20} color={fillTextColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
+            {/* `Label`, not a raw `Text` with a guessed `fontFamily` — that
+                guess ('System') didn't actually match whatever `font-sans`
+                really resolves to in this project (no custom Tailwind font
+                config exists, so it's NativeWind's own default stack, never
+                confirmed), and the metrics mismatch is exactly what made the
+                overlay's text visibly drift out of alignment with the base
+                label underneath it as the fill moved. Using the SAME
+                component with the SAME className guarantees an identical
+                font — only `color` is overridden via inline style. */}
             <View className="min-w-0 flex-1 py-2">
-              <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: colors.onYellow }}>{title}</Text>
-              {subtitle && <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: colors.onYellow }}>{subtitle}</Text>}
+              <Label className="text-[13px] font-medium leading-[17px]" style={{ color: fillTextColor }}>{title}</Label>
+              {subtitle && <Label className="mt-0.5 text-[11px] leading-[14px]" style={{ color: fillTextColor }}>{subtitle}</Label>}
             </View>
           </View>
         </View>
