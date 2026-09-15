@@ -5,6 +5,7 @@ import { DemoLightTile } from './devices-screen';
 import { Icon, type IconName } from '@willo/ui';
 import { Label, Tile, useOptimisticValue } from '@willo/ui';
 import { ThermostatCard } from '../components/thermostat-card';
+import { SensorReadingsCard } from '../components/sensor-readings-card';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';
@@ -12,6 +13,8 @@ import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import type { DeviceKey } from '../state/home-reducer';
 import { getCapability, type Device } from '../providers/types';
+import { SENSOR_CARD_LIMIT, selectRelevantSensors } from '../providers/sensor-readings';
+import { DEMO_SENSORS } from '../data/demo-sensors';
 import { useTheme } from '@oxy.so/bloom/theme';
 
 type Category = 'Favorites' | 'All' | 'Cameras' | 'Lights' | 'Wifi' | 'Climate';
@@ -129,7 +132,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const lights = demoMode ? [] : devices.filter(d => d.domain === 'light');
   const cameras = demoMode ? [] : devices.filter(d => d.domain === 'camera');
   const fan = demoMode ? undefined : devices.find(d => d.domain === 'fan');
-  const sensors = demoMode ? [] : devices.filter(d => d.domain === 'sensor');
+  const sensors = demoMode ? DEMO_SENSORS : devices.filter(d => d.domain === 'sensor');
   const noLights = <Tile grow={false} height={80} title="No lights found" subtitle="Check Home Assistant" icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
   const noCameras = <Tile grow={false} height={80} title="No cameras found" subtitle="Check Home Assistant" icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
@@ -146,12 +149,13 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const air = <Tile grow={false} title="Outdoor AQI" subtitle="32 · Good" icon="waves" height={72}
     onPress={() => message('Air quality preview', 'AQI 32 is a static reference value, not a live reading.')}/>;
   const noFan = <Tile grow={false} height={80} title="No fan found" subtitle="Check Home Assistant" icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
-  const sensorList = <View className="gap-3 rounded-[24px] bg-home-surface p-4">
-    <View className="flex-row items-center gap-2"><Icon name="home" size={16}/><Label className="min-w-0 flex-1 text-[12px]">Indoor readings</Label></View>
-    {sensors.length === 0 && <Label className="text-[11px] text-muted-foreground">No sensors found</Label>}
-    {sensors.map(sensor => { const measurement = getCapability(sensor, 'measurement');
-      return <View key={sensor.id} className="flex-row items-center justify-between gap-3"><Label className="min-w-0 flex-1 text-[11px]">{sensor.name}</Label><Label className="text-[11px]">{measurement?.value != null ? `${measurement.value}${measurement.unit ?? ''}` : '—'}</Label></View>; })}
-  </View>;
+  const relevantSensors = selectRelevantSensors(sensors);
+  const cardSensors = relevantSensors.slice(0, SENSOR_CARD_LIMIT);
+  const hiddenSensorCount = relevantSensors.length - cardSensors.length;
+  // 16px padding top and bottom plus a ~24px header, then ~28px (16px text
+  // + 12px gap) per row: the empty state and the "+N more" row count as rows.
+  const sensorRowCount = Math.max(cardSensors.length, 1) + (hiddenSensorCount > 0 ? 1 : 0);
+  const sensorList = <SensorReadingsCard title="Indoor readings" sensors={cardSensors} hiddenCount={hiddenSensorCount} onShowMore={() => onNavigate('devices')}/>;
   const base = {
     camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard label="Living room" height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
     lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
@@ -165,16 +169,15 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', 'Speaker', 'speaker') },
     garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: demoMode ? <CameraCard garden height={240}/> : (cameras[1] ? cameraTile(cameras[1], 240) : noCameras) },
     plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', 'Plug', 'plug') },
-    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 196, content: sensorList },
+    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 56 + 28 * sensorRowCount, content: sensorList },
     floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title="Lamp"/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
     wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title="Office WiFi" subtitle="Settings preview" icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
   // Demo-only tiles (no real Home Assistant equivalent — see `useHome()`'s
   // `demoMode` doc comment) only ever appear WITH the rest of the demo
-  // catalog; `sensors` only means anything against real data, so it's the
-  // one real-only tile hidden in demo mode instead.
+  // catalog.
   const DEMO_ONLY_CARDS: (keyof typeof base)[] = ['tv', 'garage', 'speaker', 'plug', 'lock'];
-  const hiddenCards = new Set<keyof typeof base>(demoMode ? ['sensors'] : DEMO_ONLY_CARDS);
+  const hiddenCards = new Set<keyof typeof base>(demoMode ? [] : DEMO_ONLY_CARDS);
   const orderBase: (keyof typeof base)[] = compact
     ? ['camera', 'lock', 'light', 'thermostat', 'weather', 'air']
     : ['camera', 'light', 'thermostat', 'fan', 'lock', 'tv', 'air', 'garage', 'speaker', 'garden', 'weather', 'plug', 'sensors', 'floor'];

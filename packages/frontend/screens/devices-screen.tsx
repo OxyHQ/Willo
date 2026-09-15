@@ -7,6 +7,9 @@ import { type DeviceKey } from '../state/home-reducer';
 import { useHome } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
 import { RealCameraCard } from '../components/camera-card';
+import { SensorReadingsCard } from '../components/sensor-readings-card';
+import { selectRelevantSensors } from '../providers/sensor-readings';
+import { DEMO_SENSORS } from '../data/demo-sensors';
 import { type IconName } from '@willo/ui';
 const chunkPairs = <T,>(items: T[]): T[][] =>
   Array.from({ length: Math.ceil(items.length / 2) }, (_, index) => items.slice(index * 2, index * 2 + 2));
@@ -67,6 +70,10 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
   // are the demo catalog and only ever appear on their own.
   const lightsByRoom = demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'light'));
   const camerasByRoom = demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'camera'));
+  // Every relevant reading, not the Home card's capped prefix — this is where
+  // that card's "+N more" leads. Unlike lights and cameras, demo mode doesn't
+  // hide this section: it swaps in the demo catalog's own readings.
+  const sensorsByRoom = groupByRoom(selectRelevantSensors(demoMode ? DEMO_SENSORS : devices));
   return <View className="flex-1 bg-card"><PageScroll bottom={96}>{header}<SectionGrid>
     {demoMode && <>
       <View><SectionTitle>Front room</SectionTitle><View className="flex-row gap-2">{device('tv', 'TV', 'tv')}<Tile title="Thermostat" subtitle="Indoor 70°" icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/></View>
@@ -83,6 +90,9 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
       <View key={`cameras-${room}`}><SectionTitle>{room} cameras</SectionTitle><View className="flex-row flex-wrap gap-2">
         {roomCameras.map(camera => <View key={camera.id} className="w-[160px]"><RealCameraCard camera={camera} height={120} width={160}/></View>)}
       </View></View>
+    ))}
+    {[...sensorsByRoom.entries()].map(([room, roomSensors]) => (
+      <View key={`sensors-${room}`}><SectionTitle>{room} sensors</SectionTitle><SensorReadingsCard title="Readings" sensors={roomSensors}/></View>
     ))}
   </SectionGrid></PageScroll><AddButton onPress={() => setSheet({ kind: 'menu', title: 'Add to your home', options: [
     { label: 'Set up a device', description: 'UI demonstration only', onPress: () => setSheet({ kind: 'message', title: 'Set up a device', description: 'Connect your own smart-home API here. This recreation does not discover or pair physical devices.' }) },
