@@ -56,7 +56,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const { width, gutter } = useResponsiveLayout();
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
-  const { setupStage, homeName } = useHome();
+  const { setupStage, homeName, demoMode } = useHome();
   const router = useRouter();
   // Setup lives at its own `/onboarding` route (`app/onboarding.tsx`), not a
   // modal over whatever the user happened to be on — landing there straight
@@ -65,16 +65,20 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   // `HomeSetupPrompt` inline instead (see that component's doc comment), and
   // settings has to stay reachable pre-setup or there would be no way to
   // reach its Demo mode toggle — the one thing a Home with nothing set up
-  // yet can still turn on. Every other screen redirects. Once setup
-  // finishes, a Home sitting on `/onboarding` itself gets sent back to `/`.
+  // yet can still turn on. Demo mode is a THIRD, broader exception: every
+  // screen already knows how to render its own mock catalog without a real
+  // Home (see `useHome()`'s `demoMode` doc comment), so nothing needs to
+  // redirect anywhere while it's on. Once setup finishes, a Home sitting on
+  // `/onboarding` itself gets sent back to `/`.
   useEffect(() => {
     if (!isAuthResolved || !isAuthenticated || setupStage === 'resolving') return;
     if (setupStage === 'ready') {
       if (screen === 'onboarding') router.replace('/');
       return;
     }
+    if (demoMode) return;
     if (screen !== 'home' && screen !== 'onboarding' && screen !== 'settings') router.replace('/onboarding');
-  }, [isAuthResolved, isAuthenticated, setupStage, screen, router]);
+  }, [isAuthResolved, isAuthenticated, setupStage, demoMode, screen, router]);
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
   // scrolling under it), so a hard-edged solid fill would cut content off with
@@ -159,10 +163,14 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   // route now (see the redirect effect above), so this only needs to cover
   // the brief window before that redirect lands (any screen but home) and
   // the home screen's own inline prompt (which doesn't redirect at all).
+  // Demo mode skips all of this — every screen's own content (set by the
+  // switch above) already renders correctly with no real Home.
   if (!isAuthResolved) {
     content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
   } else if (!isAuthenticated) {
     content = <SignInPrompt/>;
+  } else if (demoMode) {
+    // content already set above.
   } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen === 'home') {
     content = <HomeSetupPrompt onNavigate={onNavigate}/>;
   } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen !== 'onboarding' && screen !== 'settings') {
