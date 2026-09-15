@@ -90,7 +90,6 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [homeId, setHomeId] = useState<string | null>(null);
   const [rawHomeName, setRawHomeName] = useState<string | null>(null);
-  const homeName = rawHomeName ?? 'My Home';
   const [setupStage, setSetupStage] = useState<HomeSetupStage>('resolving');
   const [tunnelConnected, setTunnelConnected] = useState(false);
   const providerRef = useRef<SmartHomeProvider | null>(null);
@@ -124,6 +123,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     },
     [dispatch]
   );
+
+  // Demo mode replaces the real Home's name too — it's meant to look like a
+  // complete, fully-set-up example home, not the real (possibly nameless)
+  // one underneath it. "Spring Street" matches the reference UI's own demo
+  // home name from before this app had any real Home Assistant data.
+  const homeName = demoMode ? 'Spring Street' : (rawHomeName ?? 'My Home');
 
   const connectHome = useCallback(
     async (id: string) => {
