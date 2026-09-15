@@ -16,6 +16,35 @@ const IS_WEB = Platform.OS === 'web';
 function setBodyCursorHidden(hidden: boolean) {
   if (IS_WEB && typeof document !== 'undefined') document.body.style.cursor = hidden ? 'none' : '';
 }
+function hexToRgb(hex: string): [number, number, number] | null {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
+  return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : null;
+}
+function toHexByte(value: number): string {
+  return Math.min(255, Math.max(0, Math.round(value))).toString(16).padStart(2, '0');
+}
+/**
+ * `mixBlendMode: 'difference'` (used by `Tile`'s brightness fill below)
+ * paints `|source - backdrop|` per pixel. A flat white source always gives
+ * the RAW RGB inverse of whatever's behind it — for a warm, dark fill color
+ * that's a cool, light one (this app's `secondary` fill inverts to blue, not
+ * a color anyone chose). Solving the same equation for a CHOSEN result
+ * instead of guessing a source keeps the exact same technique — still one
+ * continuously blended layer, no clipping, no second element — while making
+ * the result over `backdrop` land on `desiredResult` exactly: since
+ * `|source - backdrop| = desiredResult` when `source = |desiredResult -
+ * backdrop|`, that's the source this returns. Falls back to white (the
+ * previous behavior) if either color isn't a plain `#rrggbb` hex string —
+ * every color this is actually called with comes straight from Bloom's own
+ * theme, which returns hex, but this degrades safely rather than crashing
+ * if that ever isn't true.
+ */
+function blendSourceFor(desiredResult: string, backdrop: string): string {
+  const result = hexToRgb(desiredResult);
+  const back = hexToRgb(backdrop);
+  if (!result || !back) return '#ffffff';
+  return `#${toHexByte(Math.abs(result[0] - back[0]))}${toHexByte(Math.abs(result[1] - back[1]))}${toHexByte(Math.abs(result[2] - back[2]))}`;
+}
 /**
  * Every piece of text in the app goes through here, so this is the one place
  * to make text unselectable by default — no per-screen opt-out to remember.
@@ -128,13 +157,19 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
+  // Solved, not white: see `blendSourceFor`'s own doc comment. Over the
+  // fill, this makes the blend land on the theme's real `secondaryForeground`
+  // token exactly, instead of the raw (and here, blue) RGB inverse of the
+  // fill color.
+  const blendSource = brightness !== undefined ? blendSourceFor(themeColors.secondaryForeground, themeColors.secondary) : undefined;
   // `mixBlendMode: 'difference'` really is real on native (confirmed in RN's
   // own Fabric C++ for both iOS and Android, not just react-native-web's
-  // passthrough), so it stays: painted white, it renders as the actual
-  // inverse of whatever sits directly behind each pixel — the fill where
-  // covered, the tile's own background where it isn't — continuously, with
-  // no width math, no clipping, no duplicate render. `isolation: 'isolate'`
-  // on the tile scopes the blend to just this tile, not neighboring ones.
+  // passthrough), so it stays: painted with `blendSource`, it renders as
+  // that color's difference from whatever sits directly behind each pixel —
+  // the fill where covered, the tile's own background where it isn't —
+  // continuously, with no width math, no clipping, no duplicate render.
+  // `isolation: 'isolate'` on the tile scopes the blend to just this tile,
+  // not neighboring ones.
   //
   // The label previously didn't visibly react to this at all — `Label`
   // unconditionally applies `text-foreground` (its own baked-in class,
@@ -152,12 +187,12 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
       <View className="relative" style={brightness !== undefined ? { mixBlendMode: 'difference' } : undefined}>
-        <Icon name={icon} size={20} color={brightness !== undefined ? '#ffffff' : iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/>
+        <Icon name={icon} size={20} color={blendSource ?? iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/>
       </View>
       <View className="min-w-0 flex-1 py-2">
         {brightness !== undefined ? <>
-          <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: '#ffffff', mixBlendMode: 'difference', userSelect: 'none' }}>{title}</Text>
-          {subtitle && <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: '#ffffff', mixBlendMode: 'difference', userSelect: 'none' }}>{subtitle}</Text>}
+          <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: blendSource, mixBlendMode: 'difference', userSelect: 'none' }}>{title}</Text>
+          {subtitle && <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: blendSource, mixBlendMode: 'difference', userSelect: 'none' }}>{subtitle}</Text>}
         </> : <>
           <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>
           {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}
