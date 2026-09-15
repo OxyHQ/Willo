@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, TextInput, View } from 'react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { Label } from '@willo/ui';
+import { Label } from '@willo.sh/ui';
 import { ContentWidth } from '../layout/page-layout';
 import { ClaimDeviceError, useHome } from '../state/home-context';
 import { useTranslation } from 'react-i18next';

@@ -1,5 +1,5 @@
 import type { ScreenId } from '../data/screens';
-import type { IconName } from '@willo/ui';
+import type { IconName } from '@willo.sh/ui';
 import type { ParseKeys } from 'i18next';
 /** `titleKey` is a translation key, resolved with `t()` wherever the tab is rendered. */
 export type NavigationItem = { screen: ScreenId; titleKey: ParseKeys; icon: IconName };

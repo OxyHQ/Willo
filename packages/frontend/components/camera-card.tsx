@@ -4,8 +4,8 @@ import { Pressable, View } from 'react-native';
 import { assets } from '../data/assets';
 import { useHome } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
-import { Icon } from '@willo/ui';
-import { Label } from '@willo/ui';
+import { Icon } from '@willo.sh/ui';
+import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 
 // Home Assistant's camera snapshot URL carries its own short-lived signed

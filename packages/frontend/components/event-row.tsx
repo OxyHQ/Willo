@@ -3,8 +3,8 @@ import { Pressable, View } from 'react-native';
 import { type HomeActivityEvent } from '../providers/types';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { Icon, type IconName } from '@willo/ui';
-import { Label } from '@willo/ui';
+import { Icon, type IconName } from '@willo.sh/ui';
+import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys, TFunction } from 'i18next';
 

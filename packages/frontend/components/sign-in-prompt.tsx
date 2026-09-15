@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { OxySignInButton } from '@oxy.so/services';
-import { Label } from '@willo/ui';
+import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 import { ContentWidth } from '../layout/page-layout';
 import { SignInIllustration } from './sign-in-illustration';

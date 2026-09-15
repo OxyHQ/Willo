@@ -5,8 +5,8 @@ import { type Navigate } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { ContentWidth } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';
-import { Icon } from '@willo/ui';
-import { Avatar, IconButton, Label } from '@willo/ui';
+import { Icon } from '@willo.sh/ui';
+import { Avatar, IconButton, Label } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 export function useAccountMenu(onNavigate: Navigate) {

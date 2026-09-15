@@ -1,5 +1,5 @@
 {
-  "name": "@willo/ui",
+  "name": "@willo.sh/ui",
   "private": true,
   "main": "index.ts",
   "types": "index.ts",

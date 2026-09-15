@@ -1,4 +1,4 @@
-# @willo/ui
+# @willo.sh/ui
 
 Pure, app-agnostic UI components and design tokens for Willo — no screens, no
 routing, no app state. This mirrors how other Oxy apps consume `@oxy.so/bloom`:
@@ -47,7 +47,7 @@ they are otherwise (no Bloom `Slider`, no Bloom color tokens).
 
 `@oxy.so/app-preset/babel` hardcodes `alias: { '@': './' }` resolved against
 the *consuming app's* root (`packages/frontend`), not the package that defines
-it — so from inside `@willo/ui`, `@/` would silently resolve into
+it — so from inside `@willo.sh/ui`, `@/` would silently resolve into
 `packages/frontend/`, not here, both for Metro at runtime and for `tsc` when
 frontend's compilation pulls this package in as raw source. Use plain relative
 paths (`../theme/tokens`, `./icon`, etc.) instead. Do not reintroduce `@/`

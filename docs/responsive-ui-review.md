@@ -18,7 +18,7 @@ Home navigation resolves to the existing `/` route. The six missing classic dest
 
 `connect.ts`, `LoginView.tsx`, `storage.ts`, the Home Assistant bootstrap in `app/index.tsx`, optional Oxy identity and the legacy live entity/thermostat views are unchanged. The reference screens still use their existing local demo state. This PR does **not** claim that the displayed cameras, weather, assistant or device controls are bound to live services. The additional tablet tiles extend that same demo reducer only.
 
-`@willo/ui` remains app-agnostic: no frontend state, routing or bundled app assets are imported into it. Its Avatar still takes an image source from the caller.
+`@willo.sh/ui` remains app-agnostic: no frontend state, routing or bundled app assets are imported into it. Its Avatar still takes an image source from the caller.
 
 ## Verification
 

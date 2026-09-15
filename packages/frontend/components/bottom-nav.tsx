@@ -7,7 +7,7 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { asViewStyle } from '../layout/web-style';
-import { Icon } from '@willo/ui';
+import { Icon } from '@willo.sh/ui';
 import { tabs, isNavigationActive } from './navigation-items';
 
 const IS_WEB = Platform.OS === 'web';

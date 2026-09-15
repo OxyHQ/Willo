@@ -2,7 +2,7 @@ import React from 'react';
 import { Rail, type RailItem } from '@oxy.so/bloom/rail';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@willo/ui';
+import { Icon } from '@willo.sh/ui';
 import type { Navigate, ScreenId } from '../data/screens';
 import { useResponsiveLayout } from '../layout/responsive-context';
 import { isNavigationActive, tabs } from './navigation-items';

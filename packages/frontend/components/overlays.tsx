@@ -6,7 +6,7 @@ import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { assets } from '../data/assets';
 import { useHome, type Sheet } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
-import { colors, Icon, IconButton, Label, type IconName } from '@willo/ui';
+import { colors, Icon, IconButton, Label, type IconName } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 

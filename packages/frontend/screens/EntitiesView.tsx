@@ -13,7 +13,7 @@ import {
 import styled, { css } from '@emotion/native';
 import Color from 'color';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
-import { getMidColor, Degree } from '@willo/ui';
+import { getMidColor, Degree } from '@willo.sh/ui';
 import ThermostatView from './ThermostatView';
 import LightSheet from './LightSheet';
 import type { Entity, ProviderControls } from '../types';

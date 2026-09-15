@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Icon, type IconName } from '@willo/ui';
-import { Label } from '@willo/ui';
+import { Icon, type IconName } from '@willo.sh/ui';
+import { Label } from '@willo.sh/ui';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';

@@ -30,4 +30,4 @@ export type ProviderControls = {
   toggleLight: (entityId: string, turnOn: boolean) => void;
 };
 
-export type { Pose } from '@willo/ui';
+export type { Pose } from '@willo.sh/ui';

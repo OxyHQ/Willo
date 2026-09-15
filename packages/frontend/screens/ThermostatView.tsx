@@ -27,7 +27,7 @@ import {
   BOX_SIZE,
   LARGE_BOX_SIZE,
   type Pose,
-} from '@willo/ui';
+} from '@willo.sh/ui';
 import type { Entity } from '../types';
 
 const Container = styled(LinearGradient)`

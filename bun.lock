@@ -40,7 +40,7 @@
         "@tanstack/query-async-storage-persister": "^5.102.8",
         "@tanstack/react-query": "^5.102.8",
         "@tanstack/react-query-persist-client": "^5.102.8",
-        "@willo/ui": "workspace:*",
+        "@willo.sh/ui": "workspace:*",
         "color": "^3.1.0",
         "expo": "^57.0.0",
         "expo-auth-session": "~57.0.12",
@@ -95,7 +95,7 @@
       },
     },
     "packages/ui": {
-      "name": "@willo/ui",
+      "name": "@willo.sh/ui",
       "dependencies": {
         "@emotion/native": "^11.11.0",
         "@oxy.so/bloom": "^1.1.1",
@@ -854,7 +854,7 @@
 
     "@willo/frontend": ["@willo/frontend@workspace:packages/frontend"],
 
-    "@willo/ui": ["@willo/ui@workspace:packages/ui"],
+    "@willo.sh/ui": ["@willo.sh/ui@workspace:packages/ui"],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.15", "", {}, "sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA=="],
 

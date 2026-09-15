@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { PageScroll, SectionGrid } from '../layout/page-layout';
-import { AddButton, SectionTitle, Tile, useOptimisticValue } from '@willo/ui';
+import { AddButton, SectionTitle, Tile, useOptimisticValue } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
 import { type DeviceKey } from '../state/home-reducer';
 import { useHome } from '../state/home-context';
@@ -11,7 +11,7 @@ import { SensorReadingsCard } from '../components/sensor-readings-card';
 import { selectRelevantSensors } from '../providers/sensor-readings';
 import { demoSensors } from '../data/demo-sensors';
 import { formatTemperature } from '../providers/unit-system';
-import { type IconName } from '@willo/ui';
+import { type IconName } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys } from 'i18next';
 const chunkPairs = <T,>(items: T[]): T[][] =>

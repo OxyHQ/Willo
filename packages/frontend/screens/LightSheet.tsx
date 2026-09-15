@@ -5,7 +5,7 @@ import Color from 'color';
 import styled, { css } from '@emotion/native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { MotiView } from 'moti';
-import { LabelBox, CaptionLabel as Label, Percentage } from '@willo/ui';
+import { LabelBox, CaptionLabel as Label, Percentage } from '@willo.sh/ui';
 import type { Entity } from '../types';
 
 const BOX_SIZE = 160;

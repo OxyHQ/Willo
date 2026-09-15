@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Icon, type IconName } from '@willo/ui';
-import { AddButton, Label, SectionTitle } from '@willo/ui';
+import { Icon, type IconName } from '@willo.sh/ui';
+import { AddButton, Label, SectionTitle } from '@willo.sh/ui';
 import { RoutineRow } from '../components/routine-row';
 import { CardStrip, PageColumns, PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';

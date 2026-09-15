@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { CameraCard } from '../components/camera-card';
-import { Icon, type IconName } from '@willo/ui';
-import { Label, SectionTitle, Tile } from '@willo/ui';
+import { Icon, type IconName } from '@willo.sh/ui';
+import { Label, SectionTitle, Tile } from '@willo.sh/ui';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { CardStrip, PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';
 import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
-import { tones, type Tone } from '@willo/ui';
+import { tones, type Tone } from '@willo.sh/ui';
 import { formatTemperature } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
 // `id` is what the tap handler branches on — never the (translated) title.
