@@ -8,6 +8,7 @@
 # workers.dev/preview fallback name to leak.
 name = "willo-frontend"
 compatibility_date = "2026-09-14"
+main = "worker.ts"
 
 # No `willo-frontend.<subdomain>.workers.dev` and no per-version preview URL —
 # willo.sh is the only name this deployment answers to.
@@ -17,8 +18,13 @@ preview_urls = false
 # `expo export --platform web` emits one index.html plus hashed assets (a
 # client-routed SPA, not per-route static HTML), so the SPA fallback below is
 # what makes a deep link (e.g. /devices) work on a hard refresh.
+#
+# `binding = "ASSETS"` is what makes `worker.ts` able to call `env.ASSETS.fetch`
+# instead of the asset serve happening implicitly with no script at all — the
+# HTTP->HTTPS redirect in `worker.ts` has to run before every other request.
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
 
 [[routes]]
