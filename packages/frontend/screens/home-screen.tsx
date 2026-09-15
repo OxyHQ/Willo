@@ -141,7 +141,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
       return <View key={sensor.id} className="flex-row items-center justify-between gap-3"><Label className="min-w-0 flex-1 text-[11px]">{sensor.name}</Label><Label className="text-[11px]">{measurement?.value != null ? `${measurement.value}${measurement.unit ?? ''}` : '—'}</Label></View>; })}
   </View>;
   const base = {
-    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
+    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard label="Living room" height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
     lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
     light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="living-lamp" title="Lamp"/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
     thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
