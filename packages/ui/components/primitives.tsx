@@ -128,37 +128,48 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
   const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
-  // Not `mixBlendMode`: three different arrangements of it (on the Text
-  // directly, on a wrapping View, with a solved-not-white source color)
-  // were each tried and each failed to render any real per-pixel blending
-  // in practice, despite `mixBlendMode` being a real, typed RN/Fabric style
-  // property in principle. Whatever the actual cause, chasing it further
-  // isn't worth it when a plain color swap is trivially reliable instead.
-  //
-  // Real geometry, not a flat guess: `px-4` (16), the icon itself (20),
-  // `gap-3` (12) before the label starts — converted to a percent of the
-  // tile's own measured width (`width.current`, already tracked below for
-  // the drag gesture) so the icon and label each switch to their on-fill
-  // contrast color only once the fill has actually reached that element,
-  // not at one shared, arbitrary split point.
-  const TILE_PADDING_PX = 16;
-  const ICON_SIZE_PX = 20;
-  const ICON_LABEL_GAP_PX = 12;
-  const iconOverFill = brightness !== undefined && width.current > 0 && clampedBrightness > ((TILE_PADDING_PX + ICON_SIZE_PX / 2) / width.current) * 100;
-  const labelOverFill = brightness !== undefined && width.current > 0 && clampedBrightness > ((TILE_PADDING_PX + ICON_SIZE_PX + ICON_LABEL_GAP_PX) / width.current) * 100;
-  const onFillStyle = { color: themeColors.secondaryForeground };
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
       {/* `secondary`, not `secondary-subtle`: a solid fill for a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
-      <View className="relative"><Icon name={icon} size={20} color={iconOverFill ? themeColors.secondaryForeground : iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
-      <View className="min-w-0 flex-1 py-2">
-        <Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`} style={labelOverFill ? onFillStyle : undefined}>{title}</Label>
-        {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`} style={labelOverFill ? onFillStyle : undefined}>{subtitle}</Label>}
-      </View>
+      <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
+      <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
+      {/* A second, full copy of the icon+label — in the on-fill contrast
+          color — clipped to EXACTLY the fill's own width via an OUTER
+          `overflow: hidden` window (`width: X%`, a plain CSS percentage
+          against the tile's own width, no JS measuring needed for that
+          part). `bottom-0 left-0 top-0` (three edges, no `right`) matches
+          the fill View above EXACTLY — setting all four edges via `inset-0`
+          together with an explicit `width` is an over-constrained box that
+          rendered wrong the first time this was tried.
+          The INNER content is pinned to the tile's own real measured
+          width (`width.current`, already tracked above for the drag
+          gesture) rather than being left to size itself off the narrow
+          OUTER window — that was the second bug: giving the icon+label
+          row the clipped width as ITS OWN flex container made it actually
+          reflow/wrap into that narrow space at low brightness instead of
+          staying full-size and simply being cropped by the window around
+          it. Only basic `position`/`width`/`overflow` are used — no blend
+          mode, no gradient-clip-text, both of which turned out not to
+          reliably work through this app's actual styling pipeline. */}
+      {brightness !== undefined && width.current > 0 && (
+        <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 overflow-hidden" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}>
+          <View className="flex-row items-center gap-3 px-4" style={{ width: width.current, height: '100%' }}>
+            {/* `colors.onYellow` — this app's own already-established
+                "readable text on a yellow surface" color (the same one
+                `palette.color`/`text-secondary-text` use elsewhere in this
+                exact tone), not a guessed light or white value. */}
+            <View className="relative"><Icon name={icon} size={20} color={colors.onYellow} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
+            <View className="min-w-0 flex-1 py-2">
+              <Text style={{ fontFamily: 'System', fontSize: 13, fontWeight: '500', lineHeight: 17, color: colors.onYellow }}>{title}</Text>
+              {subtitle && <Text style={{ fontFamily: 'System', fontSize: 11, lineHeight: 14, marginTop: 2, color: colors.onYellow }}>{subtitle}</Text>}
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   </GestureDetector>;
 }
