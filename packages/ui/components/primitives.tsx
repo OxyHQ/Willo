@@ -127,15 +127,35 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // closed while actually dragging) instead of the plain `pointer` every tile
   // still gets for its tap — same distinction a real OS slider makes.
   const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
+  const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
       {/* `secondary`, not `secondary-subtle`: a solid fill for a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
-      {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${Math.min(100, Math.max(0, brightness))}%` as ViewStyle['width'] }}/>}
+      {brightness !== undefined && <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 bg-secondary" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
       <View className="relative"><Icon name={icon} size={20} color={iconColor} filled={active === true && (icon === 'light' || icon === 'lock')}/></View>
       <View className="min-w-0 flex-1 py-2"><Label className={`text-[13px] font-medium leading-[17px] ${palette.text}`}>{title}</Label>{subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${palette.text}`}>{subtitle}</Label>}</View>
       {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
+      {/* The solid fill above is opaque, but `palette.text` is tuned for
+          contrast against the TILE's plain `-subtle` background, not against
+          that fill — past the point the fill reaches, the label reads as
+          near-invisible (e.g. dark `secondary-text` on the near-identical
+          solid `secondary` yellow). A second copy of the same labels, in
+          `secondaryForeground` (Bloom's own contrast-checked "legible on
+          solid secondary" token), clipped to exactly the fill's width, keeps
+          the label readable at every brightness instead of only some of them.
+          `pointerEvents="none"` on both wrapper and children: this overlay
+          must never intercept the drag gesture the tile itself handles. */}
+      {brightness !== undefined && (
+        <View pointerEvents="none" className="absolute inset-0 flex-row items-center gap-3 overflow-hidden px-4" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}>
+          <View className="relative" style={{ opacity: 0 }}><Icon name={icon} size={20} color={iconColor}/></View>
+          <View className="min-w-0 flex-1 py-2">
+            <Label style={{ color: themeColors.secondaryForeground }} className="text-[13px] font-medium leading-[17px]">{title}</Label>
+            {subtitle && <Label style={{ color: themeColors.secondaryForeground }} className="mt-0.5 text-[11px] leading-[14px]">{subtitle}</Label>}
+          </View>
+        </View>
+      )}
     </View>
   </GestureDetector>;
 }
