@@ -10,7 +10,7 @@ import { HomeProvider } from '../state/home-context';
 import { Overlays } from '../components/overlays';
 import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
-import { modernScreens, noTabScreens } from '../data/screens';
+import { noTabScreens } from '../data/screens';
 import { screenForPathname } from '../data/screen-routes';
 import { useScreenNavigate } from '../screens/RoutedScreen';
 import { ResponsiveProvider, useResponsiveLayout } from '../layout/responsive-context';
@@ -44,14 +44,13 @@ function AppShell() {
   const onNavigate = useScreenNavigate(screen);
   const insets = useSafeAreaInsets();
   const { compact } = useResponsiveLayout();
-  const modern = modernScreens.includes(screen);
   const hasTabs = !noTabScreens.includes(screen);
 
   return (
     <View className="min-h-0 min-w-0 flex-1 bg-background" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
       <View style={{ height: insets.top }} />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
-        {!compact && <NavigationRail screen={screen} modern={modern} onNavigate={onNavigate} />}
+        {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <View testID="screen-surface" className={`relative min-h-0 min-w-0 flex-1 bg-background ${Platform.OS === 'web' ? '' : 'overflow-hidden'}`}>
           {/* WEB: the window/document is the real scroller (the nav rail above
               and each screen's header pin themselves with `position: sticky`
@@ -63,7 +62,7 @@ function AppShell() {
           {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
         </View>
       </View>
-      {compact && hasTabs ? <BottomNav screen={screen} modern={modern} onNavigate={onNavigate} /> : <View style={{ height: insets.bottom }} />}
+      {compact && hasTabs ? <BottomNav screen={screen} onNavigate={onNavigate} /> : <View style={{ height: insets.bottom }} />}
     </View>
   );
 }

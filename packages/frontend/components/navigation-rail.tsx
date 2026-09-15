@@ -6,7 +6,7 @@ import { asViewStyle } from '../layout/web-style';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Icon } from '@willo/ui';
 import { Label } from '@willo/ui';
-import { classicTabs, isNavigationActive, modernTabs } from './navigation-items';
+import { isNavigationActive, tabs } from './navigation-items';
 
 // Under document-scroll on web (see `app/_layout.tsx`), the shell row is a
 // tall flex container. A flex child defaults to `align-items: stretch`, which
@@ -20,7 +20,7 @@ const webStickyStyle = Platform.OS === 'web'
   ? asViewStyle({ position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', height: '100vh' })
   : undefined;
 
-export function NavigationRail({ screen, onNavigate, modern }: { screen: ScreenId; onNavigate: Navigate; modern: boolean }) {
+export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const { navigationWidth } = useResponsiveLayout();
   const { colors } = useTheme();
   // No background class at all — `AppShell` (`app/_layout.tsx`) already
@@ -33,7 +33,7 @@ export function NavigationRail({ screen, onNavigate, modern }: { screen: ScreenI
   return <View testID="navigation-rail" className="h-full shrink-0" style={[webStickyStyle, { width: navigationWidth }]}>
     <ScrollView className="flex-1" contentInsetAdjustmentBehavior="never" showsVerticalScrollIndicator={false}
       contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 24, gap: 8 }}>
-      {(modern ? modernTabs : classicTabs).map(item => {
+      {tabs.map(item => {
         const active = isNavigationActive(screen, item.screen);
         return <Pressable key={item.screen} accessibilityRole="tab" accessibilityLabel={item.title}
           accessibilityState={{ selected: active }} onPress={() => onNavigate(item.screen)}

@@ -7,7 +7,7 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { asViewStyle } from '../layout/web-style';
 import { Icon } from '@willo/ui';
-import { modernTabs, classicTabs, isNavigationActive } from './navigation-items';
+import { tabs, isNavigationActive } from './navigation-items';
 
 const IS_WEB = Platform.OS === 'web';
 const ICON_SIZE = 21;
@@ -21,11 +21,10 @@ const webFixedStyle = IS_WEB
   ? asViewStyle({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 })
   : undefined;
 
-export function BottomNav({ screen, onNavigate, modern }: { screen: ScreenId; onNavigate: Navigate; modern: boolean }) {
+export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const insets = useSafeAreaInsets();
   const [height, setHeight] = useState(0);
   const { colors } = useTheme();
-  const tabs = modern ? modernTabs : classicTabs;
   const activeIndex = tabs.findIndex(tab => isNavigationActive(screen, tab.screen));
   // Sourced from Bloom's own theme instead of Willo's static `home-sky`/
   // `onSky`/`muted` tokens — `highlight` pairs with `activeTint` the same way

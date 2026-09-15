@@ -13,7 +13,6 @@ export function useAccountMenu(onNavigate: Navigate) {
   return () => setSheet({ kind: 'menu', title: homeName, description: 'Reference UI demo · Changes stay in this session.', options: [
     { label: homeName, selected: true, onPress: () => setSheet(null) },
     { label: 'Home settings', onPress: () => { setSheet(null); onNavigate('settings'); } },
-    { label: 'Classic favorites', onPress: () => { setSheet(null); onNavigate('favorites'); } },
     { label: 'Reset demo controls', onPress: () => { dispatch({ type: 'RESET' }); setSheet(null); notify('Demo controls reset'); } },
   ] });
 }
