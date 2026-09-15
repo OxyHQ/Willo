@@ -26,7 +26,13 @@
     "description": "Willo — smart home control by Oxy",
     "plugins": [
       "expo-router",
-      ["@oxy.so/app-preset", {}]
+      ["@oxy.so/app-preset", {}],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Willo uses the camera to scan the QR code shown on your Home Assistant device when connecting it."
+        }
+      ]
     ]
   }
 }

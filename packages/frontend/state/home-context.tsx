@@ -94,6 +94,17 @@ type HomeContextValue = {
    * into Home Assistant.
    */
   pairingCode: { code: string; expiresAt: string } | null;
+  /**
+   * The DEVICE-initiated counterpart to `requestPairingCode`: a Willo Green
+   * appliance generates its own claim code (shown on its Vite status/QR
+   * screen, see OxyHQ/Willo#9), and this attaches it to the current Home
+   * instead of the other way around — no code ever shown by this app, no
+   * typing into Home Assistant. Hits `POST /homes/:id/claim-device`, which
+   * this Home's `homeConnections` row already gets updated by server-side;
+   * the tunnel itself connects on its own once the device's own poll picks
+   * up the secret, same as a completed `requestPairingCode` pairing does.
+   */
+  claimDevice: (claimCode: string) => Promise<void>;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
   fetchEvents: () => Promise<HomeActivityEvent[]>;
   sendCommand: (id: string, command: DeviceCommand) => void;
@@ -354,6 +365,24 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     return result;
   }, [homeId, getAccessToken]);
 
+  const claimDevice = useCallback(
+    async (claimCode: string) => {
+      if (!homeId) throw new Error('Create a home before claiming a device.');
+      const token = getAccessToken();
+      const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/claim-device`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ claimCode }),
+      });
+      if (!response.ok) throw new Error(response.status === 404 ? 'That code is invalid or has expired.' : 'Could not connect that device.');
+      // Same reasoning as `requestPairingCode` above — the device now has a
+      // fresh secret waiting for it; a stale local `paired` read must not
+      // race ahead of the tunnel's own real `onPaired`/`onConnectionChange`.
+      pairedRef.current = false;
+    },
+    [homeId, getAccessToken]
+  );
+
   const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
     if (!homeId) return [];
     const token = getAccessToken();
@@ -372,8 +401,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }
