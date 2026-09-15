@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 export const SCREENS = [
+  { id: 'onboarding', title: 'Set up your home', subtitle: 'Create or pair your Willo Home', generation: 'modern', number: '00' },
   { id: 'home', title: 'Home', subtitle: 'Favorites, camera & climate', generation: 'modern', number: '01' },
   { id: 'activity', title: 'Activity', subtitle: 'Home brief & event filters', generation: 'modern', number: '02' },
   { id: 'automations', title: 'Automations', subtitle: 'Upcoming & your routines', generation: 'modern', number: '03' },
@@ -22,4 +23,4 @@ export type Navigate = (screen: ScreenId | 'gallery') => void;
 export type ScreenProps = { onNavigate: Navigate; header?: ReactNode };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
 export const modernScreens: ScreenId[] = ['home', 'activity', 'automations', 'assistant', 'composer', 'emergency'];
-export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency'];
+export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency', 'onboarding'];

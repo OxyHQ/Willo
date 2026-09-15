@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
-import { Dialog } from '@oxy.so/bloom/dialog';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Label } from '@willo/ui';
 import { ContentWidth } from '../layout/page-layout';
 import { useHome } from '../state/home-context';
+import { type Navigate } from '../data/screens';
 import { SignInIllustration } from './sign-in-illustration';
 
 function CreateHomeStep() {
@@ -26,7 +26,7 @@ function CreateHomeStep() {
   }, [createHome, name, notify]);
 
   return (
-    <View className="items-center px-6 py-2">
+    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={160} />
@@ -83,7 +83,7 @@ function PairingStep() {
   }, []);
 
   return (
-    <View className="items-center px-6 py-2">
+    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={160} />
@@ -119,30 +119,58 @@ function PairingStep() {
 /**
  * Replaces the old `LoginView` (a Home Assistant instance URL + OAuth form)
  * entirely — there is no URL, no "Advanced" toggle, and no OAuth left for a
- * person to see. `ScreenSurface` renders this in place of a screen's normal
- * content whenever `useHome()`'s `setupStage` isn't `'ready'` yet, inside
- * the same `ContentPanel` every real screen already gets — so the sidebar
- * and header stay visible underneath while this renders as a real Bloom
- * `Dialog` on top (bottom sheet on mobile, centered on desktop), not as
- * flat panel content.
- *
- * `dismissOnBackdrop={false}` (which also disables Escape — see Bloom's
- * `Dialog.web.tsx`) and no `actions`/close button: setup is mandatory, there
- * is no home to show underneath yet, so there is no legitimate way to
- * dismiss this short of finishing it.
+ * person to see. Rendered by `ScreenSurface` as the `/onboarding` route's own
+ * content (`app/onboarding.tsx`) — a real navigated screen, not a modal over
+ * whatever the user happened to be looking at: `screen-surface.tsx` redirects
+ * here whenever `setupStage` isn't `'ready'` (except from the home screen
+ * itself, which shows `HomeSetupPrompt` below instead of redirecting
+ * immediately — see its own doc comment for why).
  */
-export function HomeSetupFlow() {
+export function HomeSetupFlow({ header }: { header?: React.ReactNode }) {
   const { setupStage } = useHome();
   return (
-    <Dialog
-      open={setupStage !== 'ready'}
-      onClose={() => {}}
-      dismissOnBackdrop={false}
-      placement={{ base: 'bottom', md: 'center' }}
-      contentPadding={0}
-      label="Set up your home"
-    >
+    <View className="min-h-0 min-w-0 flex-1">
+      {header}
       {setupStage === 'needs-pairing' ? <PairingStep /> : <CreateHomeStep />}
-    </Dialog>
+    </View>
+  );
+}
+
+/**
+ * The home screen's own inline stand-in for `HomeSetupFlow`, shown instead of
+ * an immediate redirect to `/onboarding` — landing straight on a different
+ * route right after sign-in reads as more abrupt than a normal screen with a
+ * clear call to action. Every OTHER screen still redirects immediately
+ * (`screen-surface.tsx`): there's no sensible partial content to show on
+ * `/devices` or `/settings` for a Home that doesn't exist or isn't paired
+ * yet, so there's nothing an inline prompt would be standing in for there.
+ */
+export function HomeSetupPrompt({ onNavigate }: { onNavigate: Navigate }) {
+  const { setupStage } = useHome();
+  const pairing = setupStage === 'needs-pairing';
+  return (
+    <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
+      <ContentWidth maxWidth={420} padding={false}>
+        <View className="items-center">
+          <SignInIllustration width={160} />
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">
+            {pairing ? 'Connect Home Assistant' : "Let's set up your home"}
+          </Label>
+          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+            {pairing
+              ? 'Your home is created — pair your Home Assistant to start controlling your devices.'
+              : 'Create your Willo home to start controlling your devices.'}
+          </Label>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={pairing ? 'Continue setup' : 'Get started'}
+            onPress={() => onNavigate('onboarding')}
+            className="mt-6 items-center rounded-full bg-primary-subtle px-8 py-4"
+          >
+            <Label className="text-[14px] font-medium text-primary-text">{pairing ? 'Continue setup' : 'Get started'}</Label>
+          </Pressable>
+        </View>
+      </ContentWidth>
+    </View>
   );
 }

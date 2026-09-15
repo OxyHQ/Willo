@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
-import { HomeSetupFlow } from './home-setup';
+import { HomeSetupFlow, HomeSetupPrompt } from './home-setup';
 import { useHome } from '../state/home-context';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
@@ -56,6 +57,22 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const { setupStage, homeName } = useHome();
+  const router = useRouter();
+  // Setup lives at its own `/onboarding` route (`app/onboarding.tsx`), not a
+  // modal over whatever the user happened to be on — landing there straight
+  // after sign-in is a normal navigation, not an interruption. The home
+  // screen is the one exception: it shows `HomeSetupPrompt` inline instead of
+  // redirecting immediately (see that component's doc comment), so only
+  // OTHER screens redirect here. Once setup finishes, a Home sitting on
+  // `/onboarding` itself gets sent back to `/`.
+  useEffect(() => {
+    if (!isAuthResolved || !isAuthenticated || setupStage === 'resolving') return;
+    if (setupStage === 'ready') {
+      if (screen === 'onboarding') router.replace('/');
+      return;
+    }
+    if (screen !== 'home' && screen !== 'onboarding') router.replace('/onboarding');
+  }, [isAuthResolved, isAuthenticated, setupStage, screen, router]);
   // Mobile's sticky header floats directly over scrolling content (unlike
   // desktop's, which sits on the plain surface background with nothing
   // scrolling under it), so a hard-edged solid fill would cut content off with
@@ -125,28 +142,29 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
       wrapColumn = column => <ComposerProvider onNavigate={onNavigate}>{column}</ComposerProvider>;
       break;
     case 'emergency': header = <EmergencyHeader onNavigate={onNavigate}/>; content = <EmergencyScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'onboarding': header = <ClassicHeader title="Willo" onNavigate={onNavigate}/>; content = <HomeSetupFlow header={combineHeader ? bleedHeader(header) : undefined}/>; break;
   }
 
-  // Swaps CONTENT ONLY (not `header`) for the sign-in prompt / home setup
-  // flow while not ready yet — the same panel below still frames it, so
-  // it's not a separately-styled screen, and whichever screen's own
-  // header/nav context is already on the page stays put. Not a
-  // higher-level gate above `<Slot/>`/`<Stack/>` (`app/_layout.tsx`'s own
-  // doc comment on `AppShell` says why): that would intercept before this
-  // component — and its one shared `ContentPanel` below — ever mounted.
+  // Swaps CONTENT ONLY (not `header`) for the sign-in prompt while Oxy auth
+  // isn't ready — the same panel below still frames it, so it's not a
+  // separately-styled screen, and whichever screen's own header/nav context
+  // is already on the page stays put. Not a higher-level gate above
+  // `<Slot/>`/`<Stack/>` (`app/_layout.tsx`'s own doc comment on `AppShell`
+  // says why): that would intercept before this component — and its one
+  // shared `ContentPanel` below — ever mounted.
   //
-  // TWO independent gates, checked in order: Oxy identity first (nothing
-  // below needs a Home at all without one), then whether THIS device has a
-  // connected Home (`useHome()`'s `setupStage` — see `state/home-context.tsx`).
-  // A Home Assistant instance can only ever be reached over its own tunnel
-  // now, never directly from the browser, so "connected" here means the
-  // tunnel is up, not merely that a Home row exists.
+  // Setup-incomplete Homes are handled differently: `/onboarding` is a real
+  // route now (see the redirect effect above), so this only needs to cover
+  // the brief window before that redirect lands (any screen but home) and
+  // the home screen's own inline prompt (which doesn't redirect at all).
   if (!isAuthResolved) {
     content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
   } else if (!isAuthenticated) {
     content = <SignInPrompt/>;
-  } else if (setupStage !== 'ready') {
-    content = <HomeSetupFlow/>;
+  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen === 'home') {
+    content = <HomeSetupPrompt onNavigate={onNavigate}/>;
+  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen !== 'onboarding') {
+    content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
   }
 
   return wrapColumn(

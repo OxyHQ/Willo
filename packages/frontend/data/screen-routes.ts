@@ -2,6 +2,7 @@ import type { ScreenId } from './screens';
 
 /** Home is the existing authenticated index route, never an unguarded /home. */
 export const SCREEN_ROUTES = {
+  onboarding: '/onboarding',
   home: '/',
   activity: '/activity',
   automations: '/automations',
