@@ -8,37 +8,45 @@ import { assets } from '../data/assets';
 import { type ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
-const plantAnswer = 'Yes, rabbits ate plants on September 29th and 28th. On September 29th, two rabbits were seen eating colorful plants in the garden multiple times. One brown and gray rabbit were also seen in the garden on September 29th.';
-const clips = [
-  { title: 'Rabbits nibble plants', time: '1:17 PM', image: assets.rabbitPlants },
-  { title: 'Rabbits in garden', time: '12:17 PM', image: assets.rabbit },
-  { title: 'Rabbits eat colorful plants', time: '2:10 PM', image: assets.flowers },
+import { useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
+import type { ImageSource } from 'expo-image';
+type Clip = { titleKey: ParseKeys; hour: number; minute: number; image: ImageSource };
+const clips: Clip[] = [
+  { titleKey: 'assistant.clips.nibble', hour: 13, minute: 17, image: assets.rabbitPlants },
+  { titleKey: 'assistant.clips.inGarden', hour: 12, minute: 17, image: assets.rabbit },
+  { titleKey: 'assistant.clips.colorful', hour: 14, minute: 10, image: assets.flowers },
 ];
+// Whether a question is about the demo's plants/rabbits, in either language — the only question this local demo has example results for.
+const PLANT_QUESTION = /plant|rabbit|garden|eat|planta|conejo|jard[ií]n|com(e|ido|ieron|i[oó])/i;
 export function AssistantHeader({ onNavigate }: ScreenProps) {
   const { homeName } = useHome();
-  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label="Back to home" onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">Ask {homeName}</Label></View></ContentWidth>;
+  const { t } = useTranslation();
+  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('assistant.ask', { home: homeName })}</Label></View></ContentWidth>;
 }
 export function AssistantScreen({ onNavigate, header }: ScreenProps) {
   const { setSheet, homeName } = useHome();
   const { colors: themeColors } = useTheme();
+  const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
-  const [question, setQuestion] = useState('Did something eat my plants?');
+  // `null` is the demo's own opening question, so it follows the UI language until the person asks their own.
+  const [question, setQuestion] = useState<string | null>(null);
   const [showClips, setShowClips] = useState(true);
   const submit = () => {
     if (!input.trim()) return;
     setQuestion(input.trim());
-    setShowClips(/plant|rabbit|garden|eat/i.test(input));
+    setShowClips(PLANT_QUESTION.test(input));
     setInput('');
   };
-  const clip = (item: typeof clips[number]) => <Pressable key={item.title} accessibilityRole="button" accessibilityLabel={item.title} onPress={() => setSheet({ kind: 'camera', title: `${item.title} · Garden Bed`, garden: true })} className="min-h-[75px] flex-row items-center gap-3 rounded-[23px] bg-muted p-3"><Icon name="camera" size={20} color={themeColors.text}/><View className="flex-1"><Label className="text-[12px] leading-[17px]">{item.title}</Label><Label className="text-[11px] text-muted-foreground">{item.time} · Garden Bed</Label></View><View className="h-[55px] w-[55px] overflow-hidden rounded-[16px]"><Image source={item.image} style={{ width: '100%', height: '100%' }} contentFit="cover"/></View></Pressable>;
+  const clip = (item: Clip) => { const title = t(item.titleKey); const time = new Date(2000, 0, 1, item.hour, item.minute).toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' }); return <Pressable key={item.titleKey} accessibilityRole="button" accessibilityLabel={title} onPress={() => setSheet({ kind: 'camera', title: t('assistant.clipTitle', { title }), garden: true })} className="min-h-[75px] flex-row items-center gap-3 rounded-[23px] bg-muted p-3"><Icon name="camera" size={20} color={themeColors.text}/><View className="flex-1"><Label className="text-[12px] leading-[17px]">{title}</Label><Label className="text-[11px] text-muted-foreground">{t('assistant.clipTime', { time })}</Label></View><View className="h-[55px] w-[55px] overflow-hidden rounded-[16px]"><Image source={item.image} style={{ width: '100%', height: '100%' }} contentFit="cover"/></View></Pressable>; };
   return <KeyboardAvoidingView className="flex-1 bg-card" behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
     <PageScroll maxWidth={808}>
       {header}
-      <View className="mb-6 max-w-[90%] self-end rounded-[22px] rounded-br-[5px] bg-primary-subtle px-4 py-3"><Label className="text-[13px] text-primary-text">{question}</Label></View>
+      <View className="mb-6 max-w-[90%] self-end rounded-[22px] rounded-br-[5px] bg-primary-subtle px-4 py-3"><Label className="text-[13px] text-primary-text">{question ?? t('assistant.defaultQuestion')}</Label></View>
       <View className="mb-5"><Icon name="sparkle" size={22} color="#4285f4" filled/></View>
-      <Label selectable className="text-[13px] leading-[20px]">{showClips ? plantAnswer : 'This is a local interface demo, not a connected AI assistant. Try asking about the plants or rabbits to explore the example camera results.'}</Label>
-      {showClips && <><Label className="mb-3 mt-6 px-1 text-[13px] font-medium">Mon, Sep 29</Label><View className="gap-2">{clips.map(clip)}</View><Label className="mb-3 mt-5 px-1 text-[13px] font-medium">Sun, Sep 28</Label>{clip({ title: 'Rabbits in the garden', time: '4:35 PM', image: assets.rabbit })}</>}
+      <Label selectable className="text-[13px] leading-[20px]">{showClips ? t('assistant.plantAnswer') : t('assistant.notConnected')}</Label>
+      {showClips && <><Label className="mb-3 mt-6 px-1 text-[13px] font-medium">{t('assistant.dateSep29')}</Label><View className="gap-2">{clips.map(clip)}</View><Label className="mb-3 mt-5 px-1 text-[13px] font-medium">{t('assistant.dateSep28')}</Label>{clip({ titleKey: 'assistant.clips.inTheGarden', hour: 16, minute: 35, image: assets.rabbit })}</>}
     </PageScroll>
-    <ContentWidth maxWidth={808}><View className="bg-card pb-3 pt-2"><View className="flex-row items-center rounded-full bg-muted pl-4 pr-1"><TextInput accessibilityLabel={`Ask ${homeName}`} placeholder={`Ask ${homeName}`} placeholderTextColor={themeColors.textSecondary} value={input} onChangeText={setInput} onSubmitEditing={submit} returnKeyType="send" maxLength={300} className="h-[48px] flex-1 text-[13px] text-foreground"/><IconButton icon="send" size={19} label="Send question" disabled={!input.trim()} color={themeColors.primary} onPress={submit}/></View><Pressable onPress={() => setSheet({ kind: 'message', title: 'About this preview', description: 'The disclaimer and sample conversation reproduce the supplied reference. This demo does not use Gemini or any other AI service.' })} accessibilityRole="button" className="py-3"><Label className="text-center text-[9px] text-muted-foreground">Gemini can make mistakes, so double check it. <Label className="text-[9px] text-muted-foreground underline">Learn more</Label></Label></Pressable></View></ContentWidth>
+    <ContentWidth maxWidth={808}><View className="bg-card pb-3 pt-2"><View className="flex-row items-center rounded-full bg-muted pl-4 pr-1"><TextInput accessibilityLabel={t('assistant.ask', { home: homeName })} placeholder={t('assistant.ask', { home: homeName })} placeholderTextColor={themeColors.textSecondary} value={input} onChangeText={setInput} onSubmitEditing={submit} returnKeyType="send" maxLength={300} className="h-[48px] flex-1 text-[13px] text-foreground"/><IconButton icon="send" size={19} label={t('assistant.send')} disabled={!input.trim()} color={themeColors.primary} onPress={submit}/></View><Pressable onPress={() => setSheet({ kind: 'message', title: t('assistant.aboutTitle'), description: t('assistant.aboutDescription') })} accessibilityRole="button" className="py-3"><Label className="text-center text-[9px] text-muted-foreground">{t('assistant.disclaimer')} <Label className="text-[9px] text-muted-foreground underline">{t('assistant.learnMore')}</Label></Label></Pressable></View></ContentWidth>
   </KeyboardAvoidingView>;
 }

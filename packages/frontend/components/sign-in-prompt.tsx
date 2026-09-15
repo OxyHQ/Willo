@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { OxySignInButton } from '@oxy.so/services';
 import { Label } from '@willo/ui';
+import { useTranslation } from 'react-i18next';
 import { ContentWidth } from '../layout/page-layout';
 import { SignInIllustration } from './sign-in-illustration';
 
@@ -13,13 +14,14 @@ import { SignInIllustration } from './sign-in-illustration';
  * one `ContentPanel` every screen shares — this must not wrap a second one.
  */
 export function SignInPrompt() {
+  const { t } = useTranslation();
   return (
     <View className="min-h-0 min-w-0 flex-1 items-center justify-center px-6">
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={200} />
-          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">Welcome to Willo</Label>
-          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">Sign in with your Oxy account to control your home.</Label>
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">{t('signIn.title')}</Label>
+          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('signIn.subtitle')}</Label>
           <OxySignInButton variant="contained" style={{ marginTop: 28 }} />
         </View>
       </ContentWidth>

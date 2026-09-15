@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useClaimBottomEdge } from '@oxy.so/bloom/layout';
 import { TabBar, TabBarButton, type TabBarItem, type TabBarTheme } from '@oxy.so/bloom/tab-bar';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { asViewStyle } from '../layout/web-style';
 import { Icon } from '@willo/ui';
@@ -25,6 +26,7 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate
   const insets = useSafeAreaInsets();
   const [height, setHeight] = useState(0);
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const activeIndex = tabs.findIndex(tab => isNavigationActive(screen, tab.screen));
   // Sourced from Bloom's own theme instead of Willo's static `home-sky`/
   // `onSky`/`muted` tokens — `highlight` pairs with `activeTint` the same way
@@ -49,7 +51,7 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate
       {tabs.map((tab, index) => {
         const item: TabBarItem = {
           name: tab.screen,
-          label: tab.title,
+          label: t(tab.titleKey),
           icon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.textSecondary}/>,
           activeIcon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.primary} filled/>,
         };

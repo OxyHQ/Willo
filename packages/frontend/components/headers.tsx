@@ -8,11 +8,13 @@ import { useResponsiveLayout } from '../layout/responsive-context';
 import { Icon } from '@willo/ui';
 import { Avatar, IconButton, Label } from '@willo/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
 export function useAccountMenu(onNavigate: Navigate) {
   const { setSheet, homeName } = useHome();
+  const { t } = useTranslation();
   return () => setSheet({ kind: 'menu', title: homeName, options: [
     { label: homeName, selected: true, onPress: () => setSheet(null) },
-    { label: 'Home settings', onPress: () => { setSheet(null); onNavigate('settings'); } },
+    { label: t('header.homeSettings'), onPress: () => { setSheet(null); onNavigate('settings'); } },
   ] });
 }
 export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
@@ -20,6 +22,7 @@ export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
   const { homeName } = useHome();
   const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
+  const { t } = useTranslation();
   // No background class: this always sits directly on a `bg-background`
   // ancestor (the desktop shell, or the mobile `bleedHeader` gradient
   // wrapper — see `screen-surface.tsx`), so painting one here would either
@@ -38,15 +41,15 @@ export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
           way as that panel, not as a plain page element. `card` is real white
           in light mode (not `sidebar`, which is a slightly tinted off-white)
           and resolves to a sensible raised dark tone in dark mode. */}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Ask ${homeName}`} onPress={() => onNavigate('assistant')}
+      <Pressable accessibilityRole="button" accessibilityLabel={t('header.ask', { home: homeName })} onPress={() => onNavigate('assistant')}
         className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70"
         style={{ maxWidth: compact ? undefined : 520 }}>
         <View className="h-7 w-7 items-center justify-center rounded-full bg-background"><Icon name="home" size={17} color={themeColors.textSecondary} filled/></View>
-        <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">Ask {homeName}</Label>
+        <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{t('header.ask', { home: homeName })}</Label>
       </Pressable>
       {!compact && <View className="flex-1"/>}
-      <IconButton icon="plus" label="Create automation" onPress={() => onNavigate('composer')} className="bg-card"/>
-      <Avatar onPress={account} source={assets.avatar}/>
+      <IconButton icon="plus" label={t('header.createAutomation')} onPress={() => onNavigate('composer')} className="bg-card"/>
+      <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
     </View>
   </ContentWidth></View>;
 }
@@ -55,14 +58,15 @@ export function ClassicHeader({ title, onNavigate, home = false, filter, notific
   const { setSheet } = useHome();
   const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
+  const { t } = useTranslation();
   // Same reasoning as `AskHeader`'s conditional paddingBottom: desktop's own
   // gap comes from the column outside (screen-surface.tsx's `gap-2`); mobile
   // has no such sibling gap and needs its own, symmetric with `pt-2`. No
   // background class here either — same reasoning as `AskHeader`.
   return <View><ContentWidth><View className={`min-h-[52px] flex-row items-center gap-2 pt-2 ${compact ? 'pb-2' : ''}`}>
-    {home ? <Pressable onPress={account} accessibilityRole="button" accessibilityLabel="Choose home" className="flex-1 flex-row items-center gap-2"><View className="h-7 w-7 items-center justify-center rounded-full bg-home-nav"><Icon name="home" size={16} color={themeColors.info}/></View><Label numberOfLines={1} className="min-w-0 flex-1 text-[16px]">{title}</Label><Icon name="down" size={13} color={themeColors.textSecondary}/></Pressable> : <Label className="flex-1 text-[19px]">{title}</Label>}
-    {filter && <Pressable accessibilityRole="button" onPress={filter} className="px-2 py-3"><Label className="text-[12px] text-info-text">Filter</Label></Pressable>}
-    {notifications && <IconButton size={19} icon="bell" label="Notifications" onPress={() => setSheet({ kind: 'message', title: 'Notifications', description: 'This UI demo has no live notifications.' })}/>}
-    <Avatar onPress={account} source={assets.avatar}/>
+    {home ? <Pressable onPress={account} accessibilityRole="button" accessibilityLabel={t('header.chooseHome')} className="flex-1 flex-row items-center gap-2"><View className="h-7 w-7 items-center justify-center rounded-full bg-home-nav"><Icon name="home" size={16} color={themeColors.info}/></View><Label numberOfLines={1} className="min-w-0 flex-1 text-[16px]">{title}</Label><Icon name="down" size={13} color={themeColors.textSecondary}/></Pressable> : <Label className="flex-1 text-[19px]">{title}</Label>}
+    {filter && <Pressable accessibilityRole="button" onPress={filter} className="px-2 py-3"><Label className="text-[12px] text-info-text">{t('header.filter')}</Label></Pressable>}
+    {notifications && <IconButton size={19} icon="bell" label={t('header.notifications')} onPress={() => setSheet({ kind: 'message', title: t('header.notifications'), description: t('header.noNotifications') })}/>}
+    <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
   </View></ContentWidth></View>;
 }

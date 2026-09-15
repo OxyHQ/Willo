@@ -36,13 +36,13 @@ export function IconButton({ icon, onPress, label, color, className = '', size =
   const { colors: themeColors } = useTheme();
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
 }
-export function Avatar({ onPress, source, label = 'Account menu' }: { onPress: () => void; source: ImageSource; label?: string }) {
+export function Avatar({ onPress, source, label }: { onPress: () => void; source: ImageSource; label: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="h-9 w-9 cursor-pointer overflow-hidden rounded-full bg-muted active:opacity-70"><Image source={source} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>;
 }
 export function SectionTitle({ children, right, onPress }: { children: React.ReactNode; right?: string; onPress?: () => void }) {
   return <View className="mb-3 mt-5 flex-row items-center justify-between"><Label className="text-[13px] font-medium">{children}</Label>{right && <Pressable onPress={onPress} accessibilityRole="button" className="cursor-pointer p-1"><Label className="text-[12px] font-medium text-info-text">{right}</Label></Pressable>}</View>;
 }
-export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, chevron = false, active, height = 80, grow = true }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; brightness?: number; onBrightnessChange?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
+export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; brightness?: number; onBrightnessChange?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
   const palette = tones[tone];
   const { colors: themeColors, isDark } = useTheme();
   // Tones migrated to Bloom's own theme so far (`tokens.ts`) need the SAME
@@ -152,7 +152,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   };
   const fillTextColor = onFillColor[tone];
   return <GestureDetector gesture={composedGesture}>
-    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={onBrightnessChange ? 'Drag to adjust brightness' : onLongPress ? 'Hold for more options' : undefined} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
+    <View collapsable={false} onLayout={event => { width.current = event.nativeEvent.layout.width; }} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={accessibilityHint} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
       {/* The tone's own solid color, not its `-subtle` tint: a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
@@ -201,9 +201,9 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
     </View>
   </GestureDetector>;
 }
-export function AddButton({ onPress }: { onPress: () => void }) {
+export function AddButton({ onPress, label, accessibilityLabel }: { onPress: () => void; label: string; accessibilityLabel: string }) {
   const { colors: themeColors } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel="Add automation or device" onPress={onPress} className="absolute bottom-5 right-4 flex-row items-center gap-2 cursor-pointer rounded-[15px] bg-info-subtle px-4 py-3 active:opacity-70" style={{ boxShadow: '0 2px 5px rgba(29,52,91,0.14)' }}><Icon name="plus" size={20} color={themeColors.info}/><Label className="text-[13px] font-medium text-info-text">Add</Label></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} className="absolute bottom-5 right-4 flex-row items-center gap-2 cursor-pointer rounded-[15px] bg-info-subtle px-4 py-3 active:opacity-70" style={{ boxShadow: '0 2px 5px rgba(29,52,91,0.14)' }}><Icon name="plus" size={20} color={themeColors.info}/><Label className="text-[13px] font-medium text-info-text">{label}</Label></Pressable>;
 }
 export function Pill({ label, onPress, selected = false }: { label: string; onPress: () => void; selected?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`flex-row items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 active:opacity-70 ${selected ? 'border-primary-subtle bg-primary-subtle' : 'border-border bg-white'}`}><Label className="text-[12px]">{label}</Label><Icon name="down" size={12}/></Pressable>;

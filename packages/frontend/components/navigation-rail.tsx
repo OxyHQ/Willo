@@ -1,6 +1,7 @@
 import React from 'react';
 import { Rail, type RailItem } from '@oxy.so/bloom/rail';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@willo/ui';
 import type { Navigate, ScreenId } from '../data/screens';
 import { useResponsiveLayout } from '../layout/responsive-context';
@@ -16,6 +17,7 @@ const ICON_SIZE = 22;
 export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const { navigationWidth } = useResponsiveLayout();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const activeTab = tabs.find(tab => isNavigationActive(screen, tab.screen));
 
@@ -25,7 +27,7 @@ export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNav
   // tint on its behalf.
   const items: RailItem[] = tabs.map(tab => ({
     id: tab.screen,
-    label: tab.title,
+    label: t(tab.titleKey),
     icon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.textSecondary}/>,
     activeIcon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.primary} filled/>,
   }));

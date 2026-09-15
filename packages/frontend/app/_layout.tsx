@@ -1,4 +1,5 @@
 import '../global.css';
+import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '../i18n';
 
 import { Slot, Stack, usePathname } from 'expo-router';
 import { Platform, StatusBar, View } from 'react-native';
@@ -92,6 +93,12 @@ export default function RootLayout() {
             baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}
             clientId={process.env.EXPO_PUBLIC_OXY_CLIENT_ID}
             authRedirectUri={process.env.EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI}
+            language={{
+              supportedLocales: SUPPORTED_LANGUAGES,
+              fallbackLocale: DEFAULT_LANGUAGE,
+              onChange: async locale => { await i18n.changeLanguage(locale); },
+              onError: (error, locale) => console.error(`Failed to switch Willo's language to ${locale}:`, error),
+            }}
           >
             <ResponsiveProvider>
               <HomeProvider>

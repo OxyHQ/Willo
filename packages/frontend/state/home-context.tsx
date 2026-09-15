@@ -5,6 +5,7 @@ import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
 import type { Device, DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
 import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
+import { useTranslation } from 'react-i18next';
 
 const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
 
@@ -112,6 +113,13 @@ type HomeContextValue = {
   getAuthHeaders: () => Record<string, string>;
 };
 
+/** Why claiming a device failed, so the screen can say it in the person's language instead of showing a raw message. */
+export class ClaimDeviceError extends Error {
+  constructor(readonly reason: 'invalid-code' | 'failed') {
+    super(reason === 'invalid-code' ? 'The claim code is invalid or has expired.' : 'Claiming the device failed.');
+  }
+}
+
 const HomeContext = createContext<HomeContextValue | null>(null);
 
 export function HomeProvider({ children }: { children: React.ReactNode }) {
@@ -126,6 +134,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  const { t } = useTranslation();
   const { oxyServices } = useOxy();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const getAccessToken = useCallback(() => oxyServices.getAccessToken(), [oxyServices]);
@@ -179,7 +188,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // complete, fully-set-up example home, not the real (possibly nameless)
   // one underneath it. "Spring Street" matches the reference UI's own demo
   // home name from before this app had any real Home Assistant data.
-  const homeName = demoMode ? 'Spring Street' : (rawHomeName ?? 'My Home');
+  const homeName = demoMode ? 'Spring Street' : (rawHomeName ?? t('homes.defaultName'));
 
   const connectHome = useCallback(
     async (id: string) => {
@@ -215,11 +224,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         if (!isCurrent()) return;
         console.error(`Failed to connect to Willo Home ${id}:`, error);
-        notify('Could not reach Willo. Check your connection and try again.');
+        notify(t('errors.unreachable'));
         setSetupStage('needs-pairing');
       }
     },
-    [getAccessToken, notify]
+    [getAccessToken, notify, t]
   );
 
   /** Closes the current Home's connection and clears everything read from it. */
@@ -341,10 +350,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         .catch((error: unknown) => {
           console.error(`Failed to save unit system "${value}" for Home ${homeId}:`, error);
           setUnitSystemState(previous);
-          notify('Could not save your units. Try again.');
+          notify(t('errors.unitsNotSaved'));
         });
     },
-    [unitSystem, homeId, getAccessToken, notify]
+    [unitSystem, homeId, getAccessToken, notify, t]
   );
 
   const requestPairingCode = useCallback(async () => {
@@ -374,7 +383,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ claimCode }),
       });
-      if (!response.ok) throw new Error(response.status === 404 ? 'That code is invalid or has expired.' : 'Could not connect that device.');
+      if (!response.ok) throw new ClaimDeviceError(response.status === 404 ? 'invalid-code' : 'failed');
       // Same reasoning as `requestPairingCode` above — the device now has a
       // fresh secret waiting for it; a stale local `paired` read must not
       // race ahead of the tunnel's own real `onPaired`/`onConnectionChange`.

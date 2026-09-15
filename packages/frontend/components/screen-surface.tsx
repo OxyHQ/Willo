@@ -21,6 +21,7 @@ import { EmergencyHeader, EmergencyScreen } from '../screens/emergency-screen';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
 import { useResponsiveLayout } from '../layout/responsive-context';
 
 /**
@@ -57,6 +58,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const { setupStage, homeName, demoMode } = useHome();
+  const { t } = useTranslation();
   const router = useRouter();
   // Setup lives at its own `/onboarding` route (`app/onboarding.tsx`), not a
   // modal over whatever the user happened to be on — landing there straight
@@ -131,7 +133,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
     case 'home': header = <AskHeader onNavigate={onNavigate}/>; content = <HomeScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'favorites': header = <ClassicHeader title={homeName} home notifications onNavigate={onNavigate}/>; content = <FavoritesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'favorites-assistant': header = <ClassicHeader title={homeName} home onNavigate={onNavigate}/>; content = <FavoritesScreen withAssistant onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'devices': header = <ClassicHeader title="Devices" onNavigate={onNavigate}/>; content = <DevicesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'devices': header = <ClassicHeader title={t('nav.devices')} onNavigate={onNavigate}/>; content = <DevicesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'activity': header = <AskHeader onNavigate={onNavigate}/>; content = <ActivityScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'timeline':
       header = <TimelineHeader onNavigate={onNavigate}/>;
@@ -139,8 +141,8 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
       wrapColumn = column => <TimelineFilterProvider>{column}</TimelineFilterProvider>;
       break;
     case 'automations': header = <AskHeader onNavigate={onNavigate}/>; content = <AutomationsScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'routines': header = <ClassicHeader title="Automations" onNavigate={onNavigate}/>; content = <RoutinesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'settings': header = <ClassicHeader title="Settings" onNavigate={onNavigate}/>; content = <SettingsScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'routines': header = <ClassicHeader title={t('nav.automations')} onNavigate={onNavigate}/>; content = <RoutinesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
+    case 'settings': header = <ClassicHeader title={t('nav.settings')} onNavigate={onNavigate}/>; content = <SettingsScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'assistant': header = <AssistantHeader onNavigate={onNavigate}/>; content = <AssistantScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
     case 'composer':
       header = <ComposerHeader onNavigate={onNavigate}/>;

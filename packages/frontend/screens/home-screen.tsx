@@ -14,11 +14,18 @@ import { useHome } from '../state/home-context';
 import type { DeviceKey } from '../state/home-reducer';
 import { getCapability, type Device } from '../providers/types';
 import { SENSOR_CARD_LIMIT, selectRelevantSensors } from '../providers/sensor-readings';
-import { DEMO_SENSORS } from '../data/demo-sensors';
+import { demoSensors } from '../data/demo-sensors';
 import { formatTemperature } from '../providers/unit-system';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
+import type { ParseKeys } from 'i18next';
 
 type Category = 'Favorites' | 'All' | 'Cameras' | 'Lights' | 'Wifi' | 'Climate';
+/** Keyed by `Category` so selection logic never depends on the (translated) label. */
+const CATEGORY_LABEL_KEYS: Record<Category, ParseKeys> = {
+  Favorites: 'home.categories.favorites', All: 'home.categories.all', Cameras: 'home.categories.cameras',
+  Lights: 'home.categories.lights', Wifi: 'home.categories.wifi', Climate: 'home.categories.climate',
+};
 const categories: { name: Category; icon: IconName }[] = [
   { name: 'Favorites', icon: 'heart' }, { name: 'All', icon: 'grid' }, { name: 'Cameras', icon: 'camera' },
   { name: 'Lights', icon: 'light' }, { name: 'Wifi', icon: 'wifi' }, { name: 'Climate', icon: 'climate' },
@@ -37,6 +44,7 @@ type HomeCard = DashboardCard & { category: Category };
  */
 function LightTile({ light }: { light: Device }) {
   const { setSheet, sendCommand } = useHome();
+  const { t } = useTranslation();
   const onOff = getCapability(light, 'onOff');
   const brightnessCapability = getCapability(light, 'brightness');
   // Not every light HA reports is dimmable — a plain on/off light has no
@@ -47,18 +55,20 @@ function LightTile({ light }: { light: Device }) {
   const [percent, setPercent] = useOptimisticValue(dimmable ? (onOff?.on ? brightnessCapability.percent ?? 100 : 0) : 0);
   const on = dimmable ? percent > 0 : (onOff?.on ?? false);
   return <Tile grow={false} height={80} title={light.name}
-    subtitle={on ? (dimmable ? `On · ${percent}%` : 'On') : 'Off'}
+    subtitle={on ? (dimmable ? t('deviceState.onPercent', { percent }) : t('deviceState.on')) : t('deviceState.off')}
     icon="light" tone={on ? 'yellow' : 'neutral'} active={on}
     brightness={dimmable ? percent : undefined}
     onBrightnessChange={dimmable ? next => { setPercent(next); sendCommand(light.id, next === 0 ? { kind: 'setOnOff', on: false } : { kind: 'setBrightness', percent: next }); } : undefined}
     onPress={() => sendCommand(light.id, { kind: 'setOnOff', on: !onOff?.on })}
-    onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}/>;
+    onLongPress={() => setSheet({ kind: 'realDevice', title: light.name, device: light })}
+    accessibilityHint={dimmable ? t('tile.dragHint') : t('tile.holdHint')}/>;
 }
 /** Same reasoning as `LightTile` above — a real component, not a plain
  * function called during render, so `useOptimisticValue` (a hook) obeys
  * the rules of hooks instead of sitting behind a conditional early return. */
 function FanTile({ fan }: { fan: Device }) {
   const { setSheet, sendCommand } = useHome();
+  const { t } = useTranslation();
   const onOff = getCapability(fan, 'onOff');
   const speedCapability = getCapability(fan, 'fanSpeed');
   // Not every fan HA reports supports a variable speed — a plain on/off fan
@@ -68,16 +78,18 @@ function FanTile({ fan }: { fan: Device }) {
   const [percent, setPercent] = useOptimisticValue(adjustable ? (onOff?.on ? speedCapability.percent ?? 100 : 0) : 0);
   const on = adjustable ? percent > 0 : (onOff?.on ?? false);
   return <Tile grow={false} height={80} title={fan.name}
-    subtitle={on ? (adjustable ? `On · ${percent}%` : 'On') : 'Off'}
+    subtitle={on ? (adjustable ? t('deviceState.onPercent', { percent }) : t('deviceState.on')) : t('deviceState.off')}
     icon="fan" tone={on ? 'blue' : 'neutral'} active={on}
     brightness={adjustable ? percent : undefined}
     onBrightnessChange={adjustable ? next => { setPercent(next); sendCommand(fan.id, next === 0 ? { kind: 'setOnOff', on: false } : { kind: 'setFanSpeed', percent: next }); } : undefined}
     onPress={() => sendCommand(fan.id, { kind: 'setOnOff', on: !onOff?.on })}
-    onLongPress={() => setSheet({ kind: 'realDevice', title: fan.name, device: fan })}/>;
+    onLongPress={() => setSheet({ kind: 'realDevice', title: fan.name, device: fan })}
+    accessibilityHint={adjustable ? t('tile.dragHint') : t('tile.holdHint')}/>;
 }
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand, demoMode, unitSystem } = useHome();
   const { colors: themeColors } = useTheme();
+  const { t, i18n } = useTranslation();
   const { compact, columns, gutter } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
   // Crossfades the grid on category change instead of snapping straight to
@@ -101,7 +113,8 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   // animated copy then collapses/expands toward that real number instead of
   // a guessed fixed budget, which read as too wide for shorter names ("All")
   // and would've clipped a longer one that didn't fit.
-  const [labelWidths, setLabelWidths] = useState<Partial<Record<Category, number>>>({});
+  // Keyed `language:category`: the same chip's label is a different width in each language.
+  const [labelWidths, setLabelWidths] = useState<Partial<Record<`${string}:${Category}`, number>>>({});
   function selectCategory(next: Category) {
     if (next === selected) return;
     // `useNativeDriver` is left off throughout: it must animate on NATIVE
@@ -133,46 +146,46 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const lights = demoMode ? [] : devices.filter(d => d.domain === 'light');
   const cameras = demoMode ? [] : devices.filter(d => d.domain === 'camera');
   const fan = demoMode ? undefined : devices.find(d => d.domain === 'fan');
-  const sensors = demoMode ? DEMO_SENSORS : devices.filter(d => d.domain === 'sensor');
-  const noLights = <Tile grow={false} height={80} title="No lights found" subtitle="Check Home Assistant" icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const sensors = demoMode ? demoSensors(t) : devices.filter(d => d.domain === 'sensor');
+  const noLights = <Tile grow={false} height={80} title={t('home.noLights')} subtitle={t('home.checkHomeAssistant')} icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
-  const noCameras = <Tile grow={false} height={80} title="No cameras found" subtitle="Check Home Assistant" icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const noCameras = <Tile grow={false} height={80} title={t('home.noCameras')} subtitle={t('home.checkHomeAssistant')} icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const device = (id: DeviceKey, title: string, icon: IconName) => <Tile grow={false} height={80} title={title}
-    subtitle={id === 'garage' ? (state.devices[id] ? 'Open' : 'Closed') : state.devices[id] ? (id === 'speaker' ? `Playing · ${state.brightness[id] ?? 50}%` : 'On') : 'Off'}
+    subtitle={id === 'garage' ? (state.devices[id] ? t('deviceState.open') : t('deviceState.closed')) : state.devices[id] ? (id === 'speaker' ? t('deviceState.playingPercent', { percent: state.brightness[id] ?? 50 }) : t('deviceState.on')) : t('deviceState.off')}
     icon={icon} tone={state.devices[id] ? 'blue' : id === 'garage' ? 'blue' : 'neutral'}
     active={state.devices[id]}
     onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id })}/>;
-  const lock = <Tile grow={false} title="Front door lock" subtitle={state.locked ? 'Locked' : 'Unlocked'}
+  const lock = <Tile grow={false} title={t('demo.devices.frontDoorLock')} subtitle={state.locked ? t('deviceState.locked') : t('deviceState.unlocked')}
     icon={state.locked ? 'lock' : 'unlock'} tone={state.locked ? 'blue' : 'neutral'} active={state.locked}
     onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/>;
-  const weather = <Tile grow={false} title="San Francisco" subtitle={`${formatTemperature(56, '°F', unitSystem)} · Clear`} icon="sun" height={72}
-    onPress={() => message('Weather preview', 'The weather and location are static values from the supplied reference.')}/>;
-  const air = <Tile grow={false} title="Outdoor AQI" subtitle="32 · Good" icon="waves" height={72}
-    onPress={() => message('Air quality preview', 'AQI 32 is a static reference value, not a live reading.')}/>;
-  const noFan = <Tile grow={false} height={80} title="No fan found" subtitle="Check Home Assistant" icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const weather = <Tile grow={false} title={t('home.weatherCity')} subtitle={t('home.weatherSubtitle', { temperature: formatTemperature(56, '°F', unitSystem) })} icon="sun" height={72}
+    onPress={() => message(t('home.weatherTitle'), t('home.weatherDescription'))}/>;
+  const air = <Tile grow={false} title={t('home.airTitle')} subtitle={t('home.airSubtitle')} icon="waves" height={72}
+    onPress={() => message(t('home.airPreviewTitle'), t('home.airDescription'))}/>;
+  const noFan = <Tile grow={false} height={80} title={t('home.noFan')} subtitle={t('home.checkHomeAssistant')} icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const relevantSensors = selectRelevantSensors(sensors);
   const cardSensors = relevantSensors.slice(0, SENSOR_CARD_LIMIT);
   const hiddenSensorCount = relevantSensors.length - cardSensors.length;
   // 16px padding top and bottom plus a ~24px header, then ~28px (16px text
   // + 12px gap) per row: the empty state and the "+N more" row count as rows.
   const sensorRowCount = Math.max(cardSensors.length, 1) + (hiddenSensorCount > 0 ? 1 : 0);
-  const sensorList = <SensorReadingsCard title="Indoor readings" sensors={cardSensors} hiddenCount={hiddenSensorCount} onShowMore={() => onNavigate('devices')}/>;
+  const sensorList = <SensorReadingsCard title={t('home.indoorReadings')} sensors={cardSensors} hiddenCount={hiddenSensorCount} onShowMore={() => onNavigate('devices')}/>;
   const base = {
-    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard label="Living room" height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
+    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard label={t('demo.rooms.livingRoom')} height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
     lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
-    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="living-lamp" title="Lamp"/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
+    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="living-lamp" title={t('demo.devices.lamp')}/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
     thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
     weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: 72, content: weather },
     air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: 72, content: air },
-    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', 'Fan', 'fan') : (fan ? <FanTile fan={fan}/> : noFan) },
-    tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: 80, content: device('tv', 'TV', 'tv') },
-    garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: 80, content: device('garage', 'Garage', 'garage') },
-    speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', 'Speaker', 'speaker') },
+    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', t('demo.devices.fan'), 'fan') : (fan ? <FanTile fan={fan}/> : noFan) },
+    tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: 80, content: device('tv', t('demo.devices.tv'), 'tv') },
+    garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: 80, content: device('garage', t('demo.devices.garage'), 'garage') },
+    speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', t('demo.devices.speaker'), 'speaker') },
     garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: demoMode ? <CameraCard garden height={240}/> : (cameras[1] ? cameraTile(cameras[1], 240) : noCameras) },
-    plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', 'Plug', 'plug') },
+    plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', t('demo.devices.plug'), 'plug') },
     sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 56 + 28 * sensorRowCount, content: sensorList },
-    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title="Lamp"/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
-    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title="Office WiFi" subtitle="Settings preview" icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
+    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title={t('demo.devices.lamp')}/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
+    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title={t('home.officeWifi')} subtitle={t('home.settingsPreview')} icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
   // Demo-only tiles (no real Home Assistant equivalent — see `useHome()`'s
   // `demoMode` doc comment) only ever appear WITH the rest of the demo
@@ -211,11 +224,11 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           // Desktop always shows every label — nothing to animate, so it
           // stays the plain, un-animated render it always was.
           if (!compact) {
-            return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
+            return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(CATEGORY_LABEL_KEYS[category.name])} accessibilityState={{ selected: active }}
               onPress={() => selectCategory(category.name)}
               className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? themeColors.primary : themeColors.textSecondary}/>
-              <Label className={labelClassName}>{category.name}</Label>
+              <Label className={labelClassName}>{t(CATEGORY_LABEL_KEYS[category.name])}</Label>
             </Pressable>;
           }
           // Compact: only the SELECTED chip shows its label — the rest
@@ -227,8 +240,8 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           // after the other. Falls back to a small placeholder before the
           // real width is measured (first paint only).
           const widthAnim = chipWidths[category.name];
-          const naturalWidth = labelWidths[category.name] ?? 54;
-          return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={category.name} accessibilityState={{ selected: active }}
+          const naturalWidth = labelWidths[`${i18n.language}:${category.name}`] ?? 54;
+          return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(CATEGORY_LABEL_KEYS[category.name])} accessibilityState={{ selected: active }}
             onPress={() => selectCategory(category.name)} className="active:opacity-70">
             <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? themeColors.primary : themeColors.textSecondary}/>
@@ -237,7 +250,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
                 width: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, naturalWidth] }),
                 marginLeft: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 8] }),
               }}>
-                <Label numberOfLines={1} className={labelClassName}>{category.name}</Label>
+                <Label numberOfLines={1} className={labelClassName}>{t(CATEGORY_LABEL_KEYS[category.name])}</Label>
               </Animated.View>
             </Animated.View>
           </Pressable>;
@@ -254,13 +267,13 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           the only time it's rendered at `font-medium` — a heavier weight
           measures WIDER than the regular one this used to measure with, so
           it was undercounting the one width that's ever really on screen.
-          One `onLayout` per name, ever — the text never changes, so nothing
-          re-measures after the first paint. */}
-      {compact && categories.map(category => labelWidths[category.name] === undefined && (
-        <Label key={`measure-${category.name}`} numberOfLines={1}
-          onLayout={event => setLabelWidths(widths => ({ ...widths, [category.name]: event.nativeEvent.layout.width }))}
+          One `onLayout` per name per language — a label only changes when the
+          UI language does, and then its new width is measured once too. */}
+      {compact && categories.map(category => labelWidths[`${i18n.language}:${category.name}`] === undefined && (
+        <Label key={`measure-${i18n.language}-${category.name}`} numberOfLines={1}
+          onLayout={event => setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: event.nativeEvent.layout.width }))}
           className="text-[14px] font-medium" style={{ position: 'absolute', opacity: 0 }} pointerEvents="none">
-          {category.name}
+          {t(CATEGORY_LABEL_KEYS[category.name])}
         </Label>
       ))}
       <Animated.View style={{ opacity: gridOpacity }}>

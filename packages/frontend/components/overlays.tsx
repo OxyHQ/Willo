@@ -8,6 +8,7 @@ import { useHome, type Sheet } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
 import { colors, Icon, IconButton, Label, type IconName } from '@willo/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useTranslation } from 'react-i18next';
 
 // The tone (yellow, blue) and icon a generic on/off-and-adjustable device
 // renders with, chosen from its domain — the same domain the provider tags
@@ -22,6 +23,7 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 export function Overlays() {
   const { state, dispatch, sheet, setSheet, toast, devices, sendCommand, getAuthHeaders, setupStage, tunnelConnected } = useHome();
   const { colors: themeColors } = useTheme();
+  const { t } = useTranslation();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetRef>(null);
   // Retain content until Bloom finishes the dismissal animation.
@@ -48,7 +50,7 @@ export function Overlays() {
           <>
             <View className="mb-3 flex-row items-center">
               <Label className="min-w-0 flex-1 text-[21px] leading-[27px]">{shown.title}</Label>
-              <IconButton icon="close" label="Close details" onPress={() => setSheet(null)} size={20} />
+              <IconButton icon="close" label={t('sheets.close')} onPress={() => setSheet(null)} size={20} />
             </View>
             {shown.kind === 'menu' && (
               <>
@@ -78,7 +80,7 @@ export function Overlays() {
                   />
                 </View>
                 <Label className="mt-4 text-[12px] leading-[18px] text-muted-foreground">
-                  {shown.snapshotUrl !== undefined ? 'Live snapshot from Home Assistant.' : 'Static reference image. No live video or audio stream is connected.'}
+                  {shown.snapshotUrl !== undefined ? t('sheets.liveSnapshot') : t('sheets.staticImage')}
                 </Label>
               </>
             )}
@@ -88,15 +90,15 @@ export function Overlays() {
                   <Icon name="light" size={34} color={themeColors.secondary} filled />
                   <Label className="mt-3 text-[32px] text-secondary-text">{state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}%</Label>
                 </View>
-                <Slider accessibilityLabel={`${shown.title} brightness`} minimumValue={0} maximumValue={100} step={1}
+                <Slider accessibilityLabel={t('sheets.brightnessOf', { name: shown.title })} minimumValue={0} maximumValue={100} step={1}
                   value={state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}
                   onValueChange={value => dispatch({ type: 'SET_BRIGHTNESS', id: shown.id, value })}
                   minimumTrackTintColor={themeColors.secondary} maximumTrackTintColor={themeColors.backgroundSecondary} thumbTintColor={themeColors.secondary} />
                 <Pressable accessibilityRole="button" onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: shown.id })}
                   className="items-center rounded-full bg-primary-subtle py-4">
-                  <Label className="text-[14px] font-medium text-primary-text">Turn {state.devices[shown.id] ? 'off' : 'on'}</Label>
+                  <Label className="text-[14px] font-medium text-primary-text">{state.devices[shown.id] ? t('sheets.turnOff') : t('sheets.turnOn')}</Label>
                 </Pressable>
-                <Label className="text-center text-[11px] text-muted-foreground">Changes affect this demo session only.</Label>
+                <Label className="text-center text-[11px] text-muted-foreground">{t('sheets.demoSessionOnly')}</Label>
               </View>
             )}
             {shown.kind === 'realDevice' && liveDevice && (() => {
@@ -122,12 +124,12 @@ export function Overlays() {
                   <View className={`h-[140px] items-center justify-center rounded-[25px] ${on ? subtleBgClassName : 'bg-muted'}`}>
                     <Icon name={appearance.icon} size={34} color={on ? '#ffffff' : themeColors.textSecondary} filled={on} />
                     <Label className={`mt-3 text-[32px] ${on ? 'text-white' : 'text-foreground'}`}>
-                      {on ? (percent != null ? `${percent}%` : 'On') : 'Off'}
+                      {on ? (percent != null ? `${percent}%` : t('deviceState.on')) : t('deviceState.off')}
                     </Label>
                   </View>
                   {percent != null && (
                     <Slider
-                      accessibilityLabel={`${liveDevice.name} ${brightness ? 'brightness' : 'speed'}`}
+                      accessibilityLabel={brightness ? t('sheets.brightnessOf', { name: liveDevice.name }) : t('sheets.speedOf', { name: liveDevice.name })}
                       minimumValue={1}
                       maximumValue={100}
                       step={1}
@@ -146,7 +148,7 @@ export function Overlays() {
                       onPress={() => sendCommand(liveDevice.id, { kind: 'setOnOff', on: !on })}
                       className="items-center rounded-full bg-primary-subtle py-4"
                     >
-                      <Label className="text-[14px] font-medium text-primary-text">Turn {on ? 'off' : 'on'}</Label>
+                      <Label className="text-[14px] font-medium text-primary-text">{on ? t('sheets.turnOff') : t('sheets.turnOn')}</Label>
                     </Pressable>
                   )}
                 </View>
@@ -174,7 +176,7 @@ export function Overlays() {
         <View pointerEvents="none" accessibilityLiveRegion="polite"
           className="absolute left-0 right-0 top-0 z-40 items-center px-4 pt-3">
           <View className="items-center rounded-full bg-home-ink px-4 py-2">
-            <Label className="text-center text-[12px] leading-[16px] text-white">Home Assistant is reconnecting…</Label>
+            <Label className="text-center text-[12px] leading-[16px] text-white">{t('sheets.reconnecting')}</Label>
           </View>
         </View>
       )}
