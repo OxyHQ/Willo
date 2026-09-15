@@ -20,7 +20,7 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
-  const { state, dispatch, sheet, setSheet, toast, devices, sendCommand, getAuthHeaders } = useHome();
+  const { state, dispatch, sheet, setSheet, toast, devices, sendCommand, getAuthHeaders, setupStage, tunnelConnected } = useHome();
   const { colors: themeColors } = useTheme();
   const { width } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetRef>(null);
@@ -159,6 +159,22 @@ export function Overlays() {
           className="absolute z-40 items-center self-center rounded-[18px] bg-home-ink px-4 py-3"
           style={{ bottom: width < 600 ? 88 : 24, width: Math.min(560, Math.max(0, width - 40)) }}>
           <Label className="text-center text-[12px] leading-[18px] text-white">{toast}</Label>
+        </View>
+      )}
+      {/* A paired Home whose live tunnel just isn't up right now (a backend
+          restart, the Home Assistant integration itself restarting) is NOT
+          the "enter this code" onboarding case — `setupStage` stays `ready`
+          for exactly this reason (see `home-context.tsx`'s doc comment) — but
+          it's still worth surfacing, since devices are showing stale/last-
+          known state rather than live. A top banner rather than another
+          `toast` call: this can persist far longer than a toast's 2.7s, and
+          reappearing on every reconnect attempt would otherwise spam it. */}
+      {setupStage === 'ready' && !tunnelConnected && (
+        <View pointerEvents="none" accessibilityLiveRegion="polite"
+          className="absolute left-0 right-0 top-0 z-40 items-center px-4 pt-3">
+          <View className="items-center rounded-full bg-home-ink px-4 py-2">
+            <Label className="text-center text-[12px] leading-[16px] text-white">Home Assistant is reconnecting…</Label>
+          </View>
         </View>
       )}
     </>

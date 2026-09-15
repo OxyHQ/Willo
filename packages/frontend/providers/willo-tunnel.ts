@@ -17,6 +17,13 @@ type WilloTunnelCredentials = {
   onConnectionChange: (connected: boolean) => void;
   /** Same reasoning as `onConnectionChange` — the Home's own name, read off `GET .../devices/live`'s response. */
   onHomeName: (name: string | null) => void;
+  /**
+   * Fired once, from the initial `GET .../devices/live` response only — a
+   * Home either has completed pairing or it hasn't, and only an explicit
+   * `requestPairingCode()` call (never a mere reconnect) changes that, so
+   * there's no live socket event for it the way `onConnectionChange` has.
+   */
+  onPaired: (paired: boolean) => void;
 };
 
 function authHeaders(getAccessToken: () => string | null): Record<string, string> {
@@ -52,7 +59,7 @@ function withCameraUrls(devices: Device[], apiBaseUrl: string, homeId: string): 
  * left in this file at all.
  */
 export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): SmartHomeProvider {
-  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName } = credentials;
+  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName, onPaired } = credentials;
 
   let devices: Device[] = [];
   let socket: Socket | null = null;
@@ -64,10 +71,11 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       headers: authHeaders(getAccessToken),
     });
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
-    const live = (await liveResponse.json()) as { connected: boolean; devices: Device[]; homeName: string | null };
+    const live = (await liveResponse.json()) as { connected: boolean; paired: boolean; devices: Device[]; homeName: string | null };
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
-    onConnectionChange(live.connected);
     onHomeName(live.homeName);
+    onPaired(live.paired);
+    onConnectionChange(live.connected);
 
     socket = io(`${apiBaseUrl}/homes`, { auth: { token: getAccessToken() }, transports: ['websocket'] });
 

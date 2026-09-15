@@ -185,22 +185,44 @@ export async function applyDeviceUpdate(homeId: string, device: { id: string } &
 
 export interface LiveDevicesResult {
   connected: boolean;
+  /**
+   * True once this Home has EVER completed pairing (a tunnel secret exists
+   * right now), independent of `connected`. This is the distinction the
+   * frontend gates onboarding on: a Home that has never paired belongs on
+   * the "enter this code" screen, but one that merely dropped its live
+   * connection (a backend restart, a brief network blip, the integration
+   * itself restarting) does not — it should render normally, with
+   * `connected: false` degrading individual devices, not re-block the whole
+   * app behind a setup flow. Conflating the two previously meant any
+   * transient disconnect silently re-armed onboarding, which — because the
+   * onboarding screen auto-requests a pairing code on mount — actually
+   * INVALIDATED the still-good secret a live device was already using.
+   */
+  paired: boolean;
   devices: unknown[];
   /** The Home's own name (nullable — naming it is optional at creation). Returned here, not a separate call, since the frontend already fetches this endpoint once on every connect/reconnect and needs both. */
   homeName: string | null;
 }
 
-/** Any active member. `connected` is live (the registry), `devices` is the last snapshot the tunnel reported — never a synchronous round trip to the home itself. */
+/**
+ * Any active member. `connected` is live (the registry), `devices` is the
+ * last snapshot the tunnel reported — never a synchronous round trip to the
+ * home itself. `paired` is computed as `tunnelSecretHash IS NOT NULL` via a
+ * raw SQL boolean expression, never a `.select()` of the column itself —
+ * `authenticateTunnel` (this same file) remains the only place the hash's
+ * actual VALUE is ever read.
+ */
 export async function getLiveDevices(homeId: string, userId: string): Promise<LiveDevicesResult> {
   await assertActiveMember(homeId, userId);
   const [connectionRow] = await getDb()
-    .select(HOME_CONNECTION_DISPLAY_COLUMNS)
+    .select({ ...HOME_CONNECTION_DISPLAY_COLUMNS, hasSecret: sql<boolean>`${homeConnections.tunnelSecretHash} is not null` })
     .from(homeConnections)
     .where(eq(homeConnections.homeId, homeId))
     .limit(1);
   const [homeRow] = await getDb().select({ name: homes.name }).from(homes).where(eq(homes.id, homeId)).limit(1);
   return {
     connected: isHomeConnected(homeId),
+    paired: connectionRow?.hasSecret ?? false,
     devices: (connectionRow?.deviceSnapshot as unknown[] | null) ?? [],
     homeName: homeRow?.name ?? null,
   };

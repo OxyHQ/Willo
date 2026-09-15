@@ -123,6 +123,31 @@ test('getLiveDevices returns the Home’s own name, or null when it was never na
   }
 });
 
+test('getLiveDevices reports paired once a secret exists, independent of live connection state', async () => {
+  const owner = newUserId('owner');
+  const { home } = await createHome(owner);
+  try {
+    // No pairing attempted yet — never paired, and (in this unit test,
+    // with no real tunnel registry entry) not connected either.
+    const beforePairing = await getLiveDevices(home.id, owner);
+    assert.equal(beforePairing.paired, false);
+    assert.equal(beforePairing.connected, false);
+
+    await completePairing((await issuePairingCode(home.id, owner)).code);
+
+    // `paired` reflects the now-real secret even though nothing is
+    // actually live-connected here — this is the exact distinction the
+    // frontend gates onboarding on: a Home that has paired before must
+    // never be sent back to the "enter this code" screen just because its
+    // tunnel is briefly down (see `LiveDevicesResult`'s own doc comment).
+    const afterPairing = await getLiveDevices(home.id, owner);
+    assert.equal(afterPairing.paired, true);
+    assert.equal(afterPairing.connected, false);
+  } finally {
+    await getDb().delete(homes).where(eq(homes.id, home.id));
+  }
+});
+
 test('a non-member cannot read a Home’s live devices', async () => {
   const owner = newUserId('owner');
   const outsider = newUserId('outsider');

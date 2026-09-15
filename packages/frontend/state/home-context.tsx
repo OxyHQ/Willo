@@ -22,9 +22,18 @@ export type Sheet =
  * anything here even mounts).
  *  - `resolving`: waiting on Oxy auth to resolve and local storage to read.
  *  - `needs-home`: signed in, but this device has no `homeId` yet.
- *  - `needs-pairing`: a Home exists, but its tunnel has never connected —
- *    the "enter this code in your Home Assistant" screen.
- *  - `ready`: the tunnel is connected; the real app renders.
+ *  - `needs-pairing`: a Home exists but has NEVER completed pairing (no
+ *    tunnel secret exists yet) — the "enter this code in your Home
+ *    Assistant" screen.
+ *  - `ready`: this Home has completed pairing at least once. The real app
+ *    renders — INCLUDING while the live tunnel is briefly down (a backend
+ *    restart, the integration itself restarting): that's `tunnelConnected`
+ *    going false, not a reason to re-block behind onboarding. Earlier this
+ *    conflated "never paired" with "merely disconnected right now", and
+ *    because the onboarding screen auto-requests a fresh pairing code on
+ *    mount, a transient disconnect on an already-paired Home silently
+ *    invalidated its still-good secret — turning a self-healing blip into a
+ *    real lockout.
  */
 export type HomeSetupStage = 'resolving' | 'needs-home' | 'needs-pairing' | 'ready';
 
@@ -37,6 +46,8 @@ type HomeContextValue = {
   notify: (message: string) => void;
   devices: Device[];
   setupStage: HomeSetupStage;
+  /** The live tunnel connection, independent of `setupStage` — `ready` covers a paired Home whether or not it's currently connected, so a device tile that wants to show itself as offline/stale reads this instead. */
+  tunnelConnected: boolean;
   /** The Home's own name, or a generic fallback for one created without a name — always ready to display, never null. */
   homeName: string;
   createHome: (name?: string) => Promise<void>;
@@ -71,8 +82,15 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [rawHomeName, setRawHomeName] = useState<string | null>(null);
   const homeName = rawHomeName ?? 'My Home';
   const [setupStage, setSetupStage] = useState<HomeSetupStage>('resolving');
+  const [tunnelConnected, setTunnelConnected] = useState(false);
   const providerRef = useRef<SmartHomeProvider | null>(null);
   const hasInitialized = useRef(false);
+  // Written by `onPaired` before `onConnectionChange` ever reads it (see
+  // `willo-tunnel.ts`'s `connect()` — both fire synchronously off the same
+  // initial fetch, in that order) — a ref, not state, so the FIRST
+  // `onConnectionChange` call in that same synchronous sequence never reads
+  // a stale pre-render value the way `paired` state would.
+  const pairedRef = useRef(false);
 
   const connectHome = useCallback(
     async (id: string) => {
@@ -81,8 +99,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           apiBaseUrl: WILLO_API_URL ?? '',
           homeId: id,
           getAccessToken,
-          onConnectionChange: (connected) => setSetupStage(connected ? 'ready' : 'needs-pairing'),
+          onConnectionChange: (connected) => {
+            setTunnelConnected(connected);
+            setSetupStage(pairedRef.current || connected ? 'ready' : 'needs-pairing');
+          },
           onHomeName: setRawHomeName,
+          onPaired: (paired) => {
+            pairedRef.current = paired;
+          },
         });
         const initialDevices = await provider.connect();
         providerRef.current = provider;
@@ -140,6 +164,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) throw new Error('Could not generate a pairing code.');
+    // Issuing a code nulls any existing secret server-side (`issuePairingCode`) —
+    // reflect that immediately rather than waiting for a future reconnect's
+    // `onPaired` to catch up, so a mid-session re-pair (an owner replacing
+    // their Home Assistant Green) can't race a stale `true` here.
+    pairedRef.current = false;
     return (await response.json()) as { code: string; expiresAt: string };
   }, [homeId, getAccessToken]);
 
@@ -161,8 +190,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   }, [getAccessToken]);
 
   const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders }),
+    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, createHome, requestPairingCode, fetchEvents, sendCommand, getAuthHeaders]
   );
   return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
 }
