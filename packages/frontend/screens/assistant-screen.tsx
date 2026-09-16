@@ -19,11 +19,6 @@ const clips: Clip[] = [
 ];
 // Whether a question is about the demo's plants/rabbits, in either language — the only question this local demo has example results for.
 const PLANT_QUESTION = /plant|rabbit|garden|eat|planta|conejo|jard[ií]n|com(e|ido|ieron|i[oó])/i;
-export function AssistantHeader({ onNavigate }: ScreenProps) {
-  const { homeName } = useHome();
-  const { t } = useTranslation();
-  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('header.ask', { home: homeName })}</Label></View></ContentWidth>;
-}
 export function AssistantScreen({ onNavigate }: ScreenProps) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();

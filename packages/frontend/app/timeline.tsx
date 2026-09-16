@@ -1,14 +1,8 @@
-import { TimelineFilterProvider, TimelineHeader, TimelineScreen } from '../screens/activity-screen';
+import { TimelineScreen } from '../screens/activity-screen';
 import { ScreenSurface } from '../components/screen-surface';
 import { useScreenNavigate } from '../screens/use-screen-navigate';
 
 export default function Timeline() {
   const onNavigate = useScreenNavigate('timeline');
-  // The filter pill lives in the header and its state in the body, so the
-  // provider wraps both.
-  return <TimelineFilterProvider>
-    <ScreenSurface screen="timeline" onNavigate={onNavigate}
-      header={<TimelineHeader onNavigate={onNavigate}/>}
-      renderContent={() => <TimelineScreen onNavigate={onNavigate}/>}/>
-  </TimelineFilterProvider>;
+  return <ScreenSurface screen="timeline" renderContent={() => <TimelineScreen onNavigate={onNavigate}/>}/>;
 }

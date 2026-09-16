@@ -9,10 +9,6 @@ import { type ScreenProps } from '../data/screens';
 import { useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-export function EmergencyHeader({ onNavigate }: ScreenProps) {
-  const { t } = useTranslation();
-  return <ContentWidth maxWidth={1200}><View className="items-start pt-2"><IconButton icon="close" label={t('emergency.close')} onPress={() => onNavigate('home')}/></View></ContentWidth>;
-}
 export function EmergencyScreen({ onNavigate }: ScreenProps) {
   const { state } = useHome();
   const { dispatch, setSheet } = useHomeActions();

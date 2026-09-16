@@ -68,7 +68,10 @@ export function IconButton({ icon, onPress, label, color, className = '', size =
   // `color` falls back to the theme's own text color (not a static default
   // parameter) so an unset one still follows the active theme/mode.
   const { colors: themeColors } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
+  // Every icon button is a real control — the thermostat's steppers most of
+  // all, where a held finger repeats the press — so each one answers with the
+  // same tick a tile does.
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={() => { tap(); onPress(); }} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
 }
 export function Avatar({ onPress, source, label }: { onPress: () => void; source: ImageSource; label: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="h-9 w-9 cursor-pointer overflow-hidden rounded-full bg-muted active:opacity-70"><Image source={source} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>;

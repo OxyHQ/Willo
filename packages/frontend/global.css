@@ -24,6 +24,19 @@
    other `visible` axis computes to `auto`, turning body into a scroll
    container (so the inner body scrolls and the DOCUMENT does not). Any wanted
    horizontal clipping goes on a CHILD, never here. */
+/* The canvas the browser paints before the JS bundle runs. Bloom applies the
+   real theme (the `.dark` class and `--background`) at RUNTIME, so without
+   this the first paint is white in both modes and the app fades in over a
+   flash. `color-scheme` lets the browser match its own surfaces — scrollbars,
+   form controls — to the mode as well. The app's own `bg-background` covers
+   this the moment it mounts; it only has to be close. */
+html,
+body,
+#root {
+  color-scheme: light dark;
+  background-color: light-dark(#f0f4f9, #232830);
+}
+
 html,
 body {
   height: auto !important;

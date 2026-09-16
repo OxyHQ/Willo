@@ -1,8 +1,9 @@
+import { useMemo, useState } from 'react';
 import '../global.css';
 import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '../i18n';
 
 import { Slot, Stack, usePathname } from 'expo-router';
-import { Platform, StatusBar, View } from 'react-native';
+import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BloomProvider } from '@oxy.so/bloom/provider';
@@ -13,6 +14,11 @@ import { TabPagerProvider } from '../state/tab-pager';
 import { Overlays } from '../components/overlays';
 import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
+import { ScreenChrome, ScreenHeader } from '../components/screen-chrome';
+import { ShellHeaderProvider } from '../layout/page-layout';
+import { BREAKPOINTS } from '../layout/metrics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { asViewStyle } from '../layout/web-style';
 import { noTabScreens } from '../data/screens';
 import { screenForPathname } from '../data/screen-routes';
 import { useScreenNavigate } from '../screens/use-screen-navigate';
@@ -22,16 +28,24 @@ import * as WebBrowser from 'expo-web-browser';
 // Complete Home Assistant's existing web OAuth popup flow.
 WebBrowser.maybeCompleteAuthSession();
 
+// Sticky, not fixed: on web the containing block is the header+panel column,
+// which is as tall as the document (real document scroll — see `global.css`),
+// so `top: 0` keeps it in view for the whole scroll. Inert on native, where the
+// header above `shell:` is an ordinary sibling that stays put on its own.
+const webStickyStyle = Platform.OS === 'web' ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 }) : undefined;
+// The compact header hangs over the screen: sticky against the document on
+// web, absolute against the content box on native.
+const headerOverlayStyle = Platform.OS === 'web'
+  ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 })
+  : ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
+
 /**
- * The nav rail and bottom nav live HERE, outside the routed `<Slot/>`/
- * `<Stack/>`, so they mount ONCE for the life of the app instead of
- * remounting on every navigation the way they would inside a per-route
- * component — the same reason Bloom's `TabBar` highlight can spring smoothly
- * between tabs instead of popping to the new one, and the same shape as
- * OxyHQ/Mention's `_layout.tsx` (`SideBar`/`BottomBarHost` outside `<Slot/>`).
- * Only the CONTENT (header + `ContentPanel` + a screen's own body, in
- * `screen-surface.tsx`) is per-route and remounts, matching Mention's own
- * header too.
+ * The header, the nav rail and the bottom bar live HERE, outside the routed
+ * `<Slot/>`/`<Stack/>`, so they mount ONCE for the life of the app instead of
+ * remounting on every navigation. For the bar that is what lets Bloom's
+ * highlight spring between tabs instead of popping; for the HEADER it is what
+ * stops a swipe between tabs carrying a second copy of the same chrome across
+ * the screen with it. Only a screen's own body is per-route.
  *
  * Being signed out of Oxy is handled INSIDE `ScreenSurface` (swapping in
  * `SignInPrompt` for a screen's normal content, inside the same
@@ -47,8 +61,24 @@ function AppShell() {
   const onNavigate = useScreenNavigate(screen);
   const insets = useSafeAreaInsets();
   const { compact } = useResponsiveLayout();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const hasTabs = !noTabScreens.includes(screen);
+
+  // The one header the app has. Its height is measured here and published to
+  // the screens below, because where it sits changes what they owe it: above
+  // `shell:` it is a real sibling and takes its own space, below it is pinned
+  // over the panel and the screen reserves its height instead.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const headerOverlaysContent = compact;
+  const shellHeader = useMemo(
+    () => ({ height: headerHeight, overlaysContent: headerOverlaysContent }),
+    [headerHeight, headerOverlaysContent],
+  );
+  const header = (
+    <View style={{ paddingTop: insets.top }} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
+      <ScreenHeader screen={screen} onNavigate={onNavigate}/>
+    </View>
+  );
 
   // The shell holds NO vertical safe-area space of its own: the app draws
   // edge to edge, so a screen's content scrolls up behind the status bar and
@@ -65,16 +95,39 @@ function AppShell() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
-        <View testID="screen-surface" className={`relative min-h-0 min-w-0 flex-1 bg-background ${Platform.OS === 'web' ? '' : 'overflow-hidden'}`}>
-          {/* WEB: the window/document is the real scroller (the nav rail above
-              and each screen's header pin themselves with `position: sticky`
-              against it — see `navigation-rail.tsx`/`screen-surface.tsx`), so
-              the route must flow in document scroll. A `<Stack>`'s scene is
-              viewport-clamped and would break that, exactly as in
-              OxyHQ/Mention's `_layout.tsx`. NATIVE has no document-scroll
-              equivalent and keeps `<Stack>`. */}
-          {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
-        </View>
+        <ScreenChrome screen={screen} onNavigate={onNavigate}>
+          <View testID="screen-surface" className="relative min-h-0 min-w-0 flex-1 gap-2">
+            {/* Above `shell:` the header is a real sibling with the column's
+                own `gap-2` under it; below, it is pinned over the panel (the
+                absolute wrapper further down) and this branch renders nothing.
+                The sibling paints a background on WEB only: there it is
+                sticky over a scrolling document and content would otherwise
+                show straight through it. On native nothing scrolls under it,
+                and the shell's own canvas is already behind it. */}
+            {!headerOverlaysContent && <View className="web:bg-background" style={webStickyStyle}>{header}</View>}
+            <View className="relative min-h-0 min-w-0 flex-1">
+              <ShellHeaderProvider value={shellHeader}>
+                {/* WEB: the window/document is the real scroller (the nav rail
+                    and this header pin themselves with `position: sticky`
+                    against it), so the route must flow in document scroll — a
+                    `<Stack>`'s scene is viewport-clamped and would break that,
+                    exactly as in OxyHQ/Mention's `_layout.tsx`. NATIVE has no
+                    document-scroll equivalent and keeps `<Stack>`. */}
+                {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+              </ShellHeaderProvider>
+              {/* Pinned OVER the screen, with a fade under it, so content
+                  passes beneath rather than stopping at a line. A real
+                  gradient, not a CSS one: `backgroundImage` is web-only, and
+                  on Android the header had no background at all. */}
+              {headerOverlaysContent && (
+                <View pointerEvents="box-none" style={headerOverlayStyle}>
+                  <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} colors={[colors.background, colors.background, 'transparent']} locations={[0, 0.6, 1]}/>
+                  {header}
+                </View>
+              )}
+            </View>
+          </View>
+        </ScreenChrome>
       </View>
       {compact && hasTabs && <BottomNav screen={screen} />}
     </View>

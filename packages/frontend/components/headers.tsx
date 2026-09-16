@@ -17,53 +17,69 @@ export function useAccountMenu(onNavigate: Navigate) {
     { label: t('header.homeSettings'), onPress: () => { setSheet(null); onNavigate('settings'); } },
   ] });
 }
-export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
+/**
+ * The app's one header.
+ *
+ * There used to be several — an "Ask <home>" pill on some screens, a title
+ * bar on others, each with its own arrangement. One row now, with the same
+ * actions always in the same place, so a swipe moves the screens under a
+ * header that holds still.
+ *
+ * A screen with a title shows it, plainly, where the pill would be. Only a
+ * screen without one — the home — offers the pill, because there the header
+ * has something to invite rather than something to name.
+ *
+ * No background class: it always sits on a `bg-background` ancestor or over
+ * the shell's own gradient, so painting one here would either repaint or hide
+ * the fade.
+ */
+export function AppHeader({ title, onNavigate, actions }: { title?: string; onNavigate: Navigate; actions?: React.ReactNode }) {
   const account = useAccountMenu(onNavigate);
   const { homeName } = useHome();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
-  // No background class: this always sits directly on a `bg-background`
-  // ancestor (the desktop shell, or the mobile `bleedHeader` gradient
-  // wrapper — see `screen-surface.tsx`), so painting one here would either
-  // be a redundant repaint or (on mobile) opaquely cover the wrapper's
-  // gradient.
+  const ask = t('header.ask', { home: homeName });
+  // `card`/`background`: the same raised-surface-on-shell pairing as
+  // `ContentPanel` — the pill reads as a raised surface, not a plain page
+  // element. `card` is real white in light mode and a sensible raised dark
+  // tone in dark mode.
+  const pill = (
+    <Pressable accessibilityRole="button" accessibilityLabel={ask} onPress={() => onNavigate('assistant')}
+      className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70 shell:max-w-[520px]">
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-background"><Icon name="home" size={17} color={themeColors.textSecondary} filled/></View>
+      <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{ask}</Label>
+    </Pressable>
+  );
   return <View><ContentWidth>
-    {/* The bottom inset stops at `shell:`: above that width this header is a
+    {/* The bottom inset stops at `shell:`: above that width the header is a
         sibling above ContentPanel and the column holding both already supplies
-        the gap (`gap-2` in screen-surface.tsx), so its own would double it.
-        Below it the header floats over the screen and needs its own, symmetric
-        with the top. Classes, not a measured `compact` — this is styling, and
-        a measured one re-renders the subtree on every frame of a resize. */}
-    <View className="flex-row items-center gap-3 pb-2 pt-2 shell:pb-0 shell:pt-3">
-      {/* `card`/`background`: the same raised-surface-on-shell pairing as
-          `ContentPanel` (`screen-surface.tsx`) — a search pill reads the same
-          way as that panel, not as a plain page element. `card` is real white
-          in light mode (not `sidebar`, which is a slightly tinted off-white)
-          and resolves to a sensible raised dark tone in dark mode. */}
-      <Pressable accessibilityRole="button" accessibilityLabel={t('header.ask', { home: homeName })} onPress={() => onNavigate('assistant')}
-        className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70 shell:max-w-[520px]">
-        <View className="h-7 w-7 items-center justify-center rounded-full bg-background"><Icon name="home" size={17} color={themeColors.textSecondary} filled/></View>
-        <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{t('header.ask', { home: homeName })}</Label>
-      </Pressable>
+        the gap, so its own would double it. Below it the header floats over
+        the screen and needs its own, symmetric with the top. Classes, not a
+        measured `compact` — this is styling, and a measured one re-renders the
+        subtree on every frame of a resize. */}
+    {/* `min-h-[50px]` is the pill's own height, held by the row whether or not
+        there is a pill in it — otherwise a screen with a title had a shorter
+        header than one without, and the whole thing jumped as you moved
+        between them. */}
+    <View className="min-h-[50px] flex-row items-center gap-3 pb-2 pt-2 shell:pb-0 shell:pt-3">
+      {title === undefined
+        ? pill
+        : <Label accessibilityRole="header" numberOfLines={1} className="min-w-0 flex-1 text-[19px]">{title}</Label>}
       <View className="hidden flex-1 shell:flex"/>
+      {actions}
       <IconButton icon="plus" label={t('composer.title')} onPress={() => onNavigate('composer')} className="bg-card"/>
       <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
     </View>
   </ContentWidth></View>;
 }
-export function ClassicHeader({ title, onNavigate, home = false, filter, notifications = false }: { title: string; onNavigate: Navigate; home?: boolean; filter?: () => void; notifications?: boolean }) {
-  const account = useAccountMenu(onNavigate);
-  const { setSheet } = useHomeActions();
-  const { colors: themeColors } = useTheme();
+/** The assistant is a pushed, full-screen destination, so its header is a way back rather than a place. */
+export function AssistantHeader({ onNavigate }: { onNavigate: Navigate }) {
+  const { homeName } = useHome();
   const { t } = useTranslation();
-  // Same reasoning as `AskHeader`'s conditional paddingBottom: desktop's own
-  // gap comes from the column outside (screen-surface.tsx's `gap-2`); mobile
-  // has no such sibling gap and needs its own, symmetric with `pt-2`. No
-  // background class here either — same reasoning as `AskHeader`.
-  return <View><ContentWidth><View className="min-h-[52px] flex-row items-center gap-2 pb-2 pt-2 shell:pb-0">
-    {home ? <Pressable onPress={account} accessibilityRole="button" accessibilityLabel={t('header.chooseHome')} className="flex-1 flex-row items-center gap-2"><View className="h-7 w-7 items-center justify-center rounded-full bg-home-nav"><Icon name="home" size={16} color={themeColors.info}/></View><Label numberOfLines={1} className="min-w-0 flex-1 text-[16px]">{title}</Label><Icon name="down" size={13} color={themeColors.textSecondary}/></Pressable> : <Label className="flex-1 text-[19px]">{title}</Label>}
-    {filter && <Pressable accessibilityRole="button" onPress={filter} className="px-2 py-3"><Label className="text-[12px] text-info-text">{t('header.filter')}</Label></Pressable>}
-    {notifications && <IconButton size={19} icon="bell" label={t('settings.notifications')} onPress={() => setSheet({ kind: 'message', title: t('settings.notifications'), description: t('header.noNotifications') })}/>}
-    <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
-  </View></ContentWidth></View>;
+  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('header.ask', { home: homeName })}</Label></View></ContentWidth>;
+}
+/** Emergency is a modal-feeling screen: one way out, nothing else. */
+export function EmergencyHeader({ onNavigate }: { onNavigate: Navigate }) {
+  const { t } = useTranslation();
+  return <ContentWidth maxWidth={1200}><View className="items-start pt-2"><IconButton icon="close" label={t('emergency.close')} onPress={() => onNavigate('home')}/></View></ContentWidth>;
 }

@@ -7,18 +7,22 @@ import { useResponsiveLayout } from './use-responsive-layout';
 const IS_WEB = Platform.OS === 'web';
 
 /**
- * How much room the compact header's overlay takes at the top of the panel.
+ * Where the app shell's one header is, as the screens below it need to know.
  *
- * The header is pinned over the screen rather than scrolling with it
- * (`screen-surface.tsx`), so each screen's scroll reserves exactly its height
- * and content passes underneath. Zero on desktop, where the header is a real
- * sibling above the panel and takes its own space.
+ * The header is mounted once in the shell, never inside a screen. Above the
+ * `shell:` width it is a real sibling above the panel and takes its own space,
+ * so a screen needs no inset but the panel's overlays must start below it.
+ * Below that width it is pinned OVER the panel, so it is the other way round:
+ * the screen reserves its height and content passes underneath.
  */
-const PanelTopInsetContext = createContext(0);
-export function PanelTopInsetProvider({ value, children }: { value: number; children: React.ReactNode }) {
-  return <PanelTopInsetContext.Provider value={value}>{children}</PanelTopInsetContext.Provider>;
+type ShellHeader = { height: number; overlaysContent: boolean };
+const ShellHeaderContext = createContext<ShellHeader>({ height: 0, overlaysContent: false });
+export function ShellHeaderProvider({ value, children }: { value: ShellHeader; children: React.ReactNode }) {
+  return <ShellHeaderContext.Provider value={value}>{children}</ShellHeaderContext.Provider>;
 }
-
+export function useShellHeader(): ShellHeader {
+  return useContext(ShellHeaderContext);
+}
 /** The gutter as classes, so a resize restyles rather than re-renders. The numbers match `getLayoutMetrics`, which still reports them for the bleed margins that have to be real numbers. */
 const GUTTER_CLASS = 'px-4 shell:px-6';
 export function ContentWidth({ children, maxWidth = CONTENT_MAX, padding = true }: {
@@ -45,13 +49,18 @@ export function PageScroll({ children, maxWidth = CONTENT_MAX, bottom = 28, ...p
   // one. Web's page already clears it at the panel (`screen-surface.tsx`),
   // where the bar is fixed over a scrolling document.
   const bottomEdgeInset = useBottomEdgeInset();
-  const topInset = useContext(PanelTopInsetContext);
+  const header = useShellHeader();
+  const topInset = header.overlaysContent ? header.height : 0;
   if (IS_WEB) {
     return <View style={{ paddingTop: topInset, paddingBottom: bottom }}>
       <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
     </View>;
   }
-  return <ScrollView {...props} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled"
+  // No scroll indicator, here and in every horizontal scroller in the app —
+  // no Oxy app shows one. A bar sliding in over the right edge of a screen
+  // that is already all rounded surfaces reads as damage, and on a phone the
+  // finger is the position indicator.
+  return <ScrollView {...props} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled"
     className="min-h-0 flex-1" contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottom + bottomEdgeInset }}>
     <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
   </ScrollView>;
