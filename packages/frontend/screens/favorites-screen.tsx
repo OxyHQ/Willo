@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, View } from 'react-native';
 import { RealCameraCard } from '../components/camera-card';
 import { DeviceTile } from '../components/device-tile';
@@ -12,7 +12,6 @@ import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import type { ScreenProps } from '../data/screens';
 import { useDevices, useHome, useHomeActions } from '../state/home-context';
 import { tones, type Tone } from '@willo.sh/ui';
-import { formatTemperature } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
 // `id` is what the tap handler branches on — never the (translated) title.
 const categories = [

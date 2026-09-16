@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { useHome, useHomeActions } from '../state/home-context';
+import { useHomeActions, useUnitSystem } from '../state/home-context';
 import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { Icon } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
@@ -33,8 +33,8 @@ function darkenedTertiary(tertiary: string, fallback: string): string {
   return `rgb(${shade(channels.r)} ${shade(channels.g)} ${shade(channels.b)})`;
 }
 export function ThermostatCard({ device, height }: { device: Device; height: number }) {
-  const { unitSystem } = useHome();
   const { setSheet, sendCommand } = useHomeActions();
+  const unitSystem = useUnitSystem();
   // The thermostat reports in its own unit; only what's displayed follows the
   // Home's. Steps are whole degrees of the unit the device itself speaks.
   const climate = getCapability(device, 'climate');

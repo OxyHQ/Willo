@@ -34,7 +34,7 @@ html,
 body,
 #root {
   color-scheme: light dark;
-  background-color: light-dark(#f0f4f9, #232830);
+  background-color: light-dark(var(--color-willo-surface), #232830);
 }
 
 html,

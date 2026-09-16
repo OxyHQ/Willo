@@ -1,6 +1,6 @@
 import React from 'react';
 import { Platform } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage' | 'alia-mini' | 'add-bold' | 'remove-bold' | 'air-conditioner' | 'heater' | 'purifier' | 'humidifier' | 'air-fryer' | 'oven' | 'dishwasher' | 'washer' | 'dryer' | 'coffee' | 'doorbell' | 'leak' | 'smoke' | 'door' | 'window' | 'energy';
 /**
  * Icons whose own source art uses a DIFFERENT coordinate space than every

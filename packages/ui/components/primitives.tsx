@@ -1,45 +1,25 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, type ImageSource } from 'expo-image';
-import { Platform, Pressable, Text, View, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, Pressable, Text, View, type TextProps, type TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Icon, type IconName } from './icon';
 import { colors, tones, type Tone } from '../theme/tokens';
-import { useTheme } from '@oxy.so/bloom/theme';
-import * as Haptics from 'expo-haptics';
+import { useTheme, type ThemeColors } from '@oxy.so/bloom/theme';
+import { useHaptics } from '@oxy.so/bloom/hooks';
 const IS_WEB = Platform.OS === 'web';
 /** How often a drag is allowed to reach the real device. ~16 commands a second is smoother than the eye and a fraction of a 120 Hz drag's frames. */
 const COMMIT_INTERVAL_MS = 60;
 /**
- * The touch has to land within this much of an edge to mean 0 or 100. Mapping
- * the raw X straight onto 0-100 put full brightness on the tile's very last
- * pixel, so a drag that visually ran to the end still reported 98 or 99 and
- * the fill never closed.
+ * How close to an edge a touch has to land to mean exactly 0 or 100. Without
+ * it those two values live on the tile's first and last pixel, so a drag that
+ * visually ran to the end still reported 98 and the fill never closed. Only
+ * the ends are snapped — rescaling the whole track instead would make the fill
+ * lead the finger everywhere except dead centre.
  */
 const EDGE_SNAP_PX = 16;
 /** A tick every ten percent while dragging — enough to feel the slider move, not enough to buzz. */
 const HAPTIC_STEP_PERCENT = 10;
-/**
- * A tile is a physical control, so it answers like one: a tick when it toggles
- * and one every ten percent under a drag.
- *
- * `expo-haptics` straight, not through Bloom's `useHaptics`, which loads it as
- * an OPTIONAL peer and swallows both a failed load and a rejected
- * `impactAsync` — so a haptic that never fires is indistinguishable from a
- * device with them turned off. Here a real failure is logged once. No-ops on
- * web, which has no haptics API.
- */
-let hasWarnedAboutHaptics = false;
-function buzz(style: Haptics.ImpactFeedbackStyle) {
-  if (IS_WEB) return;
-  Haptics.impactAsync(style).catch((error: unknown) => {
-    if (hasWarnedAboutHaptics) return;
-    hasWarnedAboutHaptics = true;
-    console.error('Haptics are unavailable on this device:', error);
-  });
-}
-const tap = () => buzz(Haptics.ImpactFeedbackStyle.Light);
-const hold = () => buzz(Haptics.ImpactFeedbackStyle.Medium);
 /**
  * Web has a real mouse cursor to hide while dragging a slider (matching a
  * native OS slider's own feel); native has no cursor at all, so this is a
@@ -70,8 +50,11 @@ export function IconButton({ icon, onPress, label, color, className = '', size =
   const { colors: themeColors } = useTheme();
   // Every icon button is a real control — the thermostat's steppers most of
   // all, where a held finger repeats the press — so each one answers with the
-  // same tick a tile does.
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={() => { tap(); onPress(); }} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
+  // same tick a tile does. Through Bloom's hook, so one `haptics` prop on
+  // `BloomProvider` turns every haptic in the app off together, and so Android
+  // keeps its clamp to the light impact.
+  const haptic = useHaptics();
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={() => { haptic(); onPress(); }} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
 }
 export function Avatar({ onPress, source, label }: { onPress: () => void; source: ImageSource; label: string }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="h-9 w-9 cursor-pointer overflow-hidden rounded-full bg-muted active:opacity-70"><Image source={source} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>;
@@ -102,6 +85,41 @@ function TileFace({ icon, title, subtitle, color, labelClassName = '', labelStyl
  * counterpart, and brightness on an off device doesn't occur in practice.
  */
 const TONE_FILL_CLASS: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue: 'bg-info', yellow: 'bg-secondary', peach: 'bg-tertiary', green: 'bg-success' };
+/**
+ * A tone's icon colour, live from Bloom's theme rather than the static brand
+ * hex in `tones.ts`: the `bg-*-subtle`/`text-*-text` classes beside it already
+ * track the theme through CSS, and an inline prop would otherwise stay light
+ * in dark mode. A switch, not a table built per render — a screen holds dozens
+ * of tiles and each was allocating two six-key objects to read one key.
+ */
+function toneColor(tone: Tone, theme: ThemeColors): string | undefined {
+  switch (tone) {
+    case 'sky': return theme.primary;
+    case 'blue': return theme.info;
+    case 'yellow': return theme.secondary;
+    case 'peach': return theme.tertiary;
+    case 'green': return theme.success;
+    case 'neutral': return theme.textSecondary;
+    default: return undefined;
+  }
+}
+/**
+ * What text and icons sitting ON a tone's solid fill are coloured — Bloom's own
+ * "legible on this" tokens, no local computation. `yellow` keeps one deliberate
+ * exception in dark mode: `colors.onYellow`, a warm olive, over Bloom's
+ * `secondaryForeground`, for brand identity rather than legibility; both read
+ * fine. `neutral` has no fill in practice (an off device) so it has no answer.
+ */
+function onFillColor(tone: Tone, theme: ThemeColors, isDark: boolean): string | undefined {
+  switch (tone) {
+    case 'sky': return theme.primaryForeground;
+    case 'yellow': return isDark ? colors.onYellow : theme.secondaryForeground;
+    case 'peach': return theme.tertiaryForeground;
+    case 'blue': return theme.infoForeground;
+    case 'green': return theme.successForeground;
+    default: return undefined;
+  }
+}
 export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessCommit, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; /** Where the fill rests when no finger is on the tile. While one is, the drag drives it on the UI thread instead. */ brightness?: number; /** The drag's value, rate-limited to `COMMIT_INTERVAL_MS` and sent once more when the finger lifts. Passing it is what turns the tile into a slider. */ onBrightnessCommit?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
   const palette = tones[tone];
   const { colors: themeColors, isDark } = useTheme();
@@ -111,14 +129,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // involved) and would otherwise stay the static brand hex regardless of
   // mode. The rest of `tones` still uses `palette.color` as-is until they
   // migrate the same way.
-  const migratedToneColor: Partial<Record<Tone, string>> = { sky: themeColors.primary, blue: themeColors.info, yellow: themeColors.secondary, peach: themeColors.tertiary, green: themeColors.success, neutral: themeColors.textSecondary };
-  const iconColor = migratedToneColor[tone] ?? palette.color;
-  // The brightness fill's solid color, by tone — `bg-{tone}` pairs with
-  // each tone's own `bg-{tone}-subtle` (`tones.ts`) the same way
-  // `ThermostatCard`'s solid `bg-tertiary` buttons pair with its
-  // `bg-tertiary-subtle` card. Falls back to `bg-secondary`: `neutral` (an
-  // off device) has no real solid counterpart and brightness on an off
-  // device isn't a case that actually occurs in practice.
+  const iconColor = toneColor(tone, themeColors) ?? palette.color;
   const [pressed, setPressed] = useState(false);
   // The tile's own measured width: the pan turns a touch's X into a 0-100
   // percent with it, and the fill's clipped text overlay below is pinned to
@@ -146,6 +157,8 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   const lastCommitAt = useSharedValue(0);
   /** Which ten-percent step last buzzed, so the tick fires on crossing one rather than on every frame. */
   const lastHapticStep = useSharedValue(-1);
+  /** A tile is a physical control: a tick when it toggles, one every ten percent under a drag, a firmer one when a long press opens the sheet. */
+  const haptic = useHaptics();
   // NOT a `Pressable`: a `Pressable`'s own touch responder claims a touch
   // before any sibling gesture recognizer — `Gesture.Native()` and (on a
   // second attempt) core `PanResponder`, both wrapped around a `Pressable`,
@@ -183,7 +196,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       .minDuration(500)
       .onTouchesDown(() => setPressed(true))
       .onFinalize(() => setPressed(false))
-      .onStart(() => { longPressFired.value = true; hold(); onLongPress?.(); });
+      .onStart(() => { longPressFired.value = true; haptic('medium'); onLongPress?.(); });
     // Dragging anywhere on the tile jumps the fill straight to that point (an
     // absolute position, not a relative delta from where the drag started) —
     // that's what makes the tile itself read as a brightness slider.
@@ -191,7 +204,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
     // stays at the EXACT same pixel between down and up even for an intended
     // click — a couple of px of natural jitter is normal; 10px is the standard
     // click-vs-drag threshold and comfortably clears it. Left ENABLED even
-    // when `onBrightnessChange` is unset (a plain toggle-only tile) — this
+    // when `onBrightnessCommit` is unset (a plain toggle-only tile) — this
     // gesture is also this tile's only path to a tap now, not just its drag.
     const panGesture = Gesture.Pan()
       .minDistance(10)
@@ -215,8 +228,12 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       // ended on, so the device never settles on a stale one.
       .onUpdate(event => {
         if (width <= 0) return;
-        const travel = Math.max(1, width - EDGE_SNAP_PX * 2);
-        const percent = Math.round(Math.min(100, Math.max(0, ((event.x - EDGE_SNAP_PX) / travel) * 100)));
+        // 1:1 across the tile, so the fill sits under the finger — with the
+        // last few pixels at each end snapped to 0 and 100, which are
+        // otherwise a single pixel wide and unreachable.
+        const percent = event.x <= EDGE_SNAP_PX ? 0
+          : event.x >= width - EDGE_SNAP_PX ? 100
+          : Math.round((event.x / width) * 100);
         if (percent === lastReported.value) return;
         lastReported.value = percent;
         // The fill is this assignment and nothing else — no render, no bridge.
@@ -224,7 +241,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
         const step = Math.round(percent / HAPTIC_STEP_PERCENT);
         if (step !== lastHapticStep.value) {
           lastHapticStep.value = step;
-          runOnJS(tap)();
+          runOnJS(haptic)();
         }
         // The commit is what reaches the device — an HTTP call per light, or
         // in demo mode a write every open tab picks up — so it is the one
@@ -251,12 +268,12 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
         lastHapticStep.value = -1;
         dragPercent.value = -1;
         if (!success && !longPressFired.value) {
-          runOnJS(tap)();
+          runOnJS(haptic)();
           runOnJS(onPress)();
         }
       });
       return Gesture.Race(panGesture, longPressGesture);
-  }, [width, onPress, onLongPress, onBrightnessCommit, dragPercent, lastReported, lastCommitAt, lastHapticStep, longPressFired]);
+  }, [width, onPress, onLongPress, onBrightnessCommit, haptic, dragPercent, lastReported, lastCommitAt, lastHapticStep, longPressFired]);
   // Web-only (NativeWind no-ops `cursor-*` on native, where the concept
   // doesn't exist): a plain `View` + `GestureDetector`, unlike the
   // `Pressable` this used to be, gets none of the browser's own hover-cursor
@@ -272,22 +289,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
     () => ({ width: `${dragPercent.value >= 0 ? dragPercent.value : restingBrightness}%` }),
     [restingBrightness],
   );
-  // Bloom's own real per-tone "legible on solid fill" tokens — the M3-engine
-  // answer for text/icon color sitting directly on top of each tone's solid
-  // `bg-{tone}` fill above, straight from `useTheme()`, no local computation.
-  // `yellow` keeps ONE deliberate exception in dark mode: `colors.onYellow`
-  // (a warm olive) over Bloom's own `secondaryForeground`, for brand-identity
-  // reasons, not because Bloom's answer is wrong — both are legible there, this
-  // is a style preference. `neutral` has no fill/on-fill case in practice (an
-  // off device), so it is left with no on-fill treatment, same as today.
-  const onFillColor: Partial<Record<Tone, string>> = {
-    sky: themeColors.primaryForeground,
-    yellow: isDark ? colors.onYellow : themeColors.secondaryForeground,
-    peach: themeColors.tertiaryForeground,
-    blue: themeColors.infoForeground,
-    green: themeColors.successForeground,
-  };
-  const fillTextColor = onFillColor[tone];
+  const fillTextColor = onFillColor(tone, themeColors, isDark);
   const filledIcon = active === true && (icon === 'light' || icon === 'lock');
   return <GestureDetector gesture={composedGesture}>
     <View collapsable={false} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={accessibilityHint} className={`relative min-w-0 ${grow ? 'flex-1' : ''} justify-center overflow-hidden rounded-[24px] ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { PageScroll, ContentWidth } from '../layout/page-layout';
+import { PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { CameraCard } from '../components/camera-card';
 import { Icon } from '@willo.sh/ui';
-import { IconButton, Label } from '@willo.sh/ui';
+import { Label } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
 import { useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';

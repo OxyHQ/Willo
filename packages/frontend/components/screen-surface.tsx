@@ -4,13 +4,12 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
 import { useHome } from '../state/home-context';
-import { type Navigate, type ScreenId } from '../data/screens';
+import { type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { useShellHeader } from '../layout/page-layout';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { useResponsiveLayout } from '../layout/use-responsive-layout';
 
 /**
  * The panel a screen's body sits in. The header, the nav rail and the bottom
@@ -18,11 +17,9 @@ import { useResponsiveLayout } from '../layout/use-responsive-layout';
  * outside the routed `<Slot/>`/`<Stack/>`, so they stay put across navigation
  * instead of remounting, or sliding, with every screen.
  *
- * ContentPanel is unframed (full-bleed, no visible card) below this width. Above
- * it, the header sits as its own sibling above the panel; below it, there's no
- * panel to sit above yet, so it rejoins the screen's own body — as the first
- * thing inside that screen's own scroll, exactly like Mention keeps its header
- * inside the one real scroll on small screens, not floating outside it.
+ * ContentPanel is unframed (full-bleed, no visible card) below this width, and
+ * it is the same width the shell's header changes sides at: a sibling above the
+ * panel from here up, pinned over it below.
  *
  * This MUST be `BREAKPOINTS.rail` (not a separate literal) — it's also what
  * `compact` flips on in `app/_layout.tsx`, which swaps the nav rail for the
@@ -35,14 +32,14 @@ import { useResponsiveLayout } from '../layout/use-responsive-layout';
 const PANEL_FRAMED_FROM = BREAKPOINTS.rail;
 
 /**
- * The frame every screen shares — header, `ContentPanel`, and the sign-in and
- * setup gates — with the screen itself handed in by the route that owns it.
+ * The frame every screen shares: the `ContentPanel` it sits in, and the
+ * sign-in and setup gates in front of it. The screen itself is handed in by
+ * the route that owns it.
  *
  * It deliberately knows NO screen: it used to import all fifteen and switch on
  * an id, so opening any route pulled the whole app into memory at once (and on
  * Hermes that graph overflowed the JS stack before the first paint). Routes own
  * their screen the way Mention's do.
- *
  */
 export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
   screen: ScreenId;
@@ -124,7 +121,7 @@ export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
   }
 
   return (
-    <View className="min-h-0 min-w-0 flex-1 sm:pb-2 sm:pr-2">
+    <View className="min-h-0 min-w-0 flex-1 shell:pb-2 shell:pr-2">
       {/* `overlayTopOffset`: the panel's viewport-mode overlays are positioned
           from the true viewport top, on the assumption that the panel starts
           near it. The shell's header sits above it on desktop without moving

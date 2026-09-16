@@ -5,7 +5,7 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { getCapability, type Device } from '../providers/types';
 import { formatTemperature, type UnitSystem } from '../providers/unit-system';
-import { useHome } from '../state/home-context';
+import { useUnitSystem } from '../state/home-context';
 
 /**
  * A temperature follows the Home's unit system; `45%` hugs its number; every
@@ -34,8 +34,8 @@ export const estimateSensorCardHeight = (rowCount: number) => 56 + 28 * rowCount
  */
 export function SensorReadingsCard({ title, sensors, hiddenCount = 0, onShowMore, height }: { title: string; sensors: Device[]; hiddenCount?: number; onShowMore?: () => void; /** Set on the dashboard, where the card stands a whole number of tile rows tall; left off where it sizes to its own content (the Devices screen). */ height?: number }) {
   const { colors: themeColors } = useTheme();
-  const { unitSystem } = useHome();
   const { t } = useTranslation();
+  const unitSystem = useUnitSystem();
   return <View className="gap-3 rounded-[28px] bg-success-subtle p-4" style={height === undefined ? undefined : { height }}>
     <View className="flex-row items-center gap-2">
       <Icon name="thermometer" size={20} color={themeColors.success}/>

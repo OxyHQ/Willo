@@ -45,9 +45,12 @@ export function BottomNav({ screen }: { screen: ScreenId }) {
   return <View testID="bottom-navigation" style={webFixedStyle}>
     {/* `activeProgress` is the swipe's own position, written by the pager
         every frame on the UI thread, so the highlight travels with the finger
-        instead of jumping once the page lands. `selectTab` is the one path a
+        instead of jumping once the page lands. Bloom stops moving the capsule
+        from `activeIndex` once it is given, so WEB — which has no pager to
+        write it — must not pass it, or the highlight would stay put on every
+        navigation that didn't come from the bar. `selectTab` is the one path a
         tap and a swipe both take. */}
-    <TabBar activeIndex={activeIndex} activeProgress={progress} onIndexChange={selectTab} theme={tabBarTheme}>
+    <TabBar activeIndex={activeIndex} activeProgress={IS_WEB ? undefined : progress} onIndexChange={selectTab} theme={tabBarTheme}>
       {tabs.map((tab, index) => {
         const item: TabBarItem = {
           name: tab.screen,

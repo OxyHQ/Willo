@@ -57,9 +57,20 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
   // `BroadcastChannel` is a web API; on native there are no other tabs to tell.
   const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL_NAME);
 
-  /** Takes a set of capabilities from storage or another tab, keeping this tab's own (translated) names. */
+  /**
+   * Takes a set of capabilities from storage or another tab, keeping this tab's
+   * own (translated) names — and keeping the OBJECT of every device the message
+   * didn't actually change, so the screens' memoised tiles can still bail out.
+   * A message carries the whole house, and JSON never comes back
+   * reference-equal, so without the comparison a drag in one tab re-rendered
+   * every tile in the other.
+   */
   function adopt(stored: StoredCapabilities) {
-    devices = devices.map(device => stored[device.id] ? { ...device, capabilities: stored[device.id] } : device);
+    devices = devices.map(device => {
+      const capabilities = stored[device.id];
+      if (!capabilities || JSON.stringify(capabilities) === JSON.stringify(device.capabilities)) return device;
+      return { ...device, capabilities };
+    });
   }
 
   /**
@@ -73,8 +84,10 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
    * mid-session; it exists so a reload picks up where the last one left off.
    */
   function publish() {
-    const stored = capabilitiesById(devices);
-    channel?.postMessage(stored);
+    // Only built when there is somewhere to send it: on native there are no
+    // other tabs, and walking all fifty-odd devices to throw the result away
+    // ran on every command — sixteen times a second under a drag.
+    if (channel) channel.postMessage(capabilitiesById(devices));
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       saveTimer = null;

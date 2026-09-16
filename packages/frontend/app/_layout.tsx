@@ -16,7 +16,6 @@ import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
 import { ScreenChrome, ScreenHeader } from '../components/screen-chrome';
 import { ShellHeaderProvider } from '../layout/page-layout';
-import { BREAKPOINTS } from '../layout/metrics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { asViewStyle } from '../layout/web-style';
 import { noTabScreens } from '../data/screens';
@@ -33,11 +32,9 @@ WebBrowser.maybeCompleteAuthSession();
 // so `top: 0` keeps it in view for the whole scroll. Inert on native, where the
 // header above `shell:` is an ordinary sibling that stays put on its own.
 const webStickyStyle = Platform.OS === 'web' ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 }) : undefined;
-// The compact header hangs over the screen: sticky against the document on
-// web, absolute against the content box on native.
-const headerOverlayStyle = Platform.OS === 'web'
-  ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 })
-  : ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
+// The compact header hangs OVER the screen, which on web is the same sticky
+// position and on native an absolute one against the content box.
+const headerOverlayStyle = webStickyStyle ?? ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
 
 /**
  * The header, the nav rail and the bottom bar live HERE, outside the routed

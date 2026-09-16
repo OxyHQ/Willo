@@ -72,12 +72,23 @@ function NotificationsAction() {
 /**
  * The state a screen shares with its header, mounted around both.
  *
- * Only two screens have any, and each is mounted only while its own screen is
- * on — so a draft or a filter still resets when you leave, exactly as it did
- * when the provider belonged to the route.
+ * ALWAYS both providers, never a branch. This wrapper sits above the routed
+ * `<Stack/>` and therefore above the tabs navigator and its five live pages —
+ * so swapping the element type here (a fragment on one screen, a provider on
+ * the next) unmounts and rebuilds that entire subtree, losing every tab's
+ * scroll position and state on each trip to the composer. That is exactly the
+ * cost the pager exists to remove.
+ *
+ * `active` is what keeps the old behaviour that mattered: each provider
+ * clears itself on the render where its screen becomes current, so a draft or
+ * a filter still starts fresh every time you arrive. A `key` would do the same
+ * to the provider AND to everything under it, which is the very thing this
+ * avoids.
  */
 export function ScreenChrome({ screen, onNavigate, children }: { screen: ScreenId; onNavigate: Navigate; children: React.ReactNode }) {
-  if (screen === 'composer') return <ComposerProvider onNavigate={onNavigate}>{children}</ComposerProvider>;
-  if (screen === 'timeline') return <TimelineFilterProvider>{children}</TimelineFilterProvider>;
-  return <>{children}</>;
+  return (
+    <ComposerProvider active={screen === 'composer'} onNavigate={onNavigate}>
+      <TimelineFilterProvider active={screen === 'timeline'}>{children}</TimelineFilterProvider>
+    </ComposerProvider>
+  );
 }

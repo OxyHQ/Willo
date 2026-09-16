@@ -1,10 +1,8 @@
-import React, { createContext, useContext, useState } from 'react';
+import React from 'react';
 import { KeyboardAvoidingView, Pressable, TextInput, View } from 'react-native';
-import { PageScroll, CardStrip, ContentWidth } from '../layout/page-layout';
+import { PageScroll, CardStrip } from '../layout/page-layout';
 import { Icon } from '@willo.sh/ui';
-import { IconButton, Label } from '@willo.sh/ui';
-import { type ScreenProps } from '../data/screens';
-import { useHomeActions } from '../state/home-context';
+import { Label } from '@willo.sh/ui';
 import { useComposer } from './composer-draft';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +13,7 @@ const suggestions: { titleKey: ParseKeys; textKey: ParseKeys }[] = [
   { titleKey: 'composer.suggestions.playMusicTitle', textKey: 'composer.suggestions.playMusicText' },
 ];
 
-export function ComposerScreen({ onNavigate: _onNavigate }: ScreenProps) {
+export function ComposerScreen() {
   const { text, setText, review, setReview, valid } = useComposer();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();

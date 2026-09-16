@@ -5,7 +5,6 @@ import { PageScroll, ContentWidth } from '../layout/page-layout';
 import { Icon } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
 import { assets } from '../data/assets';
-import { type ScreenProps } from '../data/screens';
 import { useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +18,7 @@ const clips: Clip[] = [
 ];
 // Whether a question is about the demo's plants/rabbits, in either language — the only question this local demo has example results for.
 const PLANT_QUESTION = /plant|rabbit|garden|eat|planta|conejo|jard[ií]n|com(e|ido|ieron|i[oó])/i;
-export function AssistantScreen({ onNavigate }: ScreenProps) {
+export function AssistantScreen() {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();

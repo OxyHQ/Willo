@@ -6,7 +6,7 @@ import { Icon, SectionTitle, type IconName } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
 import { assets } from '../data/assets';
 import { type ScreenProps } from '../data/screens';
-import { useHome, useHomeActions } from '../state/home-context';
+import { useHome, useHomeActions, useUnitSystem } from '../state/home-context';
 import type { UnitSystem } from '../providers/unit-system';
 import type { ParseKeys } from 'i18next';
 import { useTheme } from '@oxy.so/bloom/theme';
@@ -16,7 +16,8 @@ import { useTranslation } from 'react-i18next';
 // is a key nobody notices going stale.
 const UNIT_SYSTEM_LABEL_KEYS: Record<UnitSystem, ParseKeys> = { metric: 'units.metric', imperial: 'units.imperial' };
 export function SettingsScreen({ onNavigate }: ScreenProps) {
-  const { setupStage, homeName, demoMode, unitSystem, homes, homeId } = useHome();
+  const { setupStage, homeName, demoMode, homes, homeId } = useHome();
+  const unitSystem = useUnitSystem();
   const { setSheet, setDemoMode, setUnitSystem, switchHome, startNewHome } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();

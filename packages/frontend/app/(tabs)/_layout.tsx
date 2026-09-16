@@ -61,7 +61,7 @@ function NativeTabsLayout() {
   // so it cannot reach `navigation` any other way — and it has a real
   // unregister to run when this layout goes away.
   useEffect(() => {
-    registerCommitter({ commit });
+    registerCommitter(commit);
     return () => registerCommitter(null);
   }, [commit, registerCommitter]);
 

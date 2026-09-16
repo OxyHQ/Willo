@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
+import PagerView, { type PageScrollStateChangedNativeEvent, type PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
 import Animated, { useEvent, useHandler, type SharedValue } from 'react-native-reanimated';
 import { Screen } from 'react-native-screens';
 import { routeNameForTab, tabs } from './navigation-items';
@@ -56,7 +56,8 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
 }) {
   const pager = useRef<PagerView>(null);
   const routeByName = useMemo(() => new Map(state.routes.map(route => [route.name, route])), [state.routes]);
-  const focusedPage = Math.max(0, tabs.findIndex(tab => routeByName.get(routeNameForTab(tab.screen))?.key === state.routes[state.index]?.key));
+  const focusedName = state.routes[state.index]?.name;
+  const focusedPage = Math.max(0, tabs.findIndex(tab => routeNameForTab(tab.screen) === focusedName));
   // Which pages have ever been shown. A page is only built once the reader has
   // actually been there or is one swipe away from it, so the first paint is
   // one screen rather than five.
@@ -73,6 +74,15 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
   // event doesn't have to wait for a render to know whether it moved.
   const currentPage = useRef(focusedPage);
 
+  // A finger on the pager admits the neighbours before they are needed, so a
+  // swipe never drags a page that is still `null`. Waiting for the page to
+  // land would fill it in only after the finger let go.
+  const onPageScrollStateChanged = useCallback((event: PageScrollStateChangedNativeEvent) => {
+    if (event.nativeEvent.pageScrollState !== 'dragging') return;
+    const page = currentPage.current;
+    admit([page - 1, page + 1].filter(index => index >= 0 && index < tabs.length));
+  }, [admit]);
+
   const onPageScroll = usePageScrollHandler(event => {
     'worklet';
     progress.value = event.position + event.offset;
@@ -86,12 +96,18 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
     onCommit(next);
   }, [admit, onCommit]);
 
-  // A tap on the bar moves the route, and the pager follows it here rather
-  // than the other way round, so tap and swipe end in the same place.
-  if (focusedPage !== currentPage.current) {
+  // A tap on the bar moves the route, and the pager follows it — in an effect,
+  // because telling a native view to change page is not something a render may
+  // do, and a render React throws away would issue it anyway. Without
+  // animation: the animated form scrolls THROUGH every page in between, and
+  // the pages it crosses are frozen, so a tap two tabs away is a long slide
+  // over blank screens.
+  useEffect(() => {
+    if (focusedPage === currentPage.current) return;
     currentPage.current = focusedPage;
-    pager.current?.setPage(focusedPage);
-  }
+    admit([focusedPage, focusedPage - 1, focusedPage + 1].filter(index => index >= 0 && index < tabs.length));
+    pager.current?.setPageWithoutAnimation(focusedPage);
+  }, [focusedPage, admit]);
 
   return (
     <AnimatedPagerView ref={pager} style={styles.pager} initialPage={focusedPage}
@@ -101,7 +117,7 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
       // No rubber band at the ends: an overdrag off the first or last tab is a
       // horizontal gesture the pager eats and then does nothing with.
       overdrag={false}
-      onPageScroll={onPageScroll} onPageSelected={onPageSelected}>
+      onPageScroll={onPageScroll} onPageSelected={onPageSelected} onPageScrollStateChanged={onPageScrollStateChanged}>
       {tabs.map((tab, index) => {
         const route = routeByName.get(routeNameForTab(tab.screen));
         const descriptor = route ? descriptors[route.key] : undefined;

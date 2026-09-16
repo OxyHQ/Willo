@@ -16,10 +16,7 @@ export const SCREENS = [
 ] as const;
 export type ScreenId = typeof SCREENS[number]['id'];
 export type Navigate = (screen: ScreenId | 'gallery') => void;
-// `header` is only set below ContentPanel's framed breakpoint, when
-// ScreenSurface asks a screen to render its own header inline (one shared
-// scroll) instead of the screen surface rendering it as a separate sibling
-// above the panel.
+/** A screen only ever needs to move somewhere else; its header, its panel and its insets are the shell's. */
 export type ScreenProps = { onNavigate: Navigate };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency', 'onboarding'];

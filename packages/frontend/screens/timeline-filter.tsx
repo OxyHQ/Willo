@@ -19,14 +19,21 @@ const TimelineFilterContext = createContext<TimelineFilterValue | null>(null);
 
 export function useTimelineFilter(): TimelineFilterValue {
   const value = useContext(TimelineFilterContext);
-  if (!value) throw new Error('TimelineHeader/TimelineScreen must be rendered inside TimelineFilterProvider.');
+  if (!value) throw new Error('The timeline filter is only available inside TimelineFilterProvider.');
   return value;
 }
 
-export function TimelineFilterProvider({ children }: { children: React.ReactNode }) {
+export function TimelineFilterProvider({ active, children }: { active: boolean; children: React.ReactNode }) {
   const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   const [filter, setFilter] = useState<HomeEventType | null>(null);
+  // The timeline opens unfiltered every time. Same shape as the composer's
+  // reset, and for the same reason — see `screen-chrome.tsx`.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setFilter(null);
+  }
   const choices = [{ value: null, label: t('activity.filters.allEvents') }, ...HOME_EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) }))];
   const openFilter = () => setSheet({ kind: 'menu', title: t('activity.filters.filterActivity'), options: choices.map(choice => ({ label: choice.label, selected: filter === choice.value, onPress: () => { setFilter(choice.value); setSheet(null); } })) });
   return <TimelineFilterContext.Provider value={{ filter, openFilter }}>{children}</TimelineFilterContext.Provider>;

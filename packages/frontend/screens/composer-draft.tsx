@@ -22,11 +22,24 @@ export function useComposer(): ComposerValue {
   if (!value) throw new Error('ComposerHeader/ComposerScreen must be rendered inside ComposerProvider.');
   return value;
 }
-export function ComposerProvider({ onNavigate, children }: { onNavigate: Navigate; children: React.ReactNode }) {
+export function ComposerProvider({ active, onNavigate, children }: { active: boolean; onNavigate: Navigate; children: React.ReactNode }) {
   const { dispatch, notify } = useHomeActions();
   const { t } = useTranslation();
   const [text, setText] = useState(() => t('composer.suggestions.saveEnergyText'));
   const [review, setReview] = useState(false);
+  // The composer starts empty-handed every time it is opened. The provider
+  // itself stays mounted (it sits above the tabs navigator — see
+  // `screen-chrome.tsx`), so the reset is a plain comparison during render,
+  // React's own answer to adjusting state when a prop changes, rather than an
+  // Effect or a `key` that would rebuild everything below.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) {
+      setText(t('composer.suggestions.saveEnergyText'));
+      setReview(false);
+    }
+  }
   const valid = text.trim().length >= 8;
   function save() {
     if (!valid) return;

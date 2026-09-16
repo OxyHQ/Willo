@@ -6,7 +6,7 @@ import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
 import { assets } from '../data/assets';
 import { type Sheet, useDevices, useHome, useHomeActions, useOverlayState } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
-import { colors, Icon, IconButton, Label, type IconName } from '@willo.sh/ui';
+import { Icon, IconButton, Label, type IconName } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 
@@ -21,8 +21,8 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
-  const { state, setupStage, tunnelConnected } = useHome();
-  const { dispatch, setSheet, sendCommand, getAuthHeaders } = useHomeActions();
+  const { setupStage, tunnelConnected } = useHome();
+  const { setSheet, sendCommand, getAuthHeaders } = useHomeActions();
   const devices = useDevices();
   const { sheet, toast } = useOverlayState();
   const { colors: themeColors } = useTheme();

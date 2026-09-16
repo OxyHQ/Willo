@@ -59,12 +59,6 @@ type HomeData = {
    * needs to know about it).
    */
   demoMode: boolean;
-  /**
-   * The Home's shared display units, stored on the Home server-side so every
-   * member sees the same thing. Until a Home has loaded (and in demo mode with
-   * no Home at all) it's this device's own regional default.
-   */
-  unitSystem: UnitSystem;
   /** Every Home the signed-in person actively belongs to. Empty until `GET /homes/me` answers (or if it never does). */
   homes: HomeSummary[];
   /** The Home this device is currently showing, or `null` while none is selected (first launch, or mid "create a new home"). */
@@ -131,6 +125,17 @@ export class ClaimDeviceError extends Error {
 const HomeContext = createContext<HomeData | null>(null);
 const HomeActionsContext = createContext<HomeActions | null>(null);
 const DevicesContext = createContext<Device[] | null>(null);
+/**
+ * The Home's display units, alone in their own context because of WHO reads
+ * them: every tile, every reading, the thermostat — dozens of components per
+ * screen. Left in `HomeData` they would re-render all of those whenever the
+ * tunnel reconnected, a sheet opened somewhere else or a pairing code arrived.
+ * They change roughly never.
+ */
+const UnitSystemContext = createContext<UnitSystem | null>(null);
+// Stored on the Home server-side so every member sees the same thing. Until a
+// Home has loaded (and in demo mode, where there is none) it is this device's
+// own regional default.
 const OverlayContext = createContext<OverlayState | null>(null);
 
 export function HomeProvider({ children }: { children: React.ReactNode }) {
@@ -457,17 +462,19 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     [dispatch, setSheet, notify, setDemoMode, setUnitSystem, switchHome, startNewHome, createHome, requestPairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders]
   );
   const data = useMemo(
-    () => ({ state, setupStage, tunnelConnected, homeName, demoMode, unitSystem, homes, homeId, pairingCode }),
-    [state, setupStage, tunnelConnected, homeName, demoMode, unitSystem, homes, homeId, pairingCode]
+    () => ({ state, setupStage, tunnelConnected, homeName, demoMode, homes, homeId, pairingCode }),
+    [state, setupStage, tunnelConnected, homeName, demoMode, homes, homeId, pairingCode]
   );
   const overlay = useMemo(() => ({ sheet, toast }), [sheet, toast]);
   return (
     <HomeActionsContext.Provider value={actions}>
+      <UnitSystemContext.Provider value={unitSystem}>
       <HomeContext.Provider value={data}>
         <DevicesContext.Provider value={devices}>
           <OverlayContext.Provider value={overlay}>{children}</OverlayContext.Provider>
         </DevicesContext.Provider>
       </HomeContext.Provider>
+      </UnitSystemContext.Provider>
     </HomeActionsContext.Provider>
   );
 }
@@ -479,9 +486,21 @@ export function useHome(): HomeData {
   return value;
 }
 
-/** Everything you can DO to the Home. Stable for the life of the app, so reading it never costs a render. */
+/**
+ * Everything you can DO to the Home. Nearly all of it is stable for the life
+ * of the app; the handful that close over the current Home or the unit system
+ * re-identify when those change, which is rare enough that reading this is
+ * effectively free.
+ */
 export function useHomeActions(): HomeActions {
   const value = useContext(HomeActionsContext);
+  if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
+  return value;
+}
+
+/** The Home's display units. Its own hook because the components that read it are the most numerous in the app — see `UnitSystemContext`. */
+export function useUnitSystem(): UnitSystem {
+  const value = useContext(UnitSystemContext);
   if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
   return value;
 }

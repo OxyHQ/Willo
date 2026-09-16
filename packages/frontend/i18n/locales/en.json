@@ -19,7 +19,6 @@
   "header": {
     "ask": "Ask {{home}}",
     "homeSettings": "Home settings",
-    "chooseHome": "Choose home",
     "filter": "Filter",
     "noNotifications": "This UI demo has no live notifications."
   },

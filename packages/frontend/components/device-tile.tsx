@@ -4,7 +4,7 @@ import { Tile, useOptimisticValue, type IconName, type Tone } from '@willo.sh/ui
 import { type Device } from '../providers/types';
 import { describeDevice, draggable, isActive, primaryCommand } from '../providers/device-state';
 import { formatTemperature } from '../providers/unit-system';
-import { useHome, useHomeActions } from '../state/home-context';
+import { useHomeActions, useUnitSystem } from '../state/home-context';
 
 /**
  * How a device looks, by the domain its provider tagged it with — never
@@ -54,16 +54,22 @@ const FALLBACK_APPEARANCE = { icon: 'devices', tone: 'blue' } as const satisfies
  * memo actually bail out.
  */
 export const DeviceTile = React.memo(function DeviceTile({ device, height, grow = true }: { device: Device; height?: number; grow?: boolean }) {
-  const { unitSystem } = useHome();
   const { setSheet, sendCommand } = useHomeActions();
+  const unitSystem = useUnitSystem();
   const { t } = useTranslation();
-  const drag = draggable(device);
+  // Both of these build a fresh object with a fresh arrow every call, and both
+  // feed the handlers below — so without memoising them on the device, every
+  // handler is new on every render and `Tile`'s gesture memo never bails out,
+  // which means two recognisers rebuilt and re-sent to native each time. The
+  // tunnel keeps a device's identity when nothing about it changed, so these
+  // only recompute when the device really did.
+  const drag = useMemo(() => draggable(device), [device]);
+  const command = useMemo(() => primaryCommand(device), [device]);
   // The dragged percent leads the round trip to the device, and the subtitle
   // is built from that same live value, so text and fill move together.
   const [percent, setPercent] = useOptimisticValue(drag?.percent ?? 0);
   const appearance = DOMAIN_APPEARANCE[device.domain] ?? FALLBACK_APPEARANCE;
   const active = isActive(device);
-  const command = primaryCommand(device);
   const dragCommand = drag?.command;
   const handlePress = useCallback(() => { if (command) sendCommand(device.id, command); }, [command, device.id, sendCommand]);
   const handleLongPress = useCallback(() => setSheet({ kind: 'realDevice', title: device.name, device }), [device, setSheet]);
@@ -81,7 +87,7 @@ export const DeviceTile = React.memo(function DeviceTile({ device, height, grow 
     /* The fill only paints while the device is actually on: an idle tile has
        no tone of its own, so a fill there would show up in the fallback
        colour (a paused speaker reading 45% looked like a lit light). Dragging
-       still works — `onBrightnessChange` is what enables the gesture. */
+       still works — `onBrightnessCommit` is what enables the gesture. */
     brightness={drag && active ? percent : undefined}
     onBrightnessCommit={handleBrightnessCommit}
     onPress={handlePress}

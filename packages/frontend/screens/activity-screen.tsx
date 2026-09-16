@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { PageColumns, PageScroll } from '../layout/page-layout';
 import { EventRow, dayBucket, daysAgo } from '../components/event-row';
@@ -90,7 +90,7 @@ export function ActivityScreen({ onNavigate }: ScreenProps) {
   </View></PageColumns></PageScroll></View>;
 }
 
-export function TimelineScreen({ onNavigate: _onNavigate }: ScreenProps) {
+export function TimelineScreen() {
   const { filter, openFilter } = useTimelineFilter();
   const { events: allEvents, loading } = useActivityEvents();
   const { t, i18n } = useTranslation();
