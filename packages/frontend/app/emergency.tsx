@@ -1,5 +1,10 @@
-import { RoutedScreen } from '../screens/RoutedScreen';
+import { EmergencyHeader, EmergencyScreen } from '../screens/emergency-screen';
+import { ScreenSurface } from '../components/screen-surface';
+import { useScreenNavigate } from '../screens/use-screen-navigate';
 
 export default function Emergency() {
-  return <RoutedScreen screen="emergency" />;
+  const onNavigate = useScreenNavigate('emergency');
+  return <ScreenSurface screen="emergency" onNavigate={onNavigate}
+    header={<EmergencyHeader onNavigate={onNavigate}/>}
+    renderContent={header => <EmergencyScreen onNavigate={onNavigate} header={header}/>}/>;
 }

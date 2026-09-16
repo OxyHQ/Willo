@@ -13,7 +13,7 @@ import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
 import { noTabScreens } from '../data/screens';
 import { screenForPathname } from '../data/screen-routes';
-import { useScreenNavigate } from '../screens/RoutedScreen';
+import { useScreenNavigate } from '../screens/use-screen-navigate';
 import { ResponsiveProvider, useResponsiveLayout } from '../layout/responsive-context';
 import * as WebBrowser from 'expo-web-browser';
 

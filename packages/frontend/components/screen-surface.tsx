@@ -3,25 +3,13 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
-import { HomeSetupFlow, HomeSetupPrompt } from './home-setup';
 import { useHome } from '../state/home-context';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
-import { AskHeader, ClassicHeader } from './headers';
-import { HomeScreen } from '../screens/home-screen';
-import { FavoritesScreen } from '../screens/favorites-screen';
-import { DevicesScreen } from '../screens/devices-screen';
-import { AutomationsScreen, RoutinesScreen } from '../screens/automations-screen';
-import { ActivityScreen, TimelineFilterProvider, TimelineHeader, TimelineScreen } from '../screens/activity-screen';
-import { SettingsScreen } from '../screens/settings-screen';
-import { AssistantHeader, AssistantScreen } from '../screens/assistant-screen';
-import { ComposerHeader, ComposerProvider, ComposerScreen } from '../screens/composer-screen';
-import { EmergencyHeader, EmergencyScreen } from '../screens/emergency-screen';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { useTranslation } from 'react-i18next';
 import { useResponsiveLayout } from '../layout/responsive-context';
 
 /**
@@ -53,12 +41,31 @@ const PANEL_FRAMED_FROM = BREAKPOINTS.rail;
 // sibling of the panel instead of the panel's first child.
 const webStickyHeaderStyle = Platform.OS === 'web' ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 }) : undefined;
 
-export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
+/**
+ * The frame every screen shares — header, `ContentPanel`, and the sign-in and
+ * setup gates — with the screen itself handed in by the route that owns it.
+ *
+ * It deliberately knows NO screen: it used to import all fifteen and switch on
+ * an id, so opening any route pulled the whole app into memory at once (and on
+ * Hermes that graph overflowed the JS stack before the first paint). Routes own
+ * their screen the way Mention's do.
+ *
+ * `renderContent` receives the header to put INSIDE its own scroll when the
+ * layout is combined (mobile), and `undefined` when the header is a sibling
+ * above the panel (desktop).
+ */
+export function ScreenSurface({ screen, onNavigate, header, renderContent, renderSetupPrompt }: {
+  screen: ScreenId;
+  onNavigate: Navigate;
+  header: React.ReactNode;
+  renderContent: (combinedHeader: React.ReactNode | undefined) => React.ReactNode;
+  /** Shown instead of the screen when this Home isn't set up yet. Only the screens that have something to say about setup pass one; the rest get a spinner. */
+  renderSetupPrompt?: () => React.ReactNode;
+}) {
   const { width, gutter } = useResponsiveLayout();
   const { colors } = useTheme();
   const { isAuthenticated, isAuthResolved } = useAuth();
-  const { setupStage, homeName, demoMode } = useHome();
-  const { t } = useTranslation();
+  const { setupStage, demoMode } = useHome();
   const router = useRouter();
   // Setup lives at its own `/onboarding` route (`app/onboarding.tsx`), not a
   // modal over whatever the user happened to be on — landing there straight
@@ -122,36 +129,7 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
     // through without anything needing to opt out of an opaque fill.
     <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter }]}>{node}</View>
   );
-  let header: React.ReactNode;
-  let content: React.ReactNode;
-  // Only the screens whose header shares live state with their body (the
-  // filter pill on Activity's timeline, the Save button on the automation
-  // composer) need a provider around the header+panel column below; every
-  // other screen's header is a plain call with props known right here.
-  let wrapColumn: (column: React.ReactNode) => React.ReactNode = column => column;
-  switch (screen) {
-    case 'home': header = <AskHeader onNavigate={onNavigate}/>; content = <HomeScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'favorites': header = <ClassicHeader title={homeName} home notifications onNavigate={onNavigate}/>; content = <FavoritesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'favorites-assistant': header = <ClassicHeader title={homeName} home onNavigate={onNavigate}/>; content = <FavoritesScreen withAssistant onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'devices': header = <ClassicHeader title={t('nav.devices')} onNavigate={onNavigate}/>; content = <DevicesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'activity': header = <AskHeader onNavigate={onNavigate}/>; content = <ActivityScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'timeline':
-      header = <TimelineHeader onNavigate={onNavigate}/>;
-      content = <TimelineScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>;
-      wrapColumn = column => <TimelineFilterProvider>{column}</TimelineFilterProvider>;
-      break;
-    case 'automations': header = <AskHeader onNavigate={onNavigate}/>; content = <AutomationsScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'routines': header = <ClassicHeader title={t('nav.automations')} onNavigate={onNavigate}/>; content = <RoutinesScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'settings': header = <ClassicHeader title={t('nav.settings')} onNavigate={onNavigate}/>; content = <SettingsScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'assistant': header = <AssistantHeader onNavigate={onNavigate}/>; content = <AssistantScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'composer':
-      header = <ComposerHeader onNavigate={onNavigate}/>;
-      content = <ComposerScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>;
-      wrapColumn = column => <ComposerProvider onNavigate={onNavigate}>{column}</ComposerProvider>;
-      break;
-    case 'emergency': header = <EmergencyHeader onNavigate={onNavigate}/>; content = <EmergencyScreen onNavigate={onNavigate} header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-    case 'onboarding': header = <ClassicHeader title="Willo" onNavigate={onNavigate}/>; content = <HomeSetupFlow header={combineHeader ? bleedHeader(header) : undefined}/>; break;
-  }
+  let content: React.ReactNode = renderContent(combineHeader ? bleedHeader(header) : undefined);
 
   // Swaps CONTENT ONLY (not `header`) for the sign-in prompt while Oxy auth
   // isn't ready — the same panel below still frames it, so it's not a
@@ -165,21 +143,21 @@ export function ScreenSurface({ screen, onNavigate }: { screen: ScreenId; onNavi
   // route now (see the redirect effect above), so this only needs to cover
   // the brief window before that redirect lands (any screen but home) and
   // the home screen's own inline prompt (which doesn't redirect at all).
-  // Demo mode skips all of this — every screen's own content (set by the
-  // switch above) already renders correctly with no real Home.
+  // Demo mode skips all of this — the route's own content already renders
+  // correctly with no real Home.
+  const spinner = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
+  const awaitingSetup = !demoMode && setupStage !== 'ready' && setupStage !== 'resolving';
   if (!isAuthResolved) {
-    content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
+    content = spinner;
   } else if (!isAuthenticated) {
     content = <SignInPrompt/>;
-  } else if (demoMode) {
-    // content already set above.
-  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen === 'home') {
-    content = <HomeSetupPrompt onNavigate={onNavigate}/>;
-  } else if (setupStage !== 'ready' && setupStage !== 'resolving' && screen !== 'onboarding' && screen !== 'settings') {
-    content = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
+  } else if (awaitingSetup && renderSetupPrompt) {
+    content = renderSetupPrompt();
+  } else if (awaitingSetup && screen !== 'onboarding' && screen !== 'settings') {
+    content = spinner;
   }
 
-  return wrapColumn(
+  return (
     <View className="min-h-0 min-w-0 flex-1 gap-2">
       {/* The header sits flush at the column's true top — no padding above
           it — so its `top: 0` sticky position has nothing extra to settle

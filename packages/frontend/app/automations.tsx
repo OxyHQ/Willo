@@ -1,5 +1,11 @@
-import { RoutedScreen } from '../screens/RoutedScreen';
+import { AskHeader } from '../components/headers';
+import { AutomationsScreen } from '../screens/automations-screen';
+import { ScreenSurface } from '../components/screen-surface';
+import { useScreenNavigate } from '../screens/use-screen-navigate';
 
 export default function Automations() {
-  return <RoutedScreen screen="automations" />;
+  const onNavigate = useScreenNavigate('automations');
+  return <ScreenSurface screen="automations" onNavigate={onNavigate}
+    header={<AskHeader onNavigate={onNavigate}/>}
+    renderContent={header => <AutomationsScreen onNavigate={onNavigate} header={header}/>}/>;
 }
