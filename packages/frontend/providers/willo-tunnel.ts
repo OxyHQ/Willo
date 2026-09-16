@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import type { Device, SmartHomeProvider } from './types';
+import type { ApplianceState, Device, DeviceCommand, SmartHomeProvider } from './types';
 import type { UnitSystem } from './unit-system';
 
 const domainOf = (entityId: string) => entityId.split('.')[0];
@@ -28,6 +28,29 @@ type WilloTunnelCredentials = {
    */
   onPaired: (paired: boolean) => void;
 };
+
+/**
+ * One Willo command as the Home Assistant service call that performs it. The
+ * entity's own domain decides where a generic on/off lands (`switch.turn_on`,
+ * `light.turn_on`); every other command belongs to exactly one domain, so it
+ * names it outright.
+ */
+function homeAssistantService(domain: string, command: DeviceCommand): { domain: string; service: string; serviceData: Record<string, unknown> } {
+  switch (command.kind) {
+    case 'setOnOff': return { domain, service: command.on ? 'turn_on' : 'turn_off', serviceData: {} };
+    case 'setBrightness': return { domain: 'light', service: 'turn_on', serviceData: { brightness_pct: Math.round(command.percent) } };
+    case 'setFanSpeed': return { domain: 'fan', service: 'set_percentage', serviceData: { percentage: Math.round(command.percent) } };
+    case 'setLocked': return { domain: 'lock', service: command.locked ? 'lock' : 'unlock', serviceData: {} };
+    case 'setCoverPosition': return { domain: 'cover', service: 'set_cover_position', serviceData: { position: Math.round(command.percent) } };
+    case 'setApplianceState': return { domain, service: APPLIANCE_SERVICES[command.state], serviceData: {} };
+    case 'setTargetTemperature': return { domain: 'climate', service: 'set_temperature', serviceData: { temperature: command.value } };
+    case 'setPlaying': return { domain: 'media_player', service: command.playing ? 'media_play' : 'media_pause', serviceData: {} };
+    case 'setVolume': return { domain: 'media_player', service: 'volume_set', serviceData: { volume_level: Math.round(command.percent) / 100 } };
+  }
+}
+
+/** `finished` is a state an appliance reaches on its own, never one asked for — stopping is the closest thing to request. */
+const APPLIANCE_SERVICES: Record<ApplianceState, string> = { idle: 'stop', running: 'start', paused: 'pause', finished: 'stop' };
 
 function authHeaders(getAccessToken: () => string | null): Record<string, string> {
   const token = getAccessToken();
@@ -127,13 +150,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       return () => listeners.delete(onDevices);
     },
     sendCommand(id, command) {
-      const domain = domainOf(id);
-      const body =
-        command.kind === 'setOnOff'
-          ? { domain, service: command.on ? 'turn_on' : 'turn_off', serviceData: {} }
-          : command.kind === 'setBrightness'
-            ? { domain: 'light', service: 'turn_on', serviceData: { brightness_pct: Math.round(command.percent) } }
-            : { domain: 'fan', service: 'set_percentage', serviceData: { percentage: Math.round(command.percent) } };
+      const body = homeAssistantService(domainOf(id), command);
 
       fetch(`${apiBaseUrl}/homes/${homeId}/devices/${id}/command`, {
         method: 'POST',

@@ -4,7 +4,6 @@ import { BREAKPOINTS, getLayoutMetrics, packMasonry } from '../packages/frontend
 import { GRID_GAP } from '../packages/frontend/layout/metrics.ts';
 import { cardHeight, cardRowsFor } from '../packages/frontend/layout/card-sizes.ts';
 import { isNavigationActive, tabs } from '../packages/frontend/components/navigation-items.ts';
-import { homeReducer, initialHomeState } from '../packages/frontend/state/home-reducer.ts';
 
 for (const [width, rail] of [[320, false], [639, false], [640, true], [1024, true], [1439, true], [1440, true]] as const) {
   test(`navigation boundary at ${width}`, () => {
@@ -102,16 +101,6 @@ test('bottom navigation and rail use the same destinations and parent selection'
   assert.equal(isNavigationActive('composer', 'automations'), true);
   assert.equal(isNavigationActive('assistant', 'home'), true);
 });
-test('new reference tiles use the existing reducer rather than separate desktop state', () => {
-  let state = initialHomeState;
-  for (const id of ['fan', 'garage', 'speaker', 'floor-lamp'] as const) {
-    state = homeReducer(state, { type: 'TOGGLE_DEVICE', id });
-    assert.notEqual(state.devices[id], initialHomeState.devices[id]);
-  }
-  state = homeReducer(state, { type: 'SET_BRIGHTNESS', id: 'floor-lamp', value: 76 });
-  assert.equal(state.brightness['floor-lamp'], 76);
-});
-
 test('a two-row card ends level with the two tiles stacked beside it', () => {
   const gap = GRID_GAP;
   const tile = cardHeight(1, gap);

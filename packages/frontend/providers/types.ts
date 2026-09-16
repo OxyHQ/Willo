@@ -1,3 +1,5 @@
+import type { TemperatureUnit } from './unit-system';
+
 // A capability, not a device type: any device can carry any combination of
 // these, so adding a new kind of physical device (a lock, a cover, a media
 // player) means adding one capability variant here, never a new Device
@@ -10,7 +12,22 @@ export type DeviceCapability =
   | { kind: 'fanSpeed'; percent: number | null }
   | { kind: 'camera'; snapshotUrl: string | null }
   | { kind: 'measurement'; value: number | null; unit: string | null; deviceClass: string | null }
-  | { kind: 'binarySensor'; active: boolean; deviceClass: string | null };
+  | { kind: 'binarySensor'; active: boolean; deviceClass: string | null }
+  /** A door, a padlock, a smart lock — anything whose whole state is "locked or not". */
+  | { kind: 'lock'; locked: boolean }
+  /** Blinds, curtains, a garage door, an awning: `position` is how far open, 0–100, `null` on one that only reports open/closed. */
+  | { kind: 'cover'; position: number | null; open: boolean }
+  /** An appliance that runs a cycle — a robot vacuum, a washer, an air fryer. `remainingMinutes` is `null` when it isn't running or doesn't report one. */
+  | { kind: 'appliance'; state: ApplianceState; remainingMinutes: number | null }
+  /** Anything that heats or cools toward a target: a thermostat, an air conditioner, a radiator valve. */
+  | { kind: 'climate'; current: number | null; target: number | null; unit: TemperatureUnit; mode: ClimateMode }
+  /** A TV or a speaker: playing or not, and how loud, 0–100. */
+  | { kind: 'media'; playing: boolean; volume: number | null };
+
+export const APPLIANCE_STATES = ['idle', 'running', 'paused', 'finished'] as const;
+export type ApplianceState = (typeof APPLIANCE_STATES)[number];
+export const CLIMATE_MODES = ['off', 'heat', 'cool', 'auto'] as const;
+export type ClimateMode = (typeof CLIMATE_MODES)[number];
 
 export type Device = {
   id: string;
@@ -32,7 +49,13 @@ export const getCapability = <K extends DeviceCapability['kind']>(
 export type DeviceCommand =
   | { kind: 'setOnOff'; on: boolean }
   | { kind: 'setBrightness'; percent: number }
-  | { kind: 'setFanSpeed'; percent: number };
+  | { kind: 'setFanSpeed'; percent: number }
+  | { kind: 'setLocked'; locked: boolean }
+  | { kind: 'setCoverPosition'; percent: number }
+  | { kind: 'setApplianceState'; state: ApplianceState }
+  | { kind: 'setTargetTemperature'; value: number }
+  | { kind: 'setPlaying'; playing: boolean }
+  | { kind: 'setVolume'; percent: number };
 
 export type SmartHomeProvider = {
   connect(): Promise<Device[]>;

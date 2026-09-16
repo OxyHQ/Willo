@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { CameraCard } from '../components/camera-card';
+import { RealCameraCard } from '../components/camera-card';
+import { DeviceTile } from '../components/device-tile';
+import { type Device } from '../providers/types';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { Label, SectionTitle, Tile } from '@willo.sh/ui';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
@@ -20,27 +22,31 @@ const categories = [
   { id: 'climate', icon: 'climate', titleKey: 'favorites.categories.climate', countKey: 'favorites.counts.devices', count: 2, assistantCount: 2, tone: 'peach' },
 ] as const satisfies readonly { id: string; icon: IconName; titleKey: string; countKey: string; count: number; assistantCount: number; tone: Tone }[];
 export function FavoritesScreen({ onNavigate, withAssistant = false, header }: ScreenProps & { withAssistant?: boolean }) {
-  const { state, dispatch, setSheet, notify, unitSystem } = useHome();
+  const { state, dispatch, setSheet, notify, devices } = useHome();
   const { compact, gap } = useResponsiveLayout();
   const { t } = useTranslation();
-  const [assistantVacuum, setAssistantVacuum] = useState(true);
-  const vacuumRunning = withAssistant ? assistantVacuum : state.devices.vacuum;
   const displayCategories = withAssistant ? [categories[0], categories[1], categories[3], categories[2]] : categories;
   // Whole tile rows, like the Home dashboard — see `layout/card-sizes.ts`.
   const tile = cardHeight(1, gap);
   const yardHeight = cardHeight(3, gap);
+  // The favourites strip is a short, curated front page over the same device
+  // list every other screen reads — one of each kind a person reaches for,
+  // plus the two assistant shortcuts that aren't devices at all.
+  const pick = (domain: string) => devices.find(device => device.domain === domain);
+  const deviceCard = (device: Device | undefined) => device
+    ? [{ id: device.id, estimatedHeight: tile, content: <DeviceTile device={device} height={tile} grow={false}/> }]
+    : [];
+  const garden = devices.find(device => device.domain === 'camera' && device.room !== null && device.id.includes('garden'));
   const cards: DashboardCard[] = [
     { id: 'first', estimatedHeight: tile, content: withAssistant
-      ? <Tile grow={false} title={t('demo.devices.broadcast')} icon="broadcast" onPress={() => setSheet({ kind: 'message', title: t('demo.devices.broadcast'), description: t('favorites.broadcastDescription') })}/>
-      : <Tile grow={false} title={t('demo.devices.hallwayThermostat')} subtitle={t('deviceState.indoor', { temperature: formatTemperature(70, '°F', unitSystem) })} icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/> },
-    { id: 'second', estimatedHeight: tile, content: withAssistant
-      ? <Tile grow={false} title={t('demo.devices.assistant')} icon="microphone" onPress={() => onNavigate('assistant')}/>
-      : <Tile grow={false} title={t('demo.devices.frontDoorLock')} subtitle={state.locked ? t('deviceState.locked') : t('deviceState.unlocked')} tone={state.locked ? 'blue' : 'neutral'} icon={state.locked ? 'lock' : 'unlock'} active={state.locked} onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/> },
-    { id: 'yard', span: compact ? 2 : 1, estimatedHeight: yardHeight, content: <CameraCard garden showBadge={false} height={yardHeight} label={withAssistant ? t('camera.backyardTitle') : t('camera.yardLabel')}/> },
-    { id: 'pantry', estimatedHeight: tile, content: <Tile grow={false} title={withAssistant ? t('demo.devices.kitchenPantryLight') : t('demo.devices.pantryLight')} subtitle={state.devices.pantry ? t('deviceState.onPercent', { percent: state.brightness.pantry }) : t('deviceState.off')} icon="light" tone={state.devices.pantry ? 'yellow' : 'neutral'} active={state.devices.pantry} brightness={state.devices.pantry ? state.brightness.pantry : undefined} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: 'pantry' })} onLongPress={() => setSheet({ kind: 'device', title: t('demo.devices.pantryLight'), id: 'pantry' })} accessibilityHint={t('tile.holdHint')}/> },
-    { id: 'movie', estimatedHeight: tile, content: <Tile grow={false} title={t('demo.devices.movieMode')} icon="sparkle" tone={state.movieMode ? 'blue' : 'neutral'} active={state.movieMode} onPress={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? t('automations.movieStopped') : t('automations.movieStarted')); }}/> },
-    { id: 'blinds', estimatedHeight: tile, content: <Tile grow={false} title={t('demo.devices.livingRoomBlinds')} subtitle={state.devices.blinds ? t('deviceState.open') : t('deviceState.closed')} icon="blinds" tone={state.devices.blinds ? 'blue' : 'neutral'} onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: 'blinds' })}/> },
-    { id: 'vacuum', estimatedHeight: tile, content: <Tile grow={false} title={t('demo.devices.vacuum')} subtitle={vacuumRunning ? t('deviceState.running') : t('deviceState.paused')} icon="vacuum" tone={vacuumRunning ? 'blue' : 'neutral'} onPress={() => withAssistant ? setAssistantVacuum(value => !value) : dispatch({ type: 'TOGGLE_DEVICE', id: 'vacuum' })}/> },
+      ? <Tile grow={false} height={tile} title={t('demo.devices.broadcast')} icon="broadcast" onPress={() => setSheet({ kind: 'message', title: t('demo.devices.broadcast'), description: t('favorites.broadcastDescription') })}/>
+      : <Tile grow={false} height={tile} title={t('demo.devices.assistant')} icon="microphone" onPress={() => onNavigate('assistant')}/> },
+    ...deviceCard(pick('lock')),
+    ...(garden ? [{ id: garden.id, span: compact ? 2 : 1, estimatedHeight: yardHeight, content: <RealCameraCard camera={garden} height={yardHeight}/> }] : []),
+    ...deviceCard(pick('light')),
+    { id: 'movie', estimatedHeight: tile, content: <Tile grow={false} height={tile} title={t('demo.devices.movieMode')} icon="sparkle" tone={state.movieMode ? 'blue' : 'neutral'} active={state.movieMode} onPress={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? t('automations.movieStopped') : t('automations.movieStarted')); }}/> },
+    ...deviceCard(pick('cover')),
+    ...deviceCard(pick('vacuum')),
   ];
   return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>{header}<CardStrip>

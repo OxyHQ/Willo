@@ -27,7 +27,7 @@ function formatRoutineTime(hour: number, minute: number, timeFormat: Intl.DateTi
   return { time, period };
 }
 export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, notify } = useHome();
+  const { state, dispatch, notify, devices, sendCommand } = useHome();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { compact, split } = useResponsiveLayout();
@@ -52,7 +52,7 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
       <View><SectionTitle right={t('automations.add')} onPress={() => onNavigate('composer')}>{t('automations.yours')}</SectionTitle><View className="gap-2">
         <RoutineRow title={t('automations.demo.wakeUp')} description={t('automations.demo.wakeUpDescription')} icon="light"/>
         <RoutineRow title={t('automations.demo.morningKettle')} description={t('automations.demo.morningKettleDescription')} icon="kettle"/>
-        <RoutineRow title={t('automations.demo.nighttimeSecurity')} description={t('automations.demo.nighttimeSecurityDescription')} icon="lock" onRun={() => { if (!state.locked) dispatch({ type: 'TOGGLE_LOCK' }); notify(t('automations.doorsLocked')); }}/>
+        <RoutineRow title={t('automations.demo.nighttimeSecurity')} description={t('automations.demo.nighttimeSecurityDescription')} icon="lock" onRun={() => { for (const lock of devices.filter(device => device.domain === 'lock')) sendCommand(lock.id, { kind: 'setLocked', locked: true }); notify(t('automations.doorsLocked')); }}/>
         <RoutineRow title={t('automations.demo.fridayJam')} description={t('automations.demo.fridayJamDescription')} icon="speaker"/>
         {state.routines.map(routine => <RoutineRow key={routine.id} {...routine}/>)}
       </View></View>

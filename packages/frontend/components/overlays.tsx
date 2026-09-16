@@ -84,23 +84,6 @@ export function Overlays() {
                 </Label>
               </>
             )}
-            {shown.kind === 'device' && (
-              <View className="gap-5">
-                <View className="h-[140px] items-center justify-center rounded-[25px] bg-secondary-subtle">
-                  <Icon name="light" size={34} color={themeColors.secondary} filled />
-                  <Label className="mt-3 text-[32px] text-secondary-text">{state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}%</Label>
-                </View>
-                <Slider accessibilityLabel={t('sheets.brightnessOf', { name: shown.title })} minimumValue={0} maximumValue={100} step={1}
-                  value={state.devices[shown.id] ? (state.brightness[shown.id] ?? 50) : 0}
-                  onValueChange={value => dispatch({ type: 'SET_BRIGHTNESS', id: shown.id, value })}
-                  minimumTrackTintColor={themeColors.secondary} maximumTrackTintColor={themeColors.backgroundSecondary} thumbTintColor={themeColors.secondary} />
-                <Pressable accessibilityRole="button" onPress={() => dispatch({ type: 'TOGGLE_DEVICE', id: shown.id })}
-                  className="items-center rounded-full bg-primary-subtle py-4">
-                  <Label className="text-[14px] font-medium text-primary-text">{state.devices[shown.id] ? t('sheets.turnOff') : t('sheets.turnOn')}</Label>
-                </Pressable>
-                <Label className="text-center text-[11px] text-muted-foreground">{t('sheets.demoSessionOnly')}</Label>
-              </View>
-            )}
             {shown.kind === 'realDevice' && liveDevice && (() => {
               const onOff = getCapability(liveDevice, 'onOff');
               const brightness = getCapability(liveDevice, 'brightness');

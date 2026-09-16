@@ -7,6 +7,11 @@ import { IconButton, Label } from '@willo.sh/ui';
 import { parseRgb, useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { convertTemperature, formatTemperature } from '../providers/unit-system';
+import { getCapability, type Device } from '../providers/types';
+
+/** What the +/- buttons will go to, in the thermostat's own unit. */
+const MINIMUM_TARGET = 5;
+const MAXIMUM_TARGET = 35;
 
 // `tertiary` is pinned to Willo's own peach in `BloomProvider`
 // (`app/_layout.tsx`'s `tertiaryColor`), not left to the seed's own
@@ -27,12 +32,17 @@ function darkenedTertiary(tertiary: string, fallback: string): string {
   const shade = (channel: number) => Math.round(channel * STEPPER_ICON_SHADE);
   return `rgb(${shade(channels.r)} ${shade(channels.g)} ${shade(channels.b)})`;
 }
-export function ThermostatCard({ height }: { height: number }) {
-  const { state, dispatch, setSheet, unitSystem } = useHome();
-  // The demo reducer counts in whole °F (50–90); only what's displayed follows the Home's unit system.
-  const displayed = convertTemperature(state.temperature, '°F', unitSystem);
-  const minimum = formatTemperature(50, '°F', unitSystem);
-  const maximum = formatTemperature(90, '°F', unitSystem);
+export function ThermostatCard({ device, height }: { device: Device; height: number }) {
+  const { setSheet, sendCommand, unitSystem } = useHome();
+  // The thermostat reports in its own unit; only what's displayed follows the
+  // Home's. Steps are whole degrees of the unit the device itself speaks.
+  const climate = getCapability(device, 'climate');
+  const unit = climate?.unit ?? '°C';
+  const target = climate?.target ?? MINIMUM_TARGET;
+  const displayed = convertTemperature(target, unit, unitSystem);
+  const minimum = formatTemperature(MINIMUM_TARGET, unit, unitSystem);
+  const maximum = formatTemperature(MAXIMUM_TARGET, unit, unitSystem);
+  const step = (delta: number) => sendCommand(device.id, { kind: 'setTargetTemperature', value: Math.min(MAXIMUM_TARGET, Math.max(MINIMUM_TARGET, target + delta)) });
   const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
@@ -40,12 +50,12 @@ export function ThermostatCard({ height }: { height: number }) {
   // Steppers beside the reading, never under it: that's what lets the card
   // stand exactly as tall as the two tiles next to it (`cardHeight`).
   const decrease = <IconButton icon="remove-bold" label={t('thermostat.decrease')} color={stepperIconColor} shape="stepper"
-    className="bg-tertiary" disabled={state.temperature <= 50} onPress={() => dispatch({ type: 'TEMPERATURE', delta: -1 })}/>;
+    className="bg-tertiary" disabled={target <= MINIMUM_TARGET} onPress={() => step(-1)}/>;
   const increase = <IconButton icon="add-bold" label={t('thermostat.increase')} color={stepperIconColor} shape="stepper"
-    className="bg-tertiary" disabled={state.temperature >= 90} onPress={() => dispatch({ type: 'TEMPERATURE', delta: 1 })}/>;
+    className="bg-tertiary" disabled={target >= MAXIMUM_TARGET} onPress={() => step(1)}/>;
   return <View className="justify-between rounded-[28px] bg-tertiary-subtle p-4" style={{ height }}>
     <View className="flex-row items-center gap-2">
-      <Icon name="climate" size={20} color={themeColors.tertiary}/><Label className="min-w-0 flex-1 text-[14px] font-medium text-tertiary-text">{t('thermostat.downstairs')}</Label>
+      <Icon name="climate" size={20} color={themeColors.tertiary}/><Label className="min-w-0 flex-1 text-[14px] font-medium text-tertiary-text">{device.name}</Label>
       <IconButton icon="chevron" label={t('thermostat.info')} color={themeColors.tertiary} size={16} shape="small"
         onPress={() => setSheet({ kind: 'message', title: t('thermostat.infoTitle'), description: t('thermostat.infoDescription', { minimum, maximum }) })}/>
     </View>

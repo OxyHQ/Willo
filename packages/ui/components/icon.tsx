@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
-export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage' | 'alia-mini' | 'add-bold' | 'remove-bold';
+export type IconName = 'home' | 'heart' | 'grid' | 'camera' | 'light' | 'wifi' | 'lock' | 'unlock' | 'climate' | 'plus' | 'minus' | 'chevron' | 'down' | 'close' | 'play' | 'activity' | 'automations' | 'settings' | 'sun' | 'waves' | 'tv' | 'blinds' | 'vacuum' | 'plug' | 'microphone' | 'broadcast' | 'calendar' | 'sparkle' | 'kettle' | 'speaker' | 'shield' | 'link' | 'person' | 'video' | 'bell' | 'send' | 'thumb-up' | 'thumb-down' | 'volume-off' | 'camera-off' | 'alert' | 'back' | 'check' | 'filter' | 'globe' | 'info' | 'moon' | 'battery' | 'signal' | 'history' | 'devices' | 'thermometer' | 'fan' | 'garage' | 'alia-mini' | 'add-bold' | 'remove-bold' | 'air-conditioner' | 'heater' | 'purifier' | 'humidifier' | 'air-fryer' | 'oven' | 'dishwasher' | 'washer' | 'dryer' | 'coffee' | 'doorbell' | 'leak' | 'smoke' | 'door' | 'window' | 'energy';
 /**
  * Icons whose own source art uses a DIFFERENT coordinate space than every
  * other icon here's shared `0 0 24 24` — `alia-mini` is a Google Material
@@ -82,6 +82,22 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     moon: <Path d="M21 14a9 9 0 0 1-11-11A9 9 0 1 0 21 14Z"/>,
     battery: <><Rect x="2" y="6" width="17" height="12" rx="1" fill={color}/><Path d="M21 10v4" strokeWidth="2.5"/></>,
     signal: <><Path d="M4 18v-2M9 18v-6M14 18V8M19 18V4" strokeWidth="3"/></>,
+    'air-conditioner': <><Rect x="2" y="5" width="20" height="8" rx="2"/><Path d="M5 9h14M7 17c1.5 0 1.5-2 3-2M14 17c1.5 0 1.5-2 3-2M7 21c1.5 0 1.5-2 3-2M14 21c1.5 0 1.5-2 3-2"/></>,
+    heater: <><Rect x="3" y="4" width="18" height="16" rx="2"/><Path d="M8 4v16M12 4v16M16 4v16M3 8h18M3 16h18"/></>,
+    purifier: <><Rect x="5" y="3" width="14" height="18" rx="3"/><Circle cx="12" cy="13" r="3.5"/><Path d="M9 7h6"/></>,
+    humidifier: <><Rect x="6" y="10" width="12" height="11" rx="3"/><Path d="M12 3c2 2.5 3 4 3 5.2A3 3 0 0 1 9 8.2C9 7 10 5.5 12 3Z"/></>,
+    'air-fryer': <><Rect x="4" y="3" width="16" height="18" rx="3"/><Path d="M4 14h16M8 7h5"/><Circle cx="16.5" cy="7" r="1.2" fill={color}/></>,
+    oven: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 9h18"/><Rect x="6" y="12" width="12" height="6" rx="1"/><Circle cx="7" cy="6" r="1" fill={color}/><Circle cx="11" cy="6" r="1" fill={color}/></>,
+    dishwasher: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 8h18"/><Circle cx="12" cy="14.5" r="4"/><Circle cx="7" cy="5.5" r="0.9" fill={color}/></>,
+    washer: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Circle cx="12" cy="14" r="5"/><Circle cx="12" cy="14" r="2"/><Circle cx="7" cy="6" r="0.9" fill={color}/></>,
+    dryer: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Circle cx="12" cy="14" r="5"/><Path d="M10 14c1-1.5 3 1.5 4 0M7 6h3"/></>,
+    coffee: <><Path d="M4 10h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-5ZM17 11h2a2 2 0 0 1 0 5h-2M8 3v3M12 3v3"/></>,
+    doorbell: <><Rect x="6" y="2" width="12" height="20" rx="4"/><Circle cx="12" cy="8" r="2"/><Path d="M9 14h6M9 17h6"/></>,
+    leak: <><Path d="M12 3c3.5 4.2 5 6.6 5 8.8A5 5 0 0 1 7 11.8C7 9.6 8.5 7.2 12 3Z"/><Path d="M3 21h18"/></>,
+    smoke: <><Circle cx="12" cy="9" r="5"/><Circle cx="12" cy="9" r="1.4" fill={color}/><Path d="M5 17c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5M5 21c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5"/></>,
+    door: <><Path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><Circle cx="15.5" cy="12" r="1.2" fill={color}/></>,
+    window: <><Rect x="3" y="3" width="18" height="18" rx="1"/><Path d="M12 3v18M3 12h18"/></>,
+    energy: <><Path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></>,
     // Never actually read — `alia-mini` returns via the `NESTED_VIEWBOX_ICONS`
     // branch below before this map is indexed. Present only so this object
     // stays a real `Record<IconName, ...>`, checked exhaustively by TS

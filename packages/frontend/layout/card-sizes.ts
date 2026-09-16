@@ -18,3 +18,11 @@ export const cardRowsFor = (contentHeight: number, gap: number): number => {
   while (cardHeight(rows, gap) < contentHeight) rows += 1;
   return rows;
 };
+
+/**
+ * How many rows a camera card covers: a preview keeps the 16:9 shape of the
+ * stream it shows, rounded to whole rows so it still lines up with the tiles
+ * beside it. One column wide comes out at two rows, two columns at four —
+ * the height follows from the width rather than from a number someone picked.
+ */
+export const cameraRows = (span: number): number => (span >= 2 ? 4 : 2);

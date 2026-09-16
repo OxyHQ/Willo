@@ -1,8 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useAuth, useOxy } from '@oxy.so/services';
-import { homeReducer, initialHomeState, type HomeAction, type HomeState, type DeviceKey } from './home-reducer';
+import { homeReducer, initialHomeState, type HomeAction, type HomeState } from './home-reducer';
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
+import { createDemoProvider } from '../providers/demo-home';
 import type { Device, DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
 import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +13,6 @@ const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
 export type SheetOption = { label: string; description?: string; selected?: boolean; onPress: () => void };
 export type Sheet =
   | { kind: 'menu'; title: string; description?: string; options: SheetOption[] }
-  | { kind: 'device'; title: string; id: DeviceKey }
   | { kind: 'realDevice'; title: string; device: Device }
   | { kind: 'camera'; title: string; garden?: boolean; snapshotUrl?: string | null }
   | { kind: 'message'; title: string; description: string }
@@ -165,27 +165,6 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(currentLanguage));
   const [pairingCode, setPairingCode] = useState<{ code: string; expiresAt: string } | null>(null);
 
-  useEffect(() => {
-    let ignore = false;
-    storage.getItemAsync('demoMode').then((value) => {
-      if (!ignore) setDemoModeState(value === 'true');
-    });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const setDemoMode = useCallback(
-    (value: boolean) => {
-      setDemoModeState(value);
-      storage.setItemAsync('demoMode', value ? 'true' : 'false').catch((error: unknown) => console.error('Failed to save demo mode:', error));
-      // Always start demo mode from a clean, predictable catalog rather than
-      // wherever a previous demo session's toggling/dragging happened to
-      // leave it.
-      if (value) dispatch({ type: 'RESET' });
-    },
-    [dispatch]
-  );
 
   // Demo mode replaces the real Home's name too — it's meant to look like a
   // complete, fully-set-up example home, not the real (possibly nameless)
@@ -239,6 +218,19 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     [getAccessToken, notify, t]
   );
 
+  /** Demo mode is a PROVIDER, not a mode every screen branches on: the demo catalog arrives as the same `Device[]` a real Home Assistant reports, so tiles, sheets and commands take one path. */
+  const connectDemo = useCallback(() => {
+    const provider = createDemoProvider(t);
+    providerRef.current = provider;
+    connectingHomeIdRef.current = null;
+    setSetupStage('ready');
+    setTunnelConnected(true);
+    provider.connect().then((initialDevices) => {
+      setDevices(initialDevices);
+      provider.subscribe(setDevices);
+    });
+  }, [t]);
+
   /** Closes the current Home's connection and clears everything read from it. */
   const leaveCurrentHome = useCallback(() => {
     connectingHomeIdRef.current = null;
@@ -253,6 +245,28 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     // code that types into the WRONG Home's tunnel.
     setPairingCode(null);
   }, []);
+
+  const setDemoMode = useCallback(
+    (value: boolean) => {
+      setDemoModeState(value);
+      storage.setItemAsync('demoMode', value ? 'true' : 'false').catch((error: unknown) => console.error('Failed to save demo mode:', error));
+      // Always start demo mode from a clean, predictable catalog rather than
+      // wherever a previous demo session's toggling/dragging happened to
+      // leave it.
+      dispatch({ type: 'RESET' });
+      leaveCurrentHome();
+      if (value) connectDemo();
+      else if (homeId) connectHome(homeId);
+      else setSetupStage('needs-home');
+    },
+    [dispatch, leaveCurrentHome, connectDemo, connectHome, homeId]
+  );
+
+  // Rebuilds the demo catalog when the UI language changes, so its device and
+  // room names follow it the way every other string does.
+  useEffect(() => {
+    if (demoMode) connectDemo();
+  }, [demoMode, connectDemo]);
 
   const switchHome = useCallback(
     (id: string) => {
@@ -283,6 +297,13 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (!isAuthenticated) {
         setSetupStage('needs-home');
+        return;
+      }
+      // Demo mode is read here rather than in its own effect so the two can't
+      // race: a device that last used the demo catalog must not also open a
+      // tunnel to its real Home.
+      if ((await storage.getItemAsync('demoMode')) === 'true') {
+        setDemoModeState(true);
         return;
       }
       const storedHomeId = await storage.getItemAsync('homeId');
