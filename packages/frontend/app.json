@@ -35,7 +35,8 @@
         {
           "cameraPermission": "Willo uses the camera to scan the QR code shown on your Home Assistant device when connecting it."
         }
-      ]
+      ],
+      "./plugins/withOxyDebugSigning"
     ],
     "android": {
       "package": "sh.willo.app",
