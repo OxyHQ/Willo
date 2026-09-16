@@ -19,11 +19,12 @@ export function PanelTopInsetProvider({ value, children }: { value: number; chil
   return <PanelTopInsetContext.Provider value={value}>{children}</PanelTopInsetContext.Provider>;
 }
 
+/** The gutter as classes, so a resize restyles rather than re-renders. The numbers match `getLayoutMetrics`, which still reports them for the bleed margins that have to be real numbers. */
+const GUTTER_CLASS = 'px-4 shell:px-6';
 export function ContentWidth({ children, maxWidth = CONTENT_MAX, padding = true }: {
   children: React.ReactNode; maxWidth?: number; padding?: boolean;
 }) {
-  const { gutter } = useResponsiveLayout();
-  return <View className="w-full min-w-0 self-center" style={{ maxWidth, paddingHorizontal: padding ? gutter : 0 }}>{children}</View>;
+  return <View className={`w-full min-w-0 self-center ${padding ? GUTTER_CLASS : ''}`} style={{ maxWidth }}>{children}</View>;
 }
 /**
  * WEB uses a real document-scroll model (the window is the scroller — see

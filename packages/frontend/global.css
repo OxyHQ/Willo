@@ -46,6 +46,15 @@ body {
 
 /* Isolated reference palette; existing Bloom tokens and custom controls are unchanged. */
 @theme {
+  /* The one width the shell changes shape at: the nav rail replaces the bottom
+     bar, the header leaves the panel, and the panel gets its frame. It is the
+     same number as `BREAKPOINTS.rail` in `layout/metrics.ts` — as a CSS
+     variable so Tailwind generates a `shell:` variant from it, and every
+     purely visual difference (padding, a cap, a direction) is a CLASS.
+     A measured width is for what a class cannot express: whether a component
+     MOUNTS at all, and the numbers the masonry packer works in. */
+  --breakpoint-shell: 640px;
+
   --color-willo-ink: #252728;
   --color-willo-secondary: #575c61;
   --color-willo-surface: #f0f4f9;
