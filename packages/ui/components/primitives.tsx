@@ -5,9 +5,19 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Icon, type IconName } from './icon';
 import { colors, tones, type Tone } from '../theme/tokens';
 import { useTheme } from '@oxy.so/bloom/theme';
+import { useHaptics } from '@oxy.so/bloom/hooks';
 const IS_WEB = Platform.OS === 'web';
 /** How often a drag is allowed to reach the real device. ~16 commands a second is smoother than the eye and a fraction of a 120 Hz drag's frames. */
 const COMMIT_INTERVAL_MS = 60;
+/**
+ * The touch has to land within this much of an edge to mean 0 or 100. Mapping
+ * the raw X straight onto 0-100 put full brightness on the tile's very last
+ * pixel, so a drag that visually ran to the end still reported 98 or 99 and
+ * the fill never closed.
+ */
+const EDGE_SNAP_PX = 16;
+/** A tick every ten percent while dragging — enough to feel the slider move, not enough to buzz. */
+const HAPTIC_STEP_PERCENT = 10;
 /**
  * Web has a real mouse cursor to hide while dragging a slider (matching a
  * native OS slider's own feel); native has no cursor at all, so this is a
@@ -104,6 +114,9 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   const lastReported = useRef<number | null>(null);
   /** The last percent handed to `onBrightnessCommit`, and when — a drag commits at most every `COMMIT_INTERVAL_MS`, plus once at the end. */
   const lastCommit = useRef({ percent: -1, at: 0 });
+  /** Which ten-percent step last buzzed, so the tick fires on crossing one rather than on every frame. */
+  const lastHapticStep = useRef(-1);
+  const haptic = useHaptics();
   // NOT a `Pressable`: a `Pressable`'s own touch responder claims a touch
   // before any sibling gesture recognizer — `Gesture.Native()` and (on a
   // second attempt) core `PanResponder`, both wrapped around a `Pressable`,
@@ -140,7 +153,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       .minDuration(500)
       .onTouchesDown(() => setPressed(true))
       .onFinalize(() => setPressed(false))
-      .onStart(() => { longPressFired.current = true; onLongPress?.(); });
+      .onStart(() => { longPressFired.current = true; haptic('medium'); onLongPress?.(); });
     // Dragging anywhere on the tile jumps the fill straight to that point (an
     // absolute position, not a relative delta from where the drag started) —
     // that's what makes the tile itself read as a brightness slider.
@@ -153,6 +166,14 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
     const panGesture = Gesture.Pan()
       .runOnJS(true)
       .minDistance(10)
+      // The slider only ever moves sideways, so it claims a touch only once
+      // the finger has committed to that axis and gives up the moment the
+      // finger goes vertical. Without this the tile and the screen's scroll
+      // both wanted every drag: scrolling past a list of tiles fought the tile
+      // under the thumb, which is what made the screen feel sticky and the
+      // sliders feel like they were lagging behind the finger.
+      .activeOffsetX([-10, 10])
+      .failOffsetY([-8, 8])
       .onTouchesDown(() => { longPressFired.current = false; setPressed(true); })
       .onStart(() => setBodyCursorHidden(true))
       // Only when the whole-number percent actually moves: a 120 Hz drag
@@ -179,7 +200,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
         if (!success && !longPressFired.current) onPress();
       });
       return Gesture.Race(panGesture, longPressGesture);
-  }, [width, onPress, onLongPress, onBrightnessChange, onBrightnessCommit]);
+  }, [width, onPress, onLongPress, onBrightnessChange, onBrightnessCommit, haptic]);
   // Web-only (NativeWind no-ops `cursor-*` on native, where the concept
   // doesn't exist): a plain `View` + `GestureDetector`, unlike the
   // `Pressable` this used to be, gets none of the browser's own hover-cursor
@@ -206,13 +227,20 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   const fillTextColor = onFillColor[tone];
   const filledIcon = active === true && (icon === 'light' || icon === 'lock');
   return <GestureDetector gesture={composedGesture}>
-    <View collapsable={false} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={accessibilityHint} className={`relative min-w-0 ${grow ? 'flex-1' : ''} flex-row items-center gap-3 overflow-hidden rounded-[24px] px-4 ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
+    <View collapsable={false} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={accessibilityHint} className={`relative min-w-0 ${grow ? 'flex-1' : ''} justify-center overflow-hidden rounded-[24px] ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
       {/* The tone's own solid color, not its `-subtle` tint: a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
       {brightness !== undefined && <View pointerEvents="none" className={`absolute bottom-0 left-0 top-0 ${TONE_FILL_CLASS[tone] ?? 'bg-secondary'}`} style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
-      <TileFace icon={icon} title={title} subtitle={subtitle} color={iconColor} labelClassName={palette.text} filledIcon={filledIcon}/>
-      {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
+      {/* The tile's horizontal padding lives HERE, not on the root. A
+          percentage width on an absolutely positioned child resolves against
+          its parent's CONTENT box, so with `px-4` on the root a 100% fill
+          came up 32px short — visibly so, and it dragged the clipped overlay
+          out of line with the text underneath it by the same amount. */}
+      <View className="min-w-0 flex-row items-center gap-3 px-4">
+        <TileFace icon={icon} title={title} subtitle={subtitle} color={iconColor} labelClassName={palette.text} filledIcon={filledIcon}/>
+        {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
+      </View>
       {/* The same `TileFace` again — in the on-fill contrast color —
           clipped to EXACTLY the fill's own width via an OUTER
           `overflow: hidden` window (`width: X%`, a plain CSS percentage
