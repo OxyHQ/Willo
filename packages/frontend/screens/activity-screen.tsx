@@ -8,7 +8,7 @@ import { Label, Pill, SectionTitle } from '@willo.sh/ui';
 import { BRIEF_PARAGRAPH_KEYS } from '../data/events';
 import { type HomeActivityEvent, type HomeEventType } from '../providers/types';
 import { type ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys, TFunction } from 'i18next';
@@ -38,7 +38,7 @@ function groupByDay(events: HomeActivityEvent[], t: TFunction, language: string)
 }
 
 function useActivityEvents() {
-  const { fetchEvents, notify } = useHome();
+  const { fetchEvents, notify } = useHomeActions();
   const { t } = useTranslation();
   const [events, setEvents] = useState<HomeActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,7 @@ function useActivityEvents() {
 }
 
 export function ActivityScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet, notify } = useHome();
+  const { setSheet, notify } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { events: allEvents, loading } = useActivityEvents();
@@ -111,7 +111,7 @@ function useTimelineFilter(): TimelineFilterValue {
   return value;
 }
 export function TimelineFilterProvider({ children }: { children: React.ReactNode }) {
-  const { setSheet } = useHome();
+  const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   const [filter, setFilter] = useState<HomeEventType | null>(null);
   const choices = [{ value: null, label: t('activity.filters.allEvents') }, ...EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) }))];

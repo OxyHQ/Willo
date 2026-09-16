@@ -4,7 +4,7 @@ import { PageScroll, CardStrip, ContentWidth } from '../layout/page-layout';
 import { Icon } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys } from 'i18next';
@@ -26,7 +26,7 @@ function useComposer(): ComposerValue {
   return value;
 }
 export function ComposerProvider({ onNavigate, children }: ScreenProps & { children: React.ReactNode }) {
-  const { dispatch, notify } = useHome();
+  const { dispatch, notify } = useHomeActions();
   const { t } = useTranslation();
   const [text, setText] = useState(() => t('composer.suggestions.saveEnergyText'));
   const [review, setReview] = useState(false);

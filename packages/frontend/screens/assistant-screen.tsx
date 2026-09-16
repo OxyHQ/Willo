@@ -6,7 +6,7 @@ import { Icon } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
 import { assets } from '../data/assets';
 import { type ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys } from 'i18next';
@@ -25,7 +25,8 @@ export function AssistantHeader({ onNavigate }: ScreenProps) {
   return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('header.ask', { home: homeName })}</Label></View></ContentWidth>;
 }
 export function AssistantScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet, homeName } = useHome();
+  const { homeName } = useHome();
+  const { setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');

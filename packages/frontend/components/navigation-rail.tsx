@@ -4,7 +4,7 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@willo.sh/ui';
 import type { Navigate, ScreenId } from '../data/screens';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { isNavigationActive, tabs } from './navigation-items';
 
 const ICON_SIZE = 22;

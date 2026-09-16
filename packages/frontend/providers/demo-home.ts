@@ -78,20 +78,30 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
     devices = devices.map(device => device.id === id ? { ...device, capabilities: device.capabilities.map(change) } : device);
   };
 
-  /** A running appliance counts down; one that reaches zero reports itself finished, the way a real washer does. */
+  /**
+   * A running appliance counts down; one that reaches zero reports itself
+   * finished, the way a real washer does. Only the appliances that actually
+   * moved get a new object — every screen memoises its tiles on device
+   * identity, so re-cloning all fifty-odd of them every five seconds would
+   * re-render the whole list to say nothing.
+   */
   function tick() {
     let changed = false;
-    devices = devices.map(device => ({
-      ...device,
-      capabilities: device.capabilities.map(capability => {
-        if (capability.kind !== 'appliance' || capability.state !== 'running' || capability.remainingMinutes === null) return capability;
-        changed = true;
-        const remaining = capability.remainingMinutes - 1;
-        return remaining > 0
-          ? { ...capability, remainingMinutes: remaining }
-          : { ...capability, state: 'finished' as const, remainingMinutes: null };
-      }),
-    }));
+    devices = devices.map(device => {
+      const counting = device.capabilities.some(capability => capability.kind === 'appliance' && capability.state === 'running' && capability.remainingMinutes !== null);
+      if (!counting) return device;
+      changed = true;
+      return {
+        ...device,
+        capabilities: device.capabilities.map(capability => {
+          if (capability.kind !== 'appliance' || capability.state !== 'running' || capability.remainingMinutes === null) return capability;
+          const remaining = capability.remainingMinutes - 1;
+          return remaining > 0
+            ? { ...capability, remainingMinutes: remaining }
+            : { ...capability, state: 'finished' as const, remainingMinutes: null };
+        }),
+      };
+    });
     if (changed) publish();
   }
 

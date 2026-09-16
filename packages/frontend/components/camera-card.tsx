@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { assets } from '../data/assets';
-import { useHome } from '../state/home-context';
+import { useHomeActions } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
 import { Icon } from '@willo.sh/ui';
 import { Label } from '@willo.sh/ui';
@@ -13,14 +13,34 @@ import { useTranslation } from 'react-i18next';
 // stream) is enough for a "live-ish" thumbnail.
 const SNAPSHOT_REFRESH_MS = 8000;
 
+/**
+ * One tick for every camera on screen, not one timer each: unaligned per-card
+ * intervals meant each camera re-rendered and re-fetched on its own schedule,
+ * so a screen with three of them woke up three times as often for no extra
+ * freshness. The timer runs only while something is watching.
+ */
+let tick = 0;
+let ticker: ReturnType<typeof setInterval> | null = null;
+const watchers = new Set<() => void>();
+function watchSnapshotTick(onTick: () => void) {
+  watchers.add(onTick);
+  ticker ??= setInterval(() => {
+    tick += 1;
+    watchers.forEach(watcher => watcher());
+  }, SNAPSHOT_REFRESH_MS);
+  return () => {
+    watchers.delete(onTick);
+    if (watchers.size === 0 && ticker) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+  };
+}
+
 export function RealCameraCard({ camera, height = 194, width }: { camera: Device; height?: number; width?: number }) {
-  const { setSheet, getAuthHeaders } = useHome();
+  const { setSheet, getAuthHeaders } = useHomeActions();
   const { t } = useTranslation();
-  const [refreshKey, setRefreshKey] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setRefreshKey(key => key + 1), SNAPSHOT_REFRESH_MS);
-    return () => clearInterval(interval);
-  }, []);
+  const refreshKey = useSyncExternalStore(watchSnapshotTick, () => tick, () => tick);
   const snapshotUrl = getCapability(camera, 'camera')?.snapshotUrl ?? null;
   // The snapshot is Willo's OWN backend endpoint now (relayed over the
   // tunnel), which is Oxy-authenticated — never a raw Home Assistant URL, so
@@ -38,7 +58,7 @@ export function RealCameraCard({ camera, height = 194, width }: { camera: Device
 }
 
 export function CameraCard({ garden = false, height = 194, showBadge = true, label, width }: { garden?: boolean; height?: number; showBadge?: boolean; label?: string; width?: number }) {
-  const { setSheet } = useHome();
+  const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   const [muted, setMuted] = useState(true);
   return <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>

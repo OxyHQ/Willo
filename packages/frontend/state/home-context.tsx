@@ -42,14 +42,9 @@ export type HomeSetupStage = 'resolving' | 'needs-home' | 'needs-pairing' | 'rea
 /** One Home the signed-in person actively belongs to, as listed by `GET /homes/me`. */
 export type HomeSummary = { id: string; name: string | null };
 
-type HomeContextValue = {
+/** What the Home IS right now: which one, how far its setup got, its name and units. Changes rarely. */
+type HomeData = {
   state: HomeState;
-  dispatch: React.Dispatch<HomeAction>;
-  sheet: Sheet;
-  setSheet: React.Dispatch<React.SetStateAction<Sheet>>;
-  toast: string;
-  notify: (message: string) => void;
-  devices: Device[];
   setupStage: HomeSetupStage;
   /** The live tunnel connection, independent of `setupStage` — `ready` covers a paired Home whether or not it's currently connected, so a device tile that wants to show itself as offline/stale reads this instead. */
   tunnelConnected: boolean;
@@ -64,25 +59,16 @@ type HomeContextValue = {
    * needs to know about it).
    */
   demoMode: boolean;
-  setDemoMode: (value: boolean) => void;
   /**
    * The Home's shared display units, stored on the Home server-side so every
    * member sees the same thing. Until a Home has loaded (and in demo mode with
    * no Home at all) it's this device's own regional default.
    */
   unitSystem: UnitSystem;
-  /** Applies immediately, then saves to the Home; a failed save reverts and says so. */
-  setUnitSystem: (value: UnitSystem) => void;
   /** Every Home the signed-in person actively belongs to. Empty until `GET /homes/me` answers (or if it never does). */
   homes: HomeSummary[];
   /** The Home this device is currently showing, or `null` while none is selected (first launch, or mid "create a new home"). */
   homeId: string | null;
-  /** Leaves the current Home — closing its connection so none of its devices leak into the next — and connects to `id` instead. Remembered on this device. */
-  switchHome: (id: string) => void;
-  /** Leaves the current Home and puts this device back at `needs-home`, so onboarding creates and pairs a new one. The caller navigates to `onboarding`. */
-  startNewHome: () => void;
-  createHome: (name?: string) => Promise<void>;
-  requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   /**
    * The most recently issued pairing code for the current Home, or `null`
    * before one's been requested. Lives here, not as local state on the
@@ -95,6 +81,22 @@ type HomeContextValue = {
    * into Home Assistant.
    */
   pairingCode: { code: string; expiresAt: string } | null;
+};
+
+/** What you can DO to the Home. Every member is stable for the life of the app. */
+type HomeActions = {
+  dispatch: React.Dispatch<HomeAction>;
+  setSheet: React.Dispatch<React.SetStateAction<Sheet>>;
+  notify: (message: string) => void;
+  setDemoMode: (value: boolean) => void;
+  /** Applies immediately, then saves to the Home; a failed save reverts and says so. */
+  setUnitSystem: (value: UnitSystem) => void;
+  /** Leaves the current Home — closing its connection so none of its devices leak into the next — and connects to `id` instead. Remembered on this device. */
+  switchHome: (id: string) => void;
+  /** Leaves the current Home and puts this device back at `needs-home`, so onboarding creates and pairs a new one. The caller navigates to `onboarding`. */
+  startNewHome: () => void;
+  createHome: (name?: string) => Promise<void>;
+  requestPairingCode: () => Promise<{ code: string; expiresAt: string }>;
   /**
    * The DEVICE-initiated counterpart to `requestPairingCode`: a Willo Green
    * appliance generates its own claim code (shown on its Vite status/QR
@@ -113,6 +115,12 @@ type HomeContextValue = {
   getAuthHeaders: () => Record<string, string>;
 };
 
+/** The transient UI the `Overlays` component draws on top of everything. */
+type OverlayState = {
+  sheet: Sheet;
+  toast: string;
+};
+
 /** Why claiming a device failed, so the screen can say it in the person's language instead of showing a raw message. */
 export class ClaimDeviceError extends Error {
   constructor(readonly reason: 'invalid-code' | 'failed') {
@@ -120,7 +128,10 @@ export class ClaimDeviceError extends Error {
   }
 }
 
-const HomeContext = createContext<HomeContextValue | null>(null);
+const HomeContext = createContext<HomeData | null>(null);
+const HomeActionsContext = createContext<HomeActions | null>(null);
+const DevicesContext = createContext<Device[] | null>(null);
+const OverlayContext = createContext<OverlayState | null>(null);
 
 export function HomeProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
@@ -437,15 +448,54 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
 
   const sendCommand = useCallback((id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command), []);
 
-  const value = useMemo(
-    () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders }),
-    [state, sheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders]
+  // Four contexts, not one, because these four change at completely different
+  // rates and a single value made every consumer re-render at the fastest of
+  // them: a Home Assistant push (several a second) or a 2.7s toast re-rendered
+  // every tile on screen. Each consumer now subscribes only to what it reads.
+  const actions = useMemo(
+    () => ({ dispatch, setSheet, notify, setDemoMode, setUnitSystem, switchHome, startNewHome, createHome, requestPairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders }),
+    [dispatch, setSheet, notify, setDemoMode, setUnitSystem, switchHome, startNewHome, createHome, requestPairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders]
   );
-  return <HomeContext.Provider value={value}>{children}</HomeContext.Provider>;
+  const data = useMemo(
+    () => ({ state, setupStage, tunnelConnected, homeName, demoMode, unitSystem, homes, homeId, pairingCode }),
+    [state, setupStage, tunnelConnected, homeName, demoMode, unitSystem, homes, homeId, pairingCode]
+  );
+  const overlay = useMemo(() => ({ sheet, toast }), [sheet, toast]);
+  return (
+    <HomeActionsContext.Provider value={actions}>
+      <HomeContext.Provider value={data}>
+        <DevicesContext.Provider value={devices}>
+          <OverlayContext.Provider value={overlay}>{children}</OverlayContext.Provider>
+        </DevicesContext.Provider>
+      </HomeContext.Provider>
+    </HomeActionsContext.Provider>
+  );
 }
 
-export function useHome(): HomeContextValue {
+/** Everything ABOUT the Home that changes slowly: which Home, how far setup got, its name and units. */
+export function useHome(): HomeData {
   const value = useContext(HomeContext);
+  if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
+  return value;
+}
+
+/** Everything you can DO to the Home. Stable for the life of the app, so reading it never costs a render. */
+export function useHomeActions(): HomeActions {
+  const value = useContext(HomeActionsContext);
+  if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
+  return value;
+}
+
+/** The live device list — the fastest-changing thing here, so only the screens that list devices read it. */
+export function useDevices(): Device[] {
+  const value = useContext(DevicesContext);
+  if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
+  return value;
+}
+
+/** The open sheet and the current toast, read by `Overlays` alone. */
+export function useOverlayState(): OverlayState {
+  const value = useContext(OverlayContext);
   if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
   return value;
 }

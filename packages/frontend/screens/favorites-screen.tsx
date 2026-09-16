@@ -8,9 +8,9 @@ import { Label, SectionTitle, Tile } from '@willo.sh/ui';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { CardStrip, PageScroll } from '../layout/page-layout';
 import { cardHeight } from '../layout/card-sizes';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import type { ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useDevices, useHome, useHomeActions } from '../state/home-context';
 import { tones, type Tone } from '@willo.sh/ui';
 import { formatTemperature } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,9 @@ const categories = [
   { id: 'climate', icon: 'climate', titleKey: 'favorites.categories.climate', countKey: 'favorites.counts.devices', count: 2, assistantCount: 2, tone: 'peach' },
 ] as const satisfies readonly { id: string; icon: IconName; titleKey: string; countKey: string; count: number; assistantCount: number; tone: Tone }[];
 export function FavoritesScreen({ onNavigate, withAssistant = false, header }: ScreenProps & { withAssistant?: boolean }) {
-  const { state, dispatch, setSheet, notify, devices } = useHome();
+  const { state } = useHome();
+  const { dispatch, setSheet, notify } = useHomeActions();
+  const devices = useDevices();
   const { compact, gap } = useResponsiveLayout();
   const { t } = useTranslation();
   const displayCategories = withAssistant ? [categories[0], categories[1], categories[3], categories[2]] : categories;

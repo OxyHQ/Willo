@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { PageScroll, SectionGrid } from '../layout/page-layout';
 import { AddButton, SectionTitle } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useDevices, useHomeActions } from '../state/home-context';
 import { type Device } from '../providers/types';
 import { RealCameraCard } from '../components/camera-card';
 import { SensorReadingsCard } from '../components/sensor-readings-card';
@@ -28,7 +28,8 @@ const CAMERA_DOMAINS = new Set(['camera', 'doorbell']);
 const READING_DOMAINS = new Set(['sensor', 'binary_sensor']);
 
 export function DevicesScreen({ onNavigate, header }: ScreenProps) {
-  const { setSheet, devices } = useHome();
+  const { setSheet } = useHomeActions();
+  const devices = useDevices();
   const { t } = useTranslation();
   // One pass over the catalogue per device push, not per render: the tunnel
   // replaces `devices` on every Home Assistant state change. Demo mode is a

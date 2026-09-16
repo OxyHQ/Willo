@@ -2,15 +2,16 @@ import React from 'react';
 import { assets } from '../data/assets';
 import { Pressable, View } from 'react-native';
 import { type Navigate } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useHome, useHomeActions } from '../state/home-context';
 import { ContentWidth } from '../layout/page-layout';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { Icon } from '@willo.sh/ui';
 import { Avatar, IconButton, Label } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 export function useAccountMenu(onNavigate: Navigate) {
-  const { setSheet, homeName } = useHome();
+  const { homeName } = useHome();
+  const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   return () => setSheet({ kind: 'menu', title: homeName, options: [
     { label: homeName, selected: true, onPress: () => setSheet(null) },
@@ -55,7 +56,7 @@ export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
 }
 export function ClassicHeader({ title, onNavigate, home = false, filter, notifications = false }: { title: string; onNavigate: Navigate; home?: boolean; filter?: () => void; notifications?: boolean }) {
   const account = useAccountMenu(onNavigate);
-  const { setSheet } = useHome();
+  const { setSheet } = useHomeActions();
   const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();

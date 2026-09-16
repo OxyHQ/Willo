@@ -4,9 +4,9 @@ import { Icon, type IconName } from '@willo.sh/ui';
 import { AddButton, Label, SectionTitle } from '@willo.sh/ui';
 import { RoutineRow } from '../components/routine-row';
 import { CardStrip, PageColumns, PageScroll } from '../layout/page-layout';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import type { ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useDevices, useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import type { ParseKeys } from 'i18next';
@@ -27,7 +27,9 @@ function formatRoutineTime(hour: number, minute: number, timeFormat: Intl.DateTi
   return { time, period };
 }
 export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, notify, devices, sendCommand } = useHome();
+  const { state } = useHome();
+  const { dispatch, notify, sendCommand } = useHomeActions();
+  const devices = useDevices();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { compact, split } = useResponsiveLayout();
@@ -60,7 +62,8 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
   </View>;
 }
 export function RoutinesScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, notify } = useHome();
+  const { state } = useHome();
+  const { dispatch, notify } = useHomeActions();
   const { t } = useTranslation();
   return <View className="min-h-0 flex-1 bg-card">
     <PageScroll bottom={96}>{header}<PageColumns>

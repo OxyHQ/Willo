@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, ScrollView, View, type ScrollViewProps } from 'react-native';
 import { CONTENT_MAX } from './metrics';
-import { useResponsiveLayout } from './responsive-context';
+import { useResponsiveLayout } from './use-responsive-layout';
 
 const IS_WEB = Platform.OS === 'web';
 

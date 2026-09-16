@@ -2,11 +2,11 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { Label } from '@willo.sh/ui';
-import { useHome } from '../state/home-context';
+import { useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 export function RoutineRow({ title, description, icon, playable = true, onRun }: { title: string; description: string; icon: IconName; playable?: boolean; onRun?: () => void }) {
-  const { notify, setSheet } = useHome();
+  const { notify, setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const run = onRun ?? (() => notify(t('routines.startedInDemo', { title })));

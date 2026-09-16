@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Label } from '@willo.sh/ui';
 import { ContentWidth } from '../layout/page-layout';
-import { ClaimDeviceError, useHome } from '../state/home-context';
+import { ClaimDeviceError, useHome, useHomeActions } from '../state/home-context';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { LOTTIE_ANIMATIONS } from '../data/lottie-animations';
@@ -32,7 +32,7 @@ function willoDeviceName(deviceModel: string | null | undefined, t: TFunction): 
 }
 
 function CreateHomeStep() {
-  const { createHome, notify } = useHome();
+  const { createHome, notify } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const [name, setName] = useState('');
@@ -97,7 +97,7 @@ function CreateHomeStep() {
  * appliance.
  */
 function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => void }) {
-  const { claimDevice, notify } = useHome();
+  const { claimDevice, notify } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const [mode, setMode] = useState<'detecting' | 'found' | 'manual'>('detecting');
@@ -284,7 +284,8 @@ function formatCountdown(remainingMs: number): string {
 
 /** The OLD, app-shows-the-code flow — kept as `ClaimDeviceStep`'s "connect manually" fallback, still the real path for a self-hosted Home Assistant + the `willo` HACS integration installed by hand. */
 function PairingStep({ onBack }: { onBack: () => void }) {
-  const { requestPairingCode, pairingCode: pairing, notify } = useHome();
+  const { pairingCode: pairing } = useHome();
+  const { requestPairingCode, notify } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);

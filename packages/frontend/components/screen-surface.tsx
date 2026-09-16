@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
 import { useHome } from '../state/home-context';
-import { type Navigate, type ScreenId } from '../data/screens';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { noTabScreens, type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 
 /**
  * A screen's own content: header + `ContentPanel` + body. The nav rail and
@@ -62,8 +63,9 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
   /** Shown instead of the screen when this Home isn't set up yet. Only the screens that have something to say about setup pass one; the rest get a spinner. */
   renderSetupPrompt?: () => React.ReactNode;
 }) {
-  const { width, gutter } = useResponsiveLayout();
+  const { width, gutter, compact } = useResponsiveLayout();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const { setupStage, demoMode } = useHome();
   const router = useRouter();
@@ -106,6 +108,14 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
   // to a tap. Reads 0 wherever the bar isn't shown (desktop, native), so
   // this is a harmless no-op there.
   const bottomEdgeInset = useBottomEdgeInset();
+  // On native the bar is a plain flow sibling that already carries the gesture
+  // bar's inset (`bottom-nav.tsx`), so content above it needs nothing. The
+  // screens that DON'T show it — the full-screen ones in `noTabScreens`, and
+  // every screen on desktop — have nothing between them and the bottom edge,
+  // so they clear it themselves. Both values are 0 wherever they don't apply,
+  // and taking the larger keeps web (which claims a footprint including the
+  // inset) from adding the inset twice.
+  const bottomInset = Math.max(bottomEdgeInset, compact && !noTabScreens.includes(screen) ? 0 : insets.bottom);
   // `ContentPanel`'s viewport-mode overlays need to know how tall the sticky
   // header actually is so their own sticky math starts below it instead of at
   // true viewport top (see `overlayTopOffset`'s doc comment in Bloom) — real,
@@ -127,7 +137,11 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
     // `AskHeader`/`ClassicHeader`/the other headers paint a background of
     // their own (see their own doc comments), so the gradient shows straight
     // through without anything needing to opt out of an opaque fill.
-    <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter }]}>{node}</View>
+    // `paddingTop: insets.top` here rather than in each of the six headers:
+    // the gradient above then runs behind the status bar while the header's
+    // own row starts below it, which is what draws the notch area as part of
+    // the screen instead of a blank strip above it.
+    <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter, paddingTop: insets.top }]}>{node}</View>
   );
   let content: React.ReactNode = renderContent(combineHeader ? bleedHeader(header) : undefined);
 
@@ -178,7 +192,7 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
         // Mobile's combined header has no such problem (see `bleedHeader`'s
         // gradient instead, which needs to fade rather than hard-cut), so
         // this only applies to this branch.
-        <View className="bg-background" style={webStickyHeaderStyle} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
+        <View className="bg-background" style={[webStickyHeaderStyle, { paddingTop: insets.top }]} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
           {header}
         </View>
       )}
@@ -188,7 +202,7 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
             that the panel starts near it. The sticky header above pushes
             where the panel visually starts without moving the overlay's own
             math, so without this the overlay would paint over the header. */}
-        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomEdgeInset }}>
+        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomInset }}>
           {content}
         </ContentPanel>
       </View>

@@ -28,22 +28,30 @@ const NESTED_VIEWBOX_ICONS: Partial<Record<IconName, { viewBox: string; path: st
     path: 'M154-412v-136h652v136H154Z',
   },
 };
-type Props = { name: IconName; size?: number; color?: string; filled?: boolean; strokeWidth?: number };
-/** Small SVG glyphs, shared across native and web; no platform-specific icon font. */
-export function Icon({ name, size = 22, color = '#202124', filled = false, strokeWidth = 1.75 }: Props) {
-  const symbols: Record<IconName, React.ReactNode> = {
+/**
+ * Every glyph, at module scope rather than rebuilt inside `Icon`: the table
+ * holds ~260 JSX elements and only one of them is ever used, so building it
+ * per render allocated thousands of throwaway elements on a screen full of
+ * tiles. The dozen glyphs that tint a dot or swap a stroke are functions of
+ * the colour and fill they need; the rest are plain nodes, since the parent
+ * `<Svg>` already carries `stroke`/`fill` for them.
+ */
+/** The glyphs whose art has a solid variant, so `filled` means something for them. */
+const FILLABLE = new Set<IconName>(['heart', 'home', 'lock', 'light', 'play', 'sparkle']);
+type Glyph = React.ReactNode | ((tint: { color: string; filled: boolean }) => React.ReactNode);
+const SYMBOLS: Record<IconName, Glyph> = {
     fan: <><Circle cx="12" cy="12" r="2"/><Path d="M11 10C5 9 5 4 9 3c4-1 7 1 4 7M14 11c1-6 6-6 7-2 1 4-1 7-7 4M13 14c6 1 6 6 2 7-4 1-7-1-4-7M10 13c-1 6-6 6-7 2-1-4 1-7 7-4"/></>,
     garage: <><Path d="m2 9 10-6 10 6v12H2Z"/><Path d="M6 21V11h12v10M6 14h12M6 17h12"/></>,
     history: <><Path d="M3 11a9 9 0 1 1 2.6 7M3 5v6h6M12 7v5l4 2"/></>,
     devices: <><Path d="M14 17H2V4h17v4M1 21h13"/><Rect x="16" y="10" width="6" height="12" rx="1"/><Path d="M18 19h2"/></>,
-    thermometer: <><Path d="M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Z"/><Path d="M12 7v10"/><Circle cx="12" cy="18" r="1.5" fill={color}/></>,
-    home: filled ? <Path fillRule="evenodd" d="m3.8 10 8.2-7 8.2 7v10H3.8Z M9 20v-7h6v7Z"/> : <><Path d="m3.8 10 8.2-7 8.2 7v10H3.8Z"/><Path d="M9 20v-7h6v7"/></>,
+    thermometer: ({ color }) => <><Path d="M9 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Z"/><Path d="M12 7v10"/><Circle cx="12" cy="18" r="1.5" fill={color}/></>,
+    home: ({ filled }) => filled ? <Path fillRule="evenodd" d="m3.8 10 8.2-7 8.2 7v10H3.8Z M9 20v-7h6v7Z"/> : <><Path d="m3.8 10 8.2-7 8.2 7v10H3.8Z"/><Path d="M9 20v-7h6v7"/></>,
     heart: <Path d="M20.8 4.9a5.6 5.6 0 0 0-8 .1l-.8.8-.8-.8a5.6 5.6 0 0 0-8 7.9L12 21l8.8-8.1a5.6 5.6 0 0 0 0-8Z"/>,
     grid: <><Rect x="3" y="3" width="7" height="7" rx="1"/><Rect x="14" y="3" width="7" height="7" rx="1"/><Rect x="3" y="14" width="7" height="7" rx="1"/><Rect x="14" y="14" width="7" height="7" rx="1"/></>,
     camera: <><Rect x="2.5" y="5.5" width="13" height="13" rx="2"/><Path d="m15.5 10 6-3.5v11l-6-3.5"/></>,
     light: <><Path d="M8 15c-.6-2-3-3-3-6a7 7 0 0 1 14 0c0 3-2.4 4-3 6Z"/><Path d="M8.5 18h7M10 21h4"/></>,
-    wifi: <><Path d="M2 8a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><Circle cx="12" cy="20" r="1" fill={color} stroke="none"/></>,
-    lock: <><Rect x="5" y="10" width="14" height="12" rx="2"/><Path d="M8 10V6a4 4 0 0 1 8 0v4"/><Circle cx="12" cy="15" r="1" stroke={filled ? 'white' : color} fill={filled ? 'white' : color}/><Path d="M12 16v2" stroke={filled ? 'white' : color}/></>,
+    wifi: ({ color }) => <><Path d="M2 8a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><Circle cx="12" cy="20" r="1" fill={color} stroke="none"/></>,
+    lock: ({ color, filled }) => <><Rect x="5" y="10" width="14" height="12" rx="2"/><Path d="M8 10V6a4 4 0 0 1 8 0v4"/><Circle cx="12" cy="15" r="1" stroke={filled ? 'white' : color} fill={filled ? 'white' : color}/><Path d="M12 16v2" stroke={filled ? 'white' : color}/></>,
     unlock: <><Rect x="5" y="10" width="14" height="12" rx="2"/><Path d="M8 10V6a4 4 0 0 1 7.6-1.8"/><Circle cx="12" cy="15" r="1"/></>,
     climate: <><Path d="M6 3c-6 6 6 9 0 18M12 3c-6 6 6 9 0 18M18 3c-6 6 6 9 0 18"/></>,
     plus: <Path d="M12 4v16M4 12h16"/>, minus: <Path d="M5 12h14"/>,
@@ -74,28 +82,28 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     'thumb-down': <><G rotation="180" origin="12,12"><Path d="M9 21H4V10h5M9 10l5-8 2 1-1 7h5l1 2-3 9H9Z"/></G></>,
     'volume-off': <><Path d="M11 4 6 9H2v6h4l5 5zM16 9l6 6M22 9l-6 6"/></>,
     'camera-off': <><Path d="M9 5h6v8M4 5H2v14h13v-1M15 10l6-3v12l-4-2M2 2l20 20"/></>,
-    alert: <><Path d="m12 2 10 10-10 10L2 12Z" fill={color} stroke="none"/><Path d="M12 7v6M12 16v.2" stroke="white" strokeWidth="2"/></>,
+    alert: ({ color }) => <><Path d="m12 2 10 10-10 10L2 12Z" fill={color} stroke="none"/><Path d="M12 7v6M12 16v.2" stroke="white" strokeWidth="2"/></>,
     back: <Path d="M20 12H4m6-7-7 7 7 7"/>, check: <Path d="m4 12 5 5L20 6"/>,
     filter: <><Path d="M3 5h18M6 12h12M10 19h4"/></>,
     globe: <><Circle cx="12" cy="12" r="9"/><Path d="M3 12h18M12 3a19 19 0 0 1 0 18 19 19 0 0 1 0-18Z"/></>,
     info: <><Circle cx="12" cy="12" r="9"/><Path d="M12 10v7M12 7v.2"/></>,
     moon: <Path d="M21 14a9 9 0 0 1-11-11A9 9 0 1 0 21 14Z"/>,
-    battery: <><Rect x="2" y="6" width="17" height="12" rx="1" fill={color}/><Path d="M21 10v4" strokeWidth="2.5"/></>,
+    battery: ({ color }) => <><Rect x="2" y="6" width="17" height="12" rx="1" fill={color}/><Path d="M21 10v4" strokeWidth="2.5"/></>,
     signal: <><Path d="M4 18v-2M9 18v-6M14 18V8M19 18V4" strokeWidth="3"/></>,
     'air-conditioner': <><Rect x="2" y="5" width="20" height="8" rx="2"/><Path d="M5 9h14M7 17c1.5 0 1.5-2 3-2M14 17c1.5 0 1.5-2 3-2M7 21c1.5 0 1.5-2 3-2M14 21c1.5 0 1.5-2 3-2"/></>,
     heater: <><Rect x="3" y="4" width="18" height="16" rx="2"/><Path d="M8 4v16M12 4v16M16 4v16M3 8h18M3 16h18"/></>,
     purifier: <><Rect x="5" y="3" width="14" height="18" rx="3"/><Circle cx="12" cy="13" r="3.5"/><Path d="M9 7h6"/></>,
     humidifier: <><Rect x="6" y="10" width="12" height="11" rx="3"/><Path d="M12 3c2 2.5 3 4 3 5.2A3 3 0 0 1 9 8.2C9 7 10 5.5 12 3Z"/></>,
-    'air-fryer': <><Rect x="4" y="3" width="16" height="18" rx="3"/><Path d="M4 14h16M8 7h5"/><Circle cx="16.5" cy="7" r="1.2" fill={color}/></>,
-    oven: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 9h18"/><Rect x="6" y="12" width="12" height="6" rx="1"/><Circle cx="7" cy="6" r="1" fill={color}/><Circle cx="11" cy="6" r="1" fill={color}/></>,
-    dishwasher: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 8h18"/><Circle cx="12" cy="14.5" r="4"/><Circle cx="7" cy="5.5" r="0.9" fill={color}/></>,
-    washer: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Circle cx="12" cy="14" r="5"/><Circle cx="12" cy="14" r="2"/><Circle cx="7" cy="6" r="0.9" fill={color}/></>,
+    'air-fryer': ({ color }) => <><Rect x="4" y="3" width="16" height="18" rx="3"/><Path d="M4 14h16M8 7h5"/><Circle cx="16.5" cy="7" r="1.2" fill={color}/></>,
+    oven: ({ color }) => <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 9h18"/><Rect x="6" y="12" width="12" height="6" rx="1"/><Circle cx="7" cy="6" r="1" fill={color}/><Circle cx="11" cy="6" r="1" fill={color}/></>,
+    dishwasher: ({ color }) => <><Rect x="3" y="3" width="18" height="18" rx="2"/><Path d="M3 8h18"/><Circle cx="12" cy="14.5" r="4"/><Circle cx="7" cy="5.5" r="0.9" fill={color}/></>,
+    washer: ({ color }) => <><Rect x="3" y="3" width="18" height="18" rx="2"/><Circle cx="12" cy="14" r="5"/><Circle cx="12" cy="14" r="2"/><Circle cx="7" cy="6" r="0.9" fill={color}/></>,
     dryer: <><Rect x="3" y="3" width="18" height="18" rx="2"/><Circle cx="12" cy="14" r="5"/><Path d="M10 14c1-1.5 3 1.5 4 0M7 6h3"/></>,
     coffee: <><Path d="M4 10h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-5ZM17 11h2a2 2 0 0 1 0 5h-2M8 3v3M12 3v3"/></>,
     doorbell: <><Rect x="6" y="2" width="12" height="20" rx="4"/><Circle cx="12" cy="8" r="2"/><Path d="M9 14h6M9 17h6"/></>,
     leak: <><Path d="M12 3c3.5 4.2 5 6.6 5 8.8A5 5 0 0 1 7 11.8C7 9.6 8.5 7.2 12 3Z"/><Path d="M3 21h18"/></>,
-    smoke: <><Circle cx="12" cy="9" r="5"/><Circle cx="12" cy="9" r="1.4" fill={color}/><Path d="M5 17c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5M5 21c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5"/></>,
-    door: <><Path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><Circle cx="15.5" cy="12" r="1.2" fill={color}/></>,
+    smoke: ({ color }) => <><Circle cx="12" cy="9" r="5"/><Circle cx="12" cy="9" r="1.4" fill={color}/><Path d="M5 17c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5M5 21c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5"/></>,
+    door: ({ color }) => <><Path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><Circle cx="15.5" cy="12" r="1.2" fill={color}/></>,
     window: <><Rect x="3" y="3" width="18" height="18" rx="1"/><Path d="M12 3v18M3 12h18"/></>,
     energy: <><Path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></>,
     // Never actually read — `alia-mini` returns via the `NESTED_VIEWBOX_ICONS`
@@ -105,8 +113,13 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     'alia-mini': null,
     'add-bold': null,
     'remove-bold': null,
-  };
-  const fillable = ['heart', 'home', 'lock', 'light', 'play', 'sparkle'].includes(name);
+};
+
+type Props = { name: IconName; size?: number; color?: string; filled?: boolean; strokeWidth?: number };
+/** Small SVG glyphs, shared across native and web; no platform-specific icon font. */
+export function Icon({ name, size = 22, color = '#202124', filled = false, strokeWidth = 1.75 }: Props) {
+  const glyph = SYMBOLS[name];
+  const fillable = FILLABLE.has(name);
   // `accessibilityElementsHidden` is an iOS-only RN prop; react-native-svg's
   // web build forwards props straight to the DOM rather than translating
   // them, so passing it on web reaches a real <svg> element and React warns.
@@ -118,5 +131,5 @@ export function Icon({ name, size = 22, color = '#202124', filled = false, strok
     // variant of this art the way the hand-drawn icons above have one.
     return <Svg width={size} height={size} viewBox={nested.viewBox} {...hiddenFromAccessibilityTree}><Path d={nested.path} fill={color}/></Svg>;
   }
-  return <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled && fillable ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...hiddenFromAccessibilityTree}>{symbols[name]}</Svg>;
+  return <Svg width={size} height={size} viewBox="0 0 24 24" fill={filled && fillable ? color : 'none'} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" {...hiddenFromAccessibilityTree}>{typeof glyph === 'function' ? glyph({ color, filled }) : glyph}</Svg>;
 }

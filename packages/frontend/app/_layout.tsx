@@ -6,6 +6,7 @@ import { Platform, StatusBar, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BloomProvider } from '@oxy.so/bloom/provider';
+import { useTheme } from '@oxy.so/bloom/theme';
 import { OxyProvider } from '@oxy.so/services';
 import { HomeProvider } from '../state/home-context';
 import { Overlays } from '../components/overlays';
@@ -14,7 +15,7 @@ import { BottomNav } from '../components/bottom-nav';
 import { noTabScreens } from '../data/screens';
 import { screenForPathname } from '../data/screen-routes';
 import { useScreenNavigate } from '../screens/use-screen-navigate';
-import { ResponsiveProvider, useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import * as WebBrowser from 'expo-web-browser';
 
 // Complete Home Assistant's existing web OAuth popup flow.
@@ -45,11 +46,22 @@ function AppShell() {
   const onNavigate = useScreenNavigate(screen);
   const insets = useSafeAreaInsets();
   const { compact } = useResponsiveLayout();
+  const { isDark } = useTheme();
   const hasTabs = !noTabScreens.includes(screen);
 
+  // The shell holds NO vertical safe-area space of its own: the app draws
+  // edge to edge, so a screen's content scrolls up behind the status bar and
+  // down behind the gesture bar rather than stopping at a blank strip, the
+  // same as Mention. Whoever sits AT an edge owns that edge's inset instead —
+  // the header and the panel's content in `screen-surface.tsx` for the top and
+  // bottom, `BottomNav` for its own bar. Left/right stay here: they are 0 in
+  // portrait and, in landscape, apply to every screen alike.
   return (
     <View className="min-h-0 min-w-0 flex-1 bg-background" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
-      <View style={{ height: insets.top }} />
+      {/* Now that content sits behind the status bar, the clock and icons have
+          to read against whatever is under them — dark glyphs on Willo's light
+          shell, light ones in dark mode. */}
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <View testID="screen-surface" className={`relative min-h-0 min-w-0 flex-1 bg-background ${Platform.OS === 'web' ? '' : 'overflow-hidden'}`}>
@@ -63,7 +75,7 @@ function AppShell() {
           {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
         </View>
       </View>
-      {compact && hasTabs ? <BottomNav screen={screen} onNavigate={onNavigate} /> : <View style={{ height: insets.bottom }} />}
+      {compact && hasTabs && <BottomNav screen={screen} onNavigate={onNavigate} />}
     </View>
   );
 }
@@ -100,13 +112,10 @@ export default function RootLayout() {
               onError: (error, locale) => console.error(`Failed to switch Willo's language to ${locale}:`, error),
             }}
           >
-            <ResponsiveProvider>
-              <HomeProvider>
-                <StatusBar barStyle="dark-content" />
-                <AppShell />
-                <Overlays />
-              </HomeProvider>
-            </ResponsiveProvider>
+            <HomeProvider>
+              <AppShell />
+              <Overlays />
+            </HomeProvider>
           </OxyProvider>
         </BloomProvider>
       </GestureHandlerRootView>

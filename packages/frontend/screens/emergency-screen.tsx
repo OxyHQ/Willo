@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { PageScroll, ContentWidth } from '../layout/page-layout';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { CameraCard } from '../components/camera-card';
 import { Icon } from '@willo.sh/ui';
 import { IconButton, Label } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useHome, useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 export function EmergencyHeader({ onNavigate }: ScreenProps) {
@@ -14,7 +14,8 @@ export function EmergencyHeader({ onNavigate }: ScreenProps) {
   return <ContentWidth maxWidth={1200}><View className="items-start pt-2"><IconButton icon="close" label={t('emergency.close')} onPress={() => onNavigate('home')}/></View></ContentWidth>;
 }
 export function EmergencyScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, setSheet } = useHome();
+  const { state } = useHome();
+  const { dispatch, setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const { compact, gutter } = useResponsiveLayout();

@@ -9,9 +9,9 @@ import { DeviceTile } from '../components/device-tile';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { PageScroll } from '../layout/page-layout';
 import { cameraRows, cardHeight, cardRowsFor } from '../layout/card-sizes';
-import { useResponsiveLayout } from '../layout/responsive-context';
+import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import type { ScreenProps } from '../data/screens';
-import { useHome } from '../state/home-context';
+import { useDevices, useHome, useHomeActions } from '../state/home-context';
 import { type Device } from '../providers/types';
 import { SENSOR_CARD_LIMIT, selectRelevantSensors } from '../providers/sensor-readings';
 import { formatTemperature } from '../providers/unit-system';
@@ -42,7 +42,9 @@ const categoryForDomain = (domain: string): Category =>
 const FAVOURITE_DOMAINS = ['light', 'lock', 'cover', 'vacuum', 'media_player'];
 
 export function HomeScreen({ onNavigate, header }: ScreenProps) {
-  const { state, dispatch, setSheet, devices, sendCommand, demoMode, unitSystem } = useHome();
+  const { state, demoMode, unitSystem } = useHome();
+  const { dispatch, setSheet, sendCommand } = useHomeActions();
+  const devices = useDevices();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { compact, columns, gutter, gap } = useResponsiveLayout();

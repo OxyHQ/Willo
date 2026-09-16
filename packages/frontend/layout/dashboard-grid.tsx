@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, type LayoutChangeEvent } from 'react-native';
 import { packMasonry } from './metrics';
-import { useResponsiveLayout } from './responsive-context';
+import { useResponsiveLayout } from './use-responsive-layout';
 
 export type DashboardCard = {
   id: string; content: React.ReactNode; estimatedHeight: number;

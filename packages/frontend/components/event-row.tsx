@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
 import { type HomeActivityEvent } from '../providers/types';
-import { useHome } from '../state/home-context';
+import { useHomeActions } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { Label } from '@willo.sh/ui';
@@ -42,7 +42,7 @@ export function dayBucket(occurredAt: string, t: TFunction, language: string): s
 }
 
 export function EventRow({ event, card = false }: { event: HomeActivityEvent; card?: boolean }) {
-  const { setSheet } = useHome();
+  const { setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { titleKey, icon } = describeEvent(event);
