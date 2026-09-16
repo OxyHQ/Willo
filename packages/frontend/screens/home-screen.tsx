@@ -247,14 +247,16 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           it was undercounting the one width that's ever really on screen.
           One `onLayout` per name per language — a label only changes when the
           UI language does, and then its new width is measured once too.
-          Android delivers the first event for an absolutely-positioned `Text`
-          with no `layout` payload at all; that one carries no measurement, so
-          it's ignored and the real event that follows does the measuring. */}
+          The measurement is read out of the event BEFORE the state updater
+          runs: React pools layout events and nulls out `nativeEvent` as soon
+          as the handler returns, so reading it inside the updater — which
+          runs later — crashed the screen on Android with "Cannot read
+          property 'layout' of null". */}
       {compact && categories.map(category => labelWidths[`${i18n.language}:${category.name}`] === undefined && (
         <Label key={`measure-${i18n.language}-${category.name}`} numberOfLines={1}
           onLayout={event => {
-            const measured = event.nativeEvent.layout;
-            if (measured) setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: measured.width }));
+            const measured = event.nativeEvent.layout.width;
+            setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: measured }));
           }}
           className="text-[14px] font-medium" style={{ position: 'absolute', opacity: 0 }} pointerEvents="none">
           {t(category.labelKey)}

@@ -94,8 +94,16 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // "ended, but never activated" from "ended, activated"); that's a tap,
   // UNLESS the long-press already fired for this same touch (`longPressFired`
   // below), since a long, still hold ALSO never reaches `minDistance`.
+  // `runOnJS(true)` on both gestures below: RNGH runs a gesture's callbacks as
+  // worklets on the UI thread unless told otherwise, and every callback here
+  // is ordinary React — `setPressed`, `onPress`, a ref read. On web there is
+  // no separate runtime so it worked by accident; on Android each touch threw
+  // `[Worklets] Tried to synchronously call a Remote Function. Called "bound
+  // dispatchSetState" on the UI Runtime`. None of this work belongs on the UI
+  // thread anyway: it all ends in a React state update.
   const longPressFired = useRef(false);
   const longPressGesture = Gesture.LongPress()
+    .runOnJS(true)
     .minDuration(500)
     .onTouchesDown(() => setPressed(true))
     .onFinalize(() => setPressed(false))
@@ -110,6 +118,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // when `onBrightnessChange` is unset (a plain toggle-only tile) — this
   // gesture is also this tile's only path to a tap now, not just its drag.
   const panGesture = Gesture.Pan()
+    .runOnJS(true)
     .minDistance(10)
     .onTouchesDown(() => { longPressFired.current = false; setPressed(true); })
     .onStart(() => setBodyCursorHidden(true))
