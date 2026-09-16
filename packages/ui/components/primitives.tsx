@@ -6,6 +6,8 @@ import { Icon, type IconName } from './icon';
 import { colors, tones, type Tone } from '../theme/tokens';
 import { useTheme } from '@oxy.so/bloom/theme';
 const IS_WEB = Platform.OS === 'web';
+/** How often a drag is allowed to reach the real device. ~16 commands a second is smoother than the eye and a fraction of a 120 Hz drag's frames. */
+const COMMIT_INTERVAL_MS = 60;
 /**
  * Web has a real mouse cursor to hide while dragging a slider (matching a
  * native OS slider's own feel); native has no cursor at all, so this is a
@@ -65,7 +67,7 @@ function TileFace({ icon, title, subtitle, color, labelClassName = '', labelStyl
  * counterpart, and brightness on an off device doesn't occur in practice.
  */
 const TONE_FILL_CLASS: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue: 'bg-info', yellow: 'bg-secondary', peach: 'bg-tertiary', green: 'bg-success' };
-export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; brightness?: number; onBrightnessChange?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
+export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, onBrightnessCommit, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; brightness?: number; /** Every step of the drag. Keep it cheap — it exists so the fill and the subtitle move with the finger. */ onBrightnessChange?: (percent: number) => void; /** The value worth acting on: rate-limited during the drag, then once more when it ends. This is where the command to the real device goes. */ onBrightnessCommit?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
   const palette = tones[tone];
   const { colors: themeColors, isDark } = useTheme();
   // Tones migrated to Bloom's own theme so far (`tokens.ts`) need the SAME
@@ -98,8 +100,10 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // `useOptimisticValue` and its call sites in `home-screen.tsx`/
   // `devices-screen.tsx`, which pass the reconciled value down as both
   // `brightness` and their own `subtitle`.
-  /** The last percent the drag actually reported, so a frame that lands on the same one sends nothing. */
+  /** The last percent the drag reported, so a frame that lands on the same one does nothing at all. */
   const lastReported = useRef<number | null>(null);
+  /** The last percent handed to `onBrightnessCommit`, and when — a drag commits at most every `COMMIT_INTERVAL_MS`, plus once at the end. */
+  const lastCommit = useRef({ percent: -1, at: 0 });
   // NOT a `Pressable`: a `Pressable`'s own touch responder claims a touch
   // before any sibling gesture recognizer — `Gesture.Native()` and (on a
   // second attempt) core `PanResponder`, both wrapped around a `Pressable`,
@@ -175,7 +179,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
         if (!success && !longPressFired.current) onPress();
       });
       return Gesture.Race(panGesture, longPressGesture);
-  }, [width, onPress, onLongPress, onBrightnessChange]);
+  }, [width, onPress, onLongPress, onBrightnessChange, onBrightnessCommit]);
   // Web-only (NativeWind no-ops `cursor-*` on native, where the concept
   // doesn't exist): a plain `View` + `GestureDetector`, unlike the
   // `Pressable` this used to be, gets none of the browser's own hover-cursor

@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Platform, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useClaimBottomEdge } from '@oxy.so/bloom/layout';
 import { TabBar, TabBarButton, type TabBarItem, type TabBarTheme } from '@oxy.so/bloom/tab-bar';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
@@ -13,18 +11,22 @@ import { tabs, isNavigationActive } from './navigation-items';
 const IS_WEB = Platform.OS === 'web';
 const ICON_SIZE = 21;
 
-// POSITIONING: under document-scroll on web (see `app/_layout.tsx`), a plain
-// flow sibling lands at the end of a tall scrolling document instead of the
-// window's bottom edge, so it must pin itself with `position: fixed` instead
-// — matching OxyHQ/Mention's `components/BottomBar.tsx`. NATIVE stays a plain
-// flow sibling, which already reserves its own space.
+// POSITIONING: Bloom's bar pins ITSELF with `position: absolute` against this
+// wrapper and publishes its own footprint (its height plus the gesture bar's
+// inset) to the bottom-edge registry, which `screen-surface.tsx` reads back to
+// pad content clear of it. So on NATIVE this wrapper is a zero-height flex
+// item at the end of the shell column: the bar lands on the window's bottom
+// edge and the screen scrolls behind it, all the way past the gesture line.
+// It used to be a real, opaque, inset-padded box instead, which is what made
+// content stop short of the bottom. On WEB the app scrolls the document, where
+// `absolute` would resolve against the tall page and scroll away, so the
+// wrapper pins to the viewport and the bar's own `absolute` resolves against
+// that — the same shape as OxyHQ/Mention's `components/BottomBar.tsx`.
 const webFixedStyle = IS_WEB
   ? asViewStyle({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 })
   : undefined;
 
 export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
-  const insets = useSafeAreaInsets();
-  const [height, setHeight] = useState(0);
   const { colors } = useTheme();
   const { t } = useTranslation();
   const activeIndex = tabs.findIndex(tab => isNavigationActive(screen, tab.screen));
@@ -38,15 +40,7 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate
     highlight: colors.primarySubtle,
   };
 
-  // Claims its own footprint (Bloom's bottom-edge registry) on web, where it
-  // floats fixed, so a screen's own content can pad itself clear of it
-  // instead of rendering underneath it. A no-op on native, where it's a plain
-  // flow sibling that already reserves its own space.
-  useClaimBottomEdge(IS_WEB ? height : 0);
-
-  return <View testID="bottom-navigation" className="bg-background px-1 pt-2"
-    onLayout={event => setHeight(event.nativeEvent.layout.height)}
-    style={[webFixedStyle, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+  return <View testID="bottom-navigation" style={webFixedStyle}>
     <TabBar activeIndex={activeIndex} onIndexChange={index => onNavigate(tabs[index].screen)} theme={tabBarTheme}>
       {tabs.map((tab, index) => {
         const item: TabBarItem = {

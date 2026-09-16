@@ -67,9 +67,15 @@ export const DeviceTile = React.memo(function DeviceTile({ device, height, grow 
   const dragCommand = drag?.command;
   const handlePress = useCallback(() => { if (command) sendCommand(device.id, command); }, [command, device.id, sendCommand]);
   const handleLongPress = useCallback(() => setSheet({ kind: 'realDevice', title: device.name, device }), [device, setSheet]);
-  const handleBrightnessChange = useMemo(
-    () => dragCommand && ((next: number) => { setPercent(next); sendCommand(device.id, dragCommand(next)); }),
-    [dragCommand, device.id, sendCommand, setPercent],
+  // Two rates, matching `Tile`'s two callbacks: the percent moves with the
+  // finger so the fill and the subtitle keep up, and only the rate-limited
+  // commit reaches the device. Sending on every step meant a command — and
+  // with it a new device list, and a re-render of the whole screen — a hundred
+  // times per drag, which is what made the sliders crawl.
+  const handleBrightnessChange = useMemo(() => dragCommand && setPercent, [dragCommand, setPercent]);
+  const handleBrightnessCommit = useMemo(
+    () => dragCommand && ((next: number) => sendCommand(device.id, dragCommand(next))),
+    [dragCommand, device.id, sendCommand],
   );
   return <Tile grow={grow} height={height} title={device.name}
     subtitle={describeDevice(drag ? withDraggedPercent(device, percent) : device, t, (value, unit) => formatTemperature(value, unit, unitSystem))}
@@ -80,6 +86,7 @@ export const DeviceTile = React.memo(function DeviceTile({ device, height, grow 
        still works — `onBrightnessChange` is what enables the gesture. */
     brightness={drag && active ? percent : undefined}
     onBrightnessChange={handleBrightnessChange}
+    onBrightnessCommit={handleBrightnessCommit}
     onPress={handlePress}
     onLongPress={handleLongPress}
     accessibilityHint={drag ? t('tile.dragHint') : t('tile.holdHint')}/>;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, ScrollView, View, type ScrollViewProps } from 'react-native';
 import { CONTENT_MAX } from './metrics';
+import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useResponsiveLayout } from './use-responsive-layout';
 
 const IS_WEB = Platform.OS === 'web';
@@ -22,13 +23,21 @@ export function ContentWidth({ children, maxWidth = CONTENT_MAX, padding = true 
 export function PageScroll({ children, maxWidth = CONTENT_MAX, bottom = 28, ...props }: ScrollViewProps & {
   children: React.ReactNode; maxWidth?: number; bottom?: number;
 }) {
+  // On native the bottom bar floats over the last rows of the screen (see
+  // `bottom-nav.tsx`), so the SCROLL runs to the window's bottom edge and its
+  // CONTENT stops above the bar — content passes behind it as you scroll
+  // instead of ending at a hard line above it. The bar publishes its own
+  // footprint, safe area included, and reads 0 on the screens that don't show
+  // one. Web's page already clears it at the panel (`screen-surface.tsx`),
+  // where the bar is fixed over a scrolling document.
+  const bottomEdgeInset = useBottomEdgeInset();
   if (IS_WEB) {
     return <View style={{ paddingBottom: bottom }}>
       <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
     </View>;
   }
   return <ScrollView {...props} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled"
-    className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: bottom }}>
+    className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: bottom + bottomEdgeInset }}>
     <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
   </ScrollView>;
 }

@@ -5,7 +5,7 @@ import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
 import { useHome } from '../state/home-context';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { noTabScreens, type Navigate, type ScreenId } from '../data/screens';
+import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
@@ -108,14 +108,15 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
   // to a tap. Reads 0 wherever the bar isn't shown (desktop, native), so
   // this is a harmless no-op there.
   const bottomEdgeInset = useBottomEdgeInset();
-  // On native the bar is a plain flow sibling that already carries the gesture
-  // bar's inset (`bottom-nav.tsx`), so content above it needs nothing. The
-  // screens that DON'T show it — the full-screen ones in `noTabScreens`, and
-  // every screen on desktop — have nothing between them and the bottom edge,
-  // so they clear it themselves. Both values are 0 wherever they don't apply,
-  // and taking the larger keeps web (which claims a footprint including the
-  // inset) from adding the inset twice.
-  const bottomInset = Math.max(bottomEdgeInset, compact && !noTabScreens.includes(screen) ? 0 : insets.bottom);
+  // WEB ONLY, and this is the same split Mention's own shell makes. There the
+  // bar is `position: fixed` over a document that scrolls past it, so the page
+  // itself has to end above it. On NATIVE the panel fills the window and the
+  // bar floats over its last few rows on purpose — that is what puts scrolling
+  // content behind the bar and behind the gesture line. The scroll inside it
+  // holds the clearance instead, so the content stops above the bar while the
+  // scroll keeps going (`PageScroll`). Adding it here as well would push the
+  // panel itself up and leave a dead band under it.
+  const panelBottomInset = Platform.OS === 'web' ? bottomEdgeInset : 0;
   // `ContentPanel`'s viewport-mode overlays need to know how tall the sticky
   // header actually is so their own sticky math starts below it instead of at
   // true viewport top (see `overlayTopOffset`'s doc comment in Bloom) — real,
@@ -202,7 +203,7 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
             that the panel starts near it. The sticky header above pushes
             where the panel visually starts without moving the overlay's own
             math, so without this the overlay would paint over the header. */}
-        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: bottomInset }}>
+        <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: panelBottomInset }}>
           {content}
         </ContentPanel>
       </View>
