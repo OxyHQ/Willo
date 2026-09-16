@@ -27,14 +27,23 @@ import * as WebBrowser from 'expo-web-browser';
 // Complete Home Assistant's existing web OAuth popup flow.
 WebBrowser.maybeCompleteAuthSession();
 
-// Sticky, not fixed: on web the containing block is the header+panel column,
-// which is as tall as the document (real document scroll — see `global.css`),
-// so `top: 0` keeps it in view for the whole scroll. Inert on native, where the
-// header above `shell:` is an ordinary sibling that stays put on its own.
-const webStickyStyle = Platform.OS === 'web' ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 }) : undefined;
-// The compact header hangs OVER the screen, which on web is the same sticky
-// position and on native an absolute one against the content box.
-const headerOverlayStyle = webStickyStyle ?? ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
+const IS_WEB = Platform.OS === 'web';
+/**
+ * How the one header stays at the top of the screen, which is the one thing
+ * the two platforms genuinely cannot share — they scroll differently.
+ *
+ * WEB scrolls the document (see `global.css`), so the header is `sticky`: it
+ * keeps its own space in the flow and pins there as the page moves under it.
+ * NATIVE has a viewport-clamped scene whose ScrollView owns the scroll, where
+ * `sticky` does not exist, so the header is an `absolute` overlay at the top
+ * of the panel and the scroll reserves its height instead.
+ *
+ * This is the same split, for the same reason, that OxyHQ/Mention makes in
+ * `components/shell/PanelChrome.tsx`.
+ */
+const headerStyle = IS_WEB
+  ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 })
+  : ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
 
 /**
  * The header, the nav rail and the bottom bar live HERE, outside the routed
@@ -66,7 +75,9 @@ function AppShell() {
   // `shell:` it is a real sibling and takes its own space, below it is pinned
   // over the panel and the screen reserves its height instead.
   const [headerHeight, setHeaderHeight] = useState(0);
-  const headerOverlaysContent = compact;
+  // A sticky header keeps its own space; an absolute one does not — so this is
+  // the only case where a screen has to reserve the header's height itself.
+  const headerOverlaysContent = !IS_WEB;
   const shellHeader = useMemo(
     () => ({ height: headerHeight, overlaysContent: headerOverlaysContent }),
     [headerHeight, headerOverlaysContent],
@@ -93,15 +104,23 @@ function AppShell() {
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <ScreenChrome screen={screen} onNavigate={onNavigate}>
-          <View testID="screen-surface" className="relative min-h-0 min-w-0 flex-1 gap-2">
-            {/* Above `shell:` the header is a real sibling with the column's
-                own `gap-2` under it; below, it is pinned over the panel (the
-                absolute wrapper further down) and this branch renders nothing.
-                The sibling paints a background on WEB only: there it is
-                sticky over a scrolling document and content would otherwise
-                show straight through it. On native nothing scrolls under it,
-                and the shell's own canvas is already behind it. */}
-            {!headerOverlaysContent && <View className="web:bg-background" style={webStickyStyle}>{header}</View>}
+          <View testID="screen-surface" className="relative min-h-0 min-w-0 flex-1">
+            {/* FIRST, always. `sticky` pins a box from where it already is,
+                so as the last child the web header only appeared once you had
+                scrolled to the bottom of the page — that is why it was missing
+                on mobile web. `absolute` ignores the flow, so on native the
+                position in the tree only decides paint order, which `zIndex`
+                settles anyway. */}
+            <View pointerEvents="box-none" style={headerStyle}>
+              {/* The header's background, on both platforms: solid at the top
+                  and transparent by the bottom, so content passing underneath
+                  dissolves into it rather than being cut off at a line. It is
+                  a real gradient rather than a CSS one because
+                  `backgroundImage` is web-only — with that, Android had no
+                  header background at all. */}
+              <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} colors={[colors.background, colors.background, 'transparent']} locations={[0, 0.6, 1]}/>
+              {header}
+            </View>
             <View className="relative min-h-0 min-w-0 flex-1">
               <ShellHeaderProvider value={shellHeader}>
                 {/* WEB: the window/document is the real scroller (the nav rail
@@ -110,18 +129,8 @@ function AppShell() {
                     `<Stack>`'s scene is viewport-clamped and would break that,
                     exactly as in OxyHQ/Mention's `_layout.tsx`. NATIVE has no
                     document-scroll equivalent and keeps `<Stack>`. */}
-                {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
+                {IS_WEB ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
               </ShellHeaderProvider>
-              {/* Pinned OVER the screen, with a fade under it, so content
-                  passes beneath rather than stopping at a line. A real
-                  gradient, not a CSS one: `backgroundImage` is web-only, and
-                  on Android the header had no background at all. */}
-              {headerOverlaysContent && (
-                <View pointerEvents="box-none" style={headerOverlayStyle}>
-                  <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} colors={[colors.background, colors.background, 'transparent']} locations={[0, 0.6, 1]}/>
-                  {header}
-                </View>
-              )}
             </View>
           </View>
         </ScreenChrome>
