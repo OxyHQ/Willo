@@ -26,7 +26,7 @@ function formatRoutineTime(hour: number, minute: number, timeFormat: Intl.DateTi
   const time = parts.filter(part => part.type !== 'dayPeriod').map(part => part.value).join('').trim();
   return { time, period };
 }
-export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
+export function AutomationsScreen({ onNavigate }: ScreenProps) {
   const { state } = useHome();
   const { dispatch, notify, sendCommand } = useHomeActions();
   const devices = useDevices();
@@ -36,8 +36,8 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
   // Building an `Intl.DateTimeFormat` costs far more than formatting with one, and this screen re-renders on every device push.
   const timeFormat = useMemo(() => new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }), [i18n.language]);
   const shown = upcoming.filter(item => !state.dismissedUpcoming.includes(item.id));
-  return <View className="min-h-0 flex-1 bg-card">
-    <PageScroll>{header}<PageColumns weights={[1, 1.35]}>
+  return <View className="min-h-0 flex-1">
+    <PageScroll><PageColumns weights={[1, 1.35]}>
       <View><SectionTitle>{t('automations.upcoming')}</SectionTitle><CardStrip gap={12}>
         {shown.length ? shown.map((item, index) => { const { time, period } = formatRoutineTime(item.hour, item.minute, timeFormat); return <View key={item.id}
           className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-primary-subtle' : 'bg-muted'}`}
@@ -61,12 +61,12 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
     </PageColumns></PageScroll>
   </View>;
 }
-export function RoutinesScreen({ onNavigate, header }: ScreenProps) {
+export function RoutinesScreen({ onNavigate }: ScreenProps) {
   const { state } = useHome();
   const { dispatch, notify } = useHomeActions();
   const { t } = useTranslation();
-  return <View className="min-h-0 flex-1 bg-card">
-    <PageScroll bottom={96}>{header}<PageColumns>
+  return <View className="min-h-0 flex-1">
+    <PageScroll bottom={96}><PageColumns>
       <View><SectionTitle>{t('automations.household')}</SectionTitle><View className="gap-2">
         <RoutineRow title={t('automations.demo.garageMotionLight')} description={t('automations.demo.oneStarterOneAction')} icon="settings"/>
         <RoutineRow title={t('demo.devices.movieMode')} description={t('automations.demo.oneStarterThreeActions')} icon="light" onRun={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? t('automations.movieStopped') : t('automations.movieStarted')); }}/>

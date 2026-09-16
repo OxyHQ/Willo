@@ -2,10 +2,11 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Image, type ImageSource } from 'expo-image';
 import { Platform, Pressable, Text, View, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Icon, type IconName } from './icon';
 import { colors, tones, type Tone } from '../theme/tokens';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { useHaptics } from '@oxy.so/bloom/hooks';
+import * as Haptics from 'expo-haptics';
 const IS_WEB = Platform.OS === 'web';
 /** How often a drag is allowed to reach the real device. ~16 commands a second is smoother than the eye and a fraction of a 120 Hz drag's frames. */
 const COMMIT_INTERVAL_MS = 60;
@@ -18,6 +19,27 @@ const COMMIT_INTERVAL_MS = 60;
 const EDGE_SNAP_PX = 16;
 /** A tick every ten percent while dragging — enough to feel the slider move, not enough to buzz. */
 const HAPTIC_STEP_PERCENT = 10;
+/**
+ * A tile is a physical control, so it answers like one: a tick when it toggles
+ * and one every ten percent under a drag.
+ *
+ * `expo-haptics` straight, not through Bloom's `useHaptics`, which loads it as
+ * an OPTIONAL peer and swallows both a failed load and a rejected
+ * `impactAsync` — so a haptic that never fires is indistinguishable from a
+ * device with them turned off. Here a real failure is logged once. No-ops on
+ * web, which has no haptics API.
+ */
+let hasWarnedAboutHaptics = false;
+function buzz(style: Haptics.ImpactFeedbackStyle) {
+  if (IS_WEB) return;
+  Haptics.impactAsync(style).catch((error: unknown) => {
+    if (hasWarnedAboutHaptics) return;
+    hasWarnedAboutHaptics = true;
+    console.error('Haptics are unavailable on this device:', error);
+  });
+}
+const tap = () => buzz(Haptics.ImpactFeedbackStyle.Light);
+const hold = () => buzz(Haptics.ImpactFeedbackStyle.Medium);
 /**
  * Web has a real mouse cursor to hide while dragging a slider (matching a
  * native OS slider's own feel); native has no cursor at all, so this is a
@@ -77,7 +99,7 @@ function TileFace({ icon, title, subtitle, color, labelClassName = '', labelStyl
  * counterpart, and brightness on an off device doesn't occur in practice.
  */
 const TONE_FILL_CLASS: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue: 'bg-info', yellow: 'bg-secondary', peach: 'bg-tertiary', green: 'bg-success' };
-export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessChange, onBrightnessCommit, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; brightness?: number; /** Every step of the drag. Keep it cheap — it exists so the fill and the subtitle move with the finger. */ onBrightnessChange?: (percent: number) => void; /** The value worth acting on: rate-limited during the drag, then once more when it ends. This is where the command to the real device goes. */ onBrightnessCommit?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
+export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessCommit, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; /** Where the fill rests when no finger is on the tile. While one is, the drag drives it on the UI thread instead. */ brightness?: number; /** The drag's value, rate-limited to `COMMIT_INTERVAL_MS` and sent once more when the finger lifts. Passing it is what turns the tile into a slider. */ onBrightnessCommit?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
   const palette = tones[tone];
   const { colors: themeColors, isDark } = useTheme();
   // Tones migrated to Bloom's own theme so far (`tokens.ts`) need the SAME
@@ -102,21 +124,25 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // to catch. It settles on the first layout and only moves when the tile
   // itself is resized.
   const [width, setWidth] = useState(0);
-  // `brightness` is trusted as-is — no local override here. A drag reading
-  // instant (not waiting for `onBrightnessChange`'s real round trip to a
-  // device to catch up) is the CALLER's concern, not this component's: the
-  // caller also builds a `subtitle` string ("On · 62%") from the same real
-  // percent, so it needs the identical live value for both — see
-  // `useOptimisticValue` and its call sites in `home-screen.tsx`/
-  // `devices-screen.tsx`, which pass the reconciled value down as both
-  // `brightness` and their own `subtitle`.
-  /** The last percent the drag reported, so a frame that lands on the same one does nothing at all. */
-  const lastReported = useRef<number | null>(null);
-  /** The last percent handed to `onBrightnessCommit`, and when — a drag commits at most every `COMMIT_INTERVAL_MS`, plus once at the end. */
-  const lastCommit = useRef({ percent: -1, at: 0 });
+  /**
+   * Where the drag has the fill, in percent, ON THE UI THREAD — and -1 while
+   * no finger is down, which is when the fill follows the `brightness` prop
+   * instead.
+   *
+   * The pan used to run its callbacks on the JS thread and set React state on
+   * every frame. At 120 Hz that is a render per frame competing with whatever
+   * the screen was already doing, which is exactly how a slider ends up
+   * lagging behind the finger it is supposed to be following. Now the fill is
+   * animated from a worklet and React hears about the drag only at
+   * `COMMIT_INTERVAL_MS`.
+   */
+  const dragPercent = useSharedValue(-1);
+  /** The last percent the drag settled on, so a frame that lands on the same one does nothing at all. */
+  const lastReported = useSharedValue(-1);
+  /** When the last commit went out, so the device hears about a drag at a sane rate. */
+  const lastCommitAt = useSharedValue(0);
   /** Which ten-percent step last buzzed, so the tick fires on crossing one rather than on every frame. */
-  const lastHapticStep = useRef(-1);
-  const haptic = useHaptics();
+  const lastHapticStep = useSharedValue(-1);
   // NOT a `Pressable`: a `Pressable`'s own touch responder claims a touch
   // before any sibling gesture recognizer — `Gesture.Native()` and (on a
   // second attempt) core `PanResponder`, both wrapped around a `Pressable`,
@@ -146,14 +172,15 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   // `[Worklets] Tried to synchronously call a Remote Function. Called "bound
   // dispatchSetState" on the UI Runtime`. None of this work belongs on the UI
   // thread anyway: it all ends in a React state update.
-  const longPressFired = useRef(false);
+  /** A shared value, not a ref: the pan reads it from a worklet and the long press writes it from JS. */
+  const longPressFired = useSharedValue(false);
   const composedGesture = useMemo(() => {
     const longPressGesture = Gesture.LongPress()
       .runOnJS(true)
       .minDuration(500)
       .onTouchesDown(() => setPressed(true))
       .onFinalize(() => setPressed(false))
-      .onStart(() => { longPressFired.current = true; haptic('medium'); onLongPress?.(); });
+      .onStart(() => { longPressFired.value = true; hold(); onLongPress?.(); });
     // Dragging anywhere on the tile jumps the fill straight to that point (an
     // absolute position, not a relative delta from where the drag started) —
     // that's what makes the tile itself read as a brightness slider.
@@ -164,7 +191,6 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
     // when `onBrightnessChange` is unset (a plain toggle-only tile) — this
     // gesture is also this tile's only path to a tap now, not just its drag.
     const panGesture = Gesture.Pan()
-      .runOnJS(true)
       .minDistance(10)
       // The slider only ever moves sideways, so it claims a touch only once
       // the finger has committed to that axis and gives up the moment the
@@ -174,17 +200,37 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       // sliders feel like they were lagging behind the finger.
       .activeOffsetX([-10, 10])
       .failOffsetY([-8, 8])
-      .onTouchesDown(() => { longPressFired.current = false; setPressed(true); })
-      .onStart(() => setBodyCursorHidden(true))
-      // Only when the whole-number percent actually moves: a 120 Hz drag
-      // otherwise fires the caller's `onBrightnessChange` — and with it a real
-      // command to the device — on every single frame.
+      .onTouchesDown(() => { longPressFired.value = false; runOnJS(setPressed)(true); })
+      .onStart(() => runOnJS(setBodyCursorHidden)(true))
+      // Two different rates, because the two callbacks pay for very different
+      // things. The fill and the subtitle follow every step of the finger, but
+      // only once the whole-number percent has actually moved — a 120 Hz drag
+      // lands on the same percent several frames running. The COMMIT is what
+      // reaches the device (an HTTP call per light, or in demo mode a write
+      // every open tab picks up), so it goes out at most every
+      // `COMMIT_INTERVAL_MS`; `onFinalize` then sends the value the finger
+      // ended on, so the device never settles on a stale one.
       .onUpdate(event => {
         if (width <= 0) return;
-        const percent = Math.round(Math.min(100, Math.max(0, (event.x / width) * 100)));
-        if (percent === lastReported.current) return;
-        lastReported.current = percent;
-        onBrightnessChange?.(percent);
+        const travel = Math.max(1, width - EDGE_SNAP_PX * 2);
+        const percent = Math.round(Math.min(100, Math.max(0, ((event.x - EDGE_SNAP_PX) / travel) * 100)));
+        if (percent === lastReported.value) return;
+        lastReported.value = percent;
+        // The fill is this assignment and nothing else — no render, no bridge.
+        dragPercent.value = percent;
+        const step = Math.round(percent / HAPTIC_STEP_PERCENT);
+        if (step !== lastHapticStep.value) {
+          lastHapticStep.value = step;
+          runOnJS(tap)();
+        }
+        // The commit is what reaches the device — an HTTP call per light, or
+        // in demo mode a write every open tab picks up — so it is the one
+        // thing rate-limited, and `onFinalize` sends the value the finger
+        // ended on so the device never settles on a stale one.
+        const now = Date.now();
+        if (now - lastCommitAt.value < COMMIT_INTERVAL_MS) return;
+        lastCommitAt.value = now;
+        if (onBrightnessCommit) runOnJS(onBrightnessCommit)(percent);
       })
       // `onEnd`, not `onFinalize` alone, was the actual bug: RNGH's own event
       // dispatch (`eventReceiver.js`) only calls `onEnd` when the gesture's
@@ -194,21 +240,35 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       // `onFinalize` is the one callback RNGH always calls at the end of every
       // gesture attempt, activated or not — that's the one this needs.
       .onFinalize((_event, success) => {
-        setPressed(false);
-        setBodyCursorHidden(false);
-        lastReported.current = null;
-        if (!success && !longPressFired.current) onPress();
+        runOnJS(setPressed)(false);
+        runOnJS(setBodyCursorHidden)(false);
+        if (lastReported.value >= 0 && onBrightnessCommit) runOnJS(onBrightnessCommit)(lastReported.value);
+        lastReported.value = -1;
+        lastCommitAt.value = 0;
+        lastHapticStep.value = -1;
+        dragPercent.value = -1;
+        if (!success && !longPressFired.value) {
+          runOnJS(tap)();
+          runOnJS(onPress)();
+        }
       });
       return Gesture.Race(panGesture, longPressGesture);
-  }, [width, onPress, onLongPress, onBrightnessChange, onBrightnessCommit, haptic]);
+  }, [width, onPress, onLongPress, onBrightnessCommit, dragPercent, lastReported, lastCommitAt, lastHapticStep, longPressFired]);
   // Web-only (NativeWind no-ops `cursor-*` on native, where the concept
   // doesn't exist): a plain `View` + `GestureDetector`, unlike the
   // `Pressable` this used to be, gets none of the browser's own hover-cursor
   // affordances for free. Draggable tiles hint `grab`/`grabbing` (open hand,
   // closed while actually dragging) instead of the plain `pointer` every tile
   // still gets for its tap — same distinction a real OS slider makes.
-  const cursorClassName = onBrightnessChange ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
-  const clampedBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
+  const cursorClassName = onBrightnessCommit ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
+  const restingBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
+  // The fill's width, straight from the shared value while a finger is down
+  // and from the prop the rest of the time. Both the fill and the clipped
+  // overlay read this one style, so they can never disagree.
+  const fillStyle = useAnimatedStyle(
+    () => ({ width: `${dragPercent.value >= 0 ? dragPercent.value : restingBrightness}%` }),
+    [restingBrightness],
+  );
   // Bloom's own real per-tone "legible on solid fill" tokens — the M3-engine
   // answer for text/icon color sitting directly on top of each tone's solid
   // `bg-{tone}` fill above, straight from `useTheme()`, no local computation.
@@ -231,7 +291,7 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       {/* The tone's own solid color, not its `-subtle` tint: a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
-      {brightness !== undefined && <View pointerEvents="none" className={`absolute bottom-0 left-0 top-0 ${TONE_FILL_CLASS[tone] ?? 'bg-secondary'}`} style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}/>}
+      {brightness !== undefined && <Animated.View pointerEvents="none" className={`absolute bottom-0 left-0 top-0 ${TONE_FILL_CLASS[tone] ?? 'bg-secondary'}`} style={fillStyle}/>}
       {/* The tile's horizontal padding lives HERE, not on the root. A
           percentage width on an absolutely positioned child resolves against
           its parent's CONTENT box, so with `px-4` on the root a 100% fill
@@ -260,11 +320,11 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           mode, no gradient-clip-text, both of which turned out not to
           reliably work through this app's actual styling pipeline. */}
       {brightness !== undefined && width > 0 && fillTextColor !== undefined && (
-        <View pointerEvents="none" className="absolute bottom-0 left-0 top-0 overflow-hidden" style={{ width: `${clampedBrightness}%` as ViewStyle['width'] }}>
+        <Animated.View pointerEvents="none" className="absolute bottom-0 left-0 top-0 overflow-hidden" style={fillStyle}>
           <View className="flex-row items-center gap-3 px-4" style={{ width, height: '100%' }}>
             <TileFace icon={icon} title={title} subtitle={subtitle} color={fillTextColor} labelStyle={{ color: fillTextColor }} filledIcon={filledIcon}/>
           </View>
-        </View>
+        </Animated.View>
       )}
     </View>
   </GestureDetector>;

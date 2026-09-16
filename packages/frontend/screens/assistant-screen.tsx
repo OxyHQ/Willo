@@ -24,7 +24,7 @@ export function AssistantHeader({ onNavigate }: ScreenProps) {
   const { t } = useTranslation();
   return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('header.ask', { home: homeName })}</Label></View></ContentWidth>;
 }
-export function AssistantScreen({ onNavigate, header }: ScreenProps) {
+export function AssistantScreen({ onNavigate }: ScreenProps) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
   const { colors: themeColors } = useTheme();
@@ -42,10 +42,9 @@ export function AssistantScreen({ onNavigate, header }: ScreenProps) {
   // Same reasoning as `AutomationsScreen`'s: one formatter per language, not one per clip per render.
   const timeFormat = useMemo(() => new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }), [i18n.language]);
   const clip = (item: Clip) => { const title = t(item.titleKey); const time = timeFormat.format(new Date(2000, 0, 1, item.hour, item.minute)); return <Pressable key={item.titleKey} accessibilityRole="button" accessibilityLabel={title} onPress={() => setSheet({ kind: 'camera', title: t('assistant.clipTitle', { title }), garden: true })} className="min-h-[75px] flex-row items-center gap-3 rounded-[23px] bg-muted p-3"><Icon name="camera" size={20} color={themeColors.text}/><View className="flex-1"><Label className="text-[12px] leading-[17px]">{title}</Label><Label className="text-[11px] text-muted-foreground">{t('assistant.clipTime', { time })}</Label></View><View className="h-[55px] w-[55px] overflow-hidden rounded-[16px]"><Image source={item.image} style={{ width: '100%', height: '100%' }} contentFit="cover"/></View></Pressable>; };
-  return <KeyboardAvoidingView className="flex-1 bg-card" behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
+  return <KeyboardAvoidingView className="flex-1" behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
     <PageScroll maxWidth={808}>
-      {header}
-      <View className="mb-6 max-w-[90%] self-end rounded-[22px] rounded-br-[5px] bg-primary-subtle px-4 py-3"><Label className="text-[13px] text-primary-text">{question ?? t('assistant.defaultQuestion')}</Label></View>
+            <View className="mb-6 max-w-[90%] self-end rounded-[22px] rounded-br-[5px] bg-primary-subtle px-4 py-3"><Label className="text-[13px] text-primary-text">{question ?? t('assistant.defaultQuestion')}</Label></View>
       <View className="mb-5"><Icon name="sparkle" size={22} color="#4285f4" filled/></View>
       <Label selectable className="text-[13px] leading-[20px]">{showClips ? t('assistant.plantAnswer') : t('assistant.notConnected')}</Label>
       {showClips && <><Label className="mb-3 mt-6 px-1 text-[13px] font-medium">{t('assistant.dateSep29')}</Label><View className="gap-2">{clips.map(clip)}</View><Label className="mb-3 mt-5 px-1 text-[13px] font-medium">{t('assistant.dateSep28')}</Label>{clip({ titleKey: 'assistant.clips.inTheGarden', hour: 16, minute: 35, image: assets.rabbit })}</>}

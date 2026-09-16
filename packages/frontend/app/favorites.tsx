@@ -9,5 +9,5 @@ export default function Favorites() {
   const { homeName } = useHome();
   return <ScreenSurface screen="favorites" onNavigate={onNavigate}
     header={<ClassicHeader title={homeName} home notifications onNavigate={onNavigate}/>}
-    renderContent={header => <FavoritesScreen onNavigate={onNavigate} header={header}/>}/>;
+    renderContent={() => <FavoritesScreen onNavigate={onNavigate}/>}/>;
 }

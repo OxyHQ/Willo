@@ -7,5 +7,5 @@ export default function Onboarding() {
   const onNavigate = useScreenNavigate('onboarding');
   return <ScreenSurface screen="onboarding" onNavigate={onNavigate}
     header={<ClassicHeader title="Willo" onNavigate={onNavigate}/>}
-    renderContent={header => <HomeSetupFlow header={header}/>}/>;
+    renderContent={() => <HomeSetupFlow/>}/>;
 }

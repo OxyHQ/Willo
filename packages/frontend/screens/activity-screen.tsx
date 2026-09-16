@@ -64,7 +64,7 @@ function useActivityEvents() {
   return { events, loading };
 }
 
-export function ActivityScreen({ onNavigate, header }: ScreenProps) {
+export function ActivityScreen({ onNavigate }: ScreenProps) {
   const { setSheet, notify } = useHomeActions();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
@@ -86,9 +86,8 @@ export function ActivityScreen({ onNavigate, header }: ScreenProps) {
     (day === null || daysAgo(event.occurredAt) === DAY_FILTERS[day].daysAgo)
   );
   const eventsByDay = groupByDay(events, t, i18n.language);
-  return <View className="flex-1 bg-card"><PageScroll>
-    {header}
-    <View className="flex-row flex-wrap gap-2 py-3"><Pill label={device ?? t('nav.devices')} selected={device !== null} onPress={() => selectFilter(t('nav.devices'), t('activity.filters.allDevices'), deviceNames.map(name => ({ value: name, label: name })), device, setDevice)}/><Pill label={eventType ? t(EVENT_TYPE_FILTER_KEYS[eventType]) : t('activity.filters.events')} selected={eventType !== null} onPress={() => selectFilter(t('activity.filters.events'), t('activity.filters.allEvents'), EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) })), eventType, setEventType)}/><Pill label={day ? t(DAY_FILTERS[day].labelKey) : t('activity.filters.date')} selected={day !== null} onPress={() => selectFilter(t('activity.filters.date'), t('activity.filters.allDates'), (Object.keys(DAY_FILTERS) as DayFilter[]).map(value => ({ value, label: t(DAY_FILTERS[value].labelKey) })), day, setDay)}/></View>
+  return <View className="flex-1"><PageScroll>
+        <View className="flex-row flex-wrap gap-2 py-3"><Pill label={device ?? t('nav.devices')} selected={device !== null} onPress={() => selectFilter(t('nav.devices'), t('activity.filters.allDevices'), deviceNames.map(name => ({ value: name, label: name })), device, setDevice)}/><Pill label={eventType ? t(EVENT_TYPE_FILTER_KEYS[eventType]) : t('activity.filters.events')} selected={eventType !== null} onPress={() => selectFilter(t('activity.filters.events'), t('activity.filters.allEvents'), EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) })), eventType, setEventType)}/><Pill label={day ? t(DAY_FILTERS[day].labelKey) : t('activity.filters.date')} selected={day !== null} onPress={() => selectFilter(t('activity.filters.date'), t('activity.filters.allDates'), (Object.keys(DAY_FILTERS) as DayFilter[]).map(value => ({ value, label: t(DAY_FILTERS[value].labelKey) })), day, setDay)}/></View>
     <PageColumns weights={[1, 1.25]}><View><View className="rounded-[23px] bg-muted p-4"><View className="mb-3 flex-row items-center gap-3"><Icon name="calendar" size={21} color={themeColors.primary}/><Label className="text-[13px] font-medium">{t('activity.brief.title')}</Label></View><View className="pl-[33px]">{BRIEF_PARAGRAPH_KEYS.slice(0, expanded ? 3 : 2).map(key => <Label key={key} className="mb-4 text-[12px] leading-[18px] text-muted-foreground">{t(key)}</Label>)}
       <View className="flex-row items-center gap-3"><Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(value => !value)} className="flex-row items-center gap-2 rounded-full bg-primary-subtle px-3 py-2"><Icon name="sparkle" size={15} color={themeColors.primary} filled/><Label className="text-[11px] font-medium text-primary-text">{expanded ? t('activity.brief.seeLess') : t('activity.brief.seeMore')}</Label></Pressable>{(['up', 'down'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={value === 'up' ? t('activity.brief.helpful') : t('activity.brief.unhelpful')} accessibilityState={{ selected: feedback === value }} onPress={() => { setFeedback(feedback === value ? null : value); notify(t('activity.brief.feedbackSaved')); }} className="p-2"><Icon name={value === 'up' ? 'thumb-up' : 'thumb-down'} size={16} color={feedback === value ? themeColors.info : themeColors.textSecondary}/></Pressable>)}</View>
     </View></View></View><View>
@@ -123,16 +122,15 @@ export function TimelineHeader({ onNavigate }: ScreenProps) {
   const { t } = useTranslation();
   return <ClassicHeader title={t('nav.activity')} onNavigate={onNavigate} filter={openFilter}/>;
 }
-export function TimelineScreen({ onNavigate: _onNavigate, header }: ScreenProps) {
+export function TimelineScreen({ onNavigate: _onNavigate }: ScreenProps) {
   const { filter, openFilter } = useTimelineFilter();
   const { events: allEvents, loading } = useActivityEvents();
   const { t, i18n } = useTranslation();
   const events = allEvents.filter(event => filter === null || event.eventType === filter);
   const eventsByDay = groupByDay(events, t, i18n.language);
   const { colors: themeColors } = useTheme();
-  return <View className="flex-1 bg-card"><PageScroll maxWidth={1200}>
-    {header}
-    {filter !== null && <Pressable onPress={openFilter} className="self-start rounded-full bg-primary-subtle px-3 py-2"><Label className="text-[12px] text-primary-text">{t(EVENT_TYPE_FILTER_KEYS[filter])}</Label></Pressable>}
+  return <View className="flex-1"><PageScroll maxWidth={1200}>
+        {filter !== null && <Pressable onPress={openFilter} className="self-start rounded-full bg-primary-subtle px-3 py-2"><Label className="text-[12px] text-primary-text">{t(EVENT_TYPE_FILTER_KEYS[filter])}</Label></Pressable>}
     {loading ? <View className="items-center p-6"><ActivityIndicator color={themeColors.primary}/></View>
       : <PageColumns>{[...eventsByDay].map(([bucket, dayEvents]) => <View key={bucket}><SectionTitle>{bucket}</SectionTitle>{dayEvents.map(event => <EventRow key={event.id} event={event}/>)}</View>)}
       {events.length === 0 && <Label className="p-6 text-center text-[13px] text-muted-foreground">{t('activity.empty')}</Label>}

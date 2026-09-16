@@ -3,10 +3,11 @@ import { Platform, View } from 'react-native';
 import { TabBar, TabBarButton, type TabBarItem, type TabBarTheme } from '@oxy.so/bloom/tab-bar';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-import { type Navigate, type ScreenId } from '../data/screens';
+import { type ScreenId } from '../data/screens';
 import { asViewStyle } from '../layout/web-style';
 import { Icon } from '@willo.sh/ui';
 import { tabs, isNavigationActive } from './navigation-items';
+import { useTabPager } from '../state/tab-pager';
 
 const IS_WEB = Platform.OS === 'web';
 const ICON_SIZE = 21;
@@ -26,8 +27,9 @@ const webFixedStyle = IS_WEB
   ? asViewStyle({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 })
   : undefined;
 
-export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
+export function BottomNav({ screen }: { screen: ScreenId }) {
   const { colors } = useTheme();
+  const { progress, selectTab } = useTabPager();
   const { t } = useTranslation();
   const activeIndex = tabs.findIndex(tab => isNavigationActive(screen, tab.screen));
   // Sourced from Bloom's own theme instead of Willo's static `home-sky`/
@@ -41,7 +43,11 @@ export function BottomNav({ screen, onNavigate }: { screen: ScreenId; onNavigate
   };
 
   return <View testID="bottom-navigation" style={webFixedStyle}>
-    <TabBar activeIndex={activeIndex} onIndexChange={index => onNavigate(tabs[index].screen)} theme={tabBarTheme}>
+    {/* `activeProgress` is the swipe's own position, written by the pager
+        every frame on the UI thread, so the highlight travels with the finger
+        instead of jumping once the page lands. `selectTab` is the one path a
+        tap and a swipe both take. */}
+    <TabBar activeIndex={activeIndex} activeProgress={progress} onIndexChange={selectTab} theme={tabBarTheme}>
       {tabs.map((tab, index) => {
         const item: TabBarItem = {
           name: tab.screen,

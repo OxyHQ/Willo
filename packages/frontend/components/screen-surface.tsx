@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@oxy.so/services';
 import { SignInPrompt } from './sign-in-prompt';
@@ -8,7 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type Navigate, type ScreenId } from '../data/screens';
 import { BREAKPOINTS } from '../layout/metrics';
 import { asViewStyle } from '../layout/web-style';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ContentPanel } from '@oxy.so/bloom/content-panel';
+import { ContentWidth, PanelTopInsetProvider } from '../layout/page-layout';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useResponsiveLayout } from '../layout/use-responsive-layout';
@@ -51,15 +53,15 @@ const webStickyHeaderStyle = Platform.OS === 'web' ? asViewStyle({ position: 'st
  * Hermes that graph overflowed the JS stack before the first paint). Routes own
  * their screen the way Mention's do.
  *
- * `renderContent` receives the header to put INSIDE its own scroll when the
- * layout is combined (mobile), and `undefined` when the header is a sibling
- * above the panel (desktop).
+ * The header is this component's own business on both layouts — a sibling
+ * above the panel on desktop, an overlay pinned to its top on mobile — so a
+ * screen never renders one and never has to know which it got.
  */
 export function ScreenSurface({ screen, onNavigate, header, renderContent, renderSetupPrompt }: {
   screen: ScreenId;
   onNavigate: Navigate;
   header: React.ReactNode;
-  renderContent: (combinedHeader: React.ReactNode | undefined) => React.ReactNode;
+  renderContent: () => React.ReactNode;
   /** Shown instead of the screen when this Home isn't set up yet. Only the screens that have something to say about setup pass one; the rest get a spinner. */
   renderSetupPrompt?: () => React.ReactNode;
 }) {
@@ -90,16 +92,16 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
     if (demoMode) return;
     if (screen !== 'home' && screen !== 'onboarding' && screen !== 'settings') router.replace('/onboarding');
   }, [isAuthResolved, isAuthenticated, setupStage, demoMode, screen, router]);
-  // Mobile's sticky header floats directly over scrolling content (unlike
-  // desktop's, which sits on the plain surface background with nothing
-  // scrolling under it), so a hard-edged solid fill would cut content off with
-  // a visible line as it scrolls past. A gradient — solid at the top, fading to
-  // transparent by the bottom — reads as the content dissolving under the
-  // header instead. `colors.background`, not a static hex, so it stays right
-  // if the app's background ever moves with the theme.
-  const webStickyHeaderGradientStyle = Platform.OS === 'web'
-    ? asViewStyle({ backgroundImage: `linear-gradient(to bottom, ${colors.background} 0%, ${colors.background} 60%, transparent 100%)` })
-    : undefined;
+  // The compact header floats directly over scrolling content, so a hard
+  // edge would cut that content off with a visible line as it passes. A
+  // gradient — solid at the top, transparent by the bottom — reads as the
+  // content dissolving under the header instead.
+  // Pinned to the panel's own top on both platforms: `absolute` against the
+  // panel on native, `sticky` against the document on web, where the panel is
+  // as tall as the page.
+  const headerOverlayStyle = Platform.OS === 'web'
+    ? asViewStyle({ position: 'sticky', top: 0, zIndex: 100 })
+    : ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 } as const);
   const combineHeader = width < PANEL_FRAMED_FROM;
   // `BottomNav` (web) floats `position: fixed` over content and CLAIMS its
   // own footprint in Bloom's bottom-edge registry (`bottom-nav.tsx`) — this
@@ -123,28 +125,7 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
   // not a guess, since the header's height varies per screen (`AskHeader` vs
   // `ClassicHeader`, compact vs not).
   const [headerHeight, setHeaderHeight] = useState(0);
-  // The combined header renders inside the screen's own PageScroll, which
-  // pads ALL of its children for content that sits still — a header's own
-  // background should still reach both true edges, so cancel that inherited
-  // padding here rather than have every screen redo this itself. The header
-  // already carries its own top AND bottom inset (symmetric, inside the
-  // header itself), so no extra gap is needed here beyond the edge-bleed.
-  // Sticky (web) for the same reason as the desktop external header: real
-  // document scroll (`app/_layout.tsx`) means nothing keeps it in view on its
-  // own otherwise — its containing block here is the screen's own content,
-  // which is as tall as that screen, so `top: 0` pins it for the full scroll.
-  const bleedHeader = (node: React.ReactNode) => (
-    // The gradient lives on this wrapper, not the header itself — none of
-    // `AskHeader`/`ClassicHeader`/the other headers paint a background of
-    // their own (see their own doc comments), so the gradient shows straight
-    // through without anything needing to opt out of an opaque fill.
-    // `paddingTop: insets.top` here rather than in each of the six headers:
-    // the gradient above then runs behind the status bar while the header's
-    // own row starts below it, which is what draws the notch area as part of
-    // the screen instead of a blank strip above it.
-    <View style={[webStickyHeaderStyle, webStickyHeaderGradientStyle, { marginHorizontal: -gutter, paddingTop: insets.top }]}>{node}</View>
-  );
-  let content: React.ReactNode = renderContent(combineHeader ? bleedHeader(header) : undefined);
+  let content: React.ReactNode = renderContent();
 
   // Swaps CONTENT ONLY (not `header`) for the sign-in prompt while Oxy auth
   // isn't ready — the same panel below still frames it, so it's not a
@@ -190,9 +171,6 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
         // over real document scroll, so the screen's own scrolling content
         // passes BEHIND it, not away from it — without an opaque fill here,
         // that content shows straight through the header as it scrolls past.
-        // Mobile's combined header has no such problem (see `bleedHeader`'s
-        // gradient instead, which needs to fade rather than hard-cut), so
-        // this only applies to this branch.
         <View className="bg-background" style={[webStickyHeaderStyle, { paddingTop: insets.top }]} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
           {header}
         </View>
@@ -204,7 +182,24 @@ export function ScreenSurface({ screen, onNavigate, header, renderContent, rende
             where the panel visually starts without moving the overlay's own
             math, so without this the overlay would paint over the header. */}
         <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={combineHeader ? undefined : headerHeight} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: panelBottomInset }}>
-          {content}
+          {/* The compact header OVERLAYS the screen rather than scrolling with
+              it, the same shape as Mention's `PanelStickyHeader`: it is out of
+              the flow, the screen's own scroll reserves exactly its height
+              (`PanelTopInsetProvider` below), and content passes underneath it
+              — which is the only arrangement in which the fade beneath it
+              means anything. It used to be the first child of each screen's
+              scroll, so it simply left with the content and the gradient had
+              nothing to dissolve.
+              A real gradient, not a CSS one: `backgroundImage` is web-only, so
+              on Android the header had no background at all and content ran
+              straight through the words. */}
+          {combineHeader && (
+            <View pointerEvents="box-none" style={[headerOverlayStyle, { paddingTop: insets.top }]} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
+              <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} colors={[colors.background, colors.background, 'transparent']} locations={[0, 0.6, 1]}/>
+              <ContentWidth>{header}</ContentWidth>
+            </View>
+          )}
+          <PanelTopInsetProvider value={combineHeader ? headerHeight : 0}>{content}</PanelTopInsetProvider>
         </ContentPanel>
       </View>
     </View>

@@ -9,6 +9,6 @@ export default function Timeline() {
   return <TimelineFilterProvider>
     <ScreenSurface screen="timeline" onNavigate={onNavigate}
       header={<TimelineHeader onNavigate={onNavigate}/>}
-      renderContent={header => <TimelineScreen onNavigate={onNavigate} header={header}/>}/>
+      renderContent={() => <TimelineScreen onNavigate={onNavigate}/>}/>
   </TimelineFilterProvider>;
 }

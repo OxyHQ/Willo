@@ -9,6 +9,7 @@ import { BloomProvider } from '@oxy.so/bloom/provider';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { OxyProvider } from '@oxy.so/services';
 import { HomeProvider } from '../state/home-context';
+import { TabPagerProvider } from '../state/tab-pager';
 import { Overlays } from '../components/overlays';
 import { NavigationRail } from '../components/navigation-rail';
 import { BottomNav } from '../components/bottom-nav';
@@ -75,7 +76,7 @@ function AppShell() {
           {Platform.OS === 'web' ? <Slot /> : <Stack screenOptions={{ headerShown: false }} />}
         </View>
       </View>
-      {compact && hasTabs && <BottomNav screen={screen} onNavigate={onNavigate} />}
+      {compact && hasTabs && <BottomNav screen={screen} />}
     </View>
   );
 }
@@ -113,8 +114,10 @@ export default function RootLayout() {
             }}
           >
             <HomeProvider>
-              <AppShell />
-              <Overlays />
+              <TabPagerProvider>
+                <AppShell />
+                <Overlays />
+              </TabPagerProvider>
             </HomeProvider>
           </OxyProvider>
         </BloomProvider>

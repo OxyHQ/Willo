@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+
 export const SCREENS = [
   { id: 'onboarding', title: 'Set up your home', subtitle: 'Create or pair your Willo Home', generation: 'modern', number: '00' },
   { id: 'home', title: 'Home', subtitle: 'Favorites, camera & climate', generation: 'modern', number: '01' },
@@ -20,6 +20,6 @@ export type Navigate = (screen: ScreenId | 'gallery') => void;
 // ScreenSurface asks a screen to render its own header inline (one shared
 // scroll) instead of the screen surface rendering it as a separate sibling
 // above the panel.
-export type ScreenProps = { onNavigate: Navigate; header?: ReactNode };
+export type ScreenProps = { onNavigate: Navigate };
 export const isScreenId = (value: unknown): value is ScreenId => SCREENS.some(screen => screen.id === value);
 export const noTabScreens: ScreenId[] = ['assistant', 'composer', 'emergency', 'onboarding'];

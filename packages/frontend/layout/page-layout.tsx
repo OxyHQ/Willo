@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import { Platform, ScrollView, View, type ScrollViewProps } from 'react-native';
 import { CONTENT_MAX } from './metrics';
 import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
 import { useResponsiveLayout } from './use-responsive-layout';
 
 const IS_WEB = Platform.OS === 'web';
+
+/**
+ * How much room the compact header's overlay takes at the top of the panel.
+ *
+ * The header is pinned over the screen rather than scrolling with it
+ * (`screen-surface.tsx`), so each screen's scroll reserves exactly its height
+ * and content passes underneath. Zero on desktop, where the header is a real
+ * sibling above the panel and takes its own space.
+ */
+const PanelTopInsetContext = createContext(0);
+export function PanelTopInsetProvider({ value, children }: { value: number; children: React.ReactNode }) {
+  return <PanelTopInsetContext.Provider value={value}>{children}</PanelTopInsetContext.Provider>;
+}
 
 export function ContentWidth({ children, maxWidth = CONTENT_MAX, padding = true }: {
   children: React.ReactNode; maxWidth?: number; padding?: boolean;
@@ -31,13 +44,14 @@ export function PageScroll({ children, maxWidth = CONTENT_MAX, bottom = 28, ...p
   // one. Web's page already clears it at the panel (`screen-surface.tsx`),
   // where the bar is fixed over a scrolling document.
   const bottomEdgeInset = useBottomEdgeInset();
+  const topInset = useContext(PanelTopInsetContext);
   if (IS_WEB) {
-    return <View style={{ paddingBottom: bottom }}>
+    return <View style={{ paddingTop: topInset, paddingBottom: bottom }}>
       <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
     </View>;
   }
   return <ScrollView {...props} contentInsetAdjustmentBehavior="never" keyboardShouldPersistTaps="handled"
-    className="min-h-0 flex-1" contentContainerStyle={{ paddingBottom: bottom + bottomEdgeInset }}>
+    className="min-h-0 flex-1" contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottom + bottomEdgeInset }}>
     <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
   </ScrollView>;
 }

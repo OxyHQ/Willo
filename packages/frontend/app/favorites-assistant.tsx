@@ -9,5 +9,5 @@ export default function FavoritesAssistant() {
   const { homeName } = useHome();
   return <ScreenSurface screen="favorites-assistant" onNavigate={onNavigate}
     header={<ClassicHeader title={homeName} home onNavigate={onNavigate}/>}
-    renderContent={header => <FavoritesScreen withAssistant onNavigate={onNavigate} header={header}/>}/>;
+    renderContent={() => <FavoritesScreen withAssistant onNavigate={onNavigate}/>}/>;
 }

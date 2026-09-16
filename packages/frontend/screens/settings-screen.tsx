@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 // only sees keys that appear literally in the source, and a key nobody can see
 // is a key nobody notices going stale.
 const UNIT_SYSTEM_LABEL_KEYS: Record<UnitSystem, ParseKeys> = { metric: 'units.metric', imperial: 'units.imperial' };
-export function SettingsScreen({ onNavigate, header }: ScreenProps) {
+export function SettingsScreen({ onNavigate }: ScreenProps) {
   const { setupStage, homeName, demoMode, unitSystem, homes, homeId } = useHome();
   const { setSheet, setDemoMode, setUnitSystem, switchHome, startNewHome } = useHomeActions();
   const { colors: themeColors } = useTheme();
@@ -56,7 +56,7 @@ export function SettingsScreen({ onNavigate, header }: ScreenProps) {
   ] });
   const section = (title: string, action: () => void) => <Pressable accessibilityRole="button" onPress={action} className="mb-3 mt-7 flex-row items-center justify-between"><Label className="text-[12px]">{title}</Label><View className="h-7 w-7 items-center justify-center rounded-full bg-muted"><Icon name="chevron" size={14} color={themeColors.text}/></View></Pressable>;
   const mini = (title: string, icon: IconName, action: () => void) => <Pressable key={title} accessibilityRole="button" onPress={action} className="h-[101px] w-[99px] justify-between rounded-[23px] bg-muted p-3.5 active:opacity-70"><Icon name={icon} size={18} color={themeColors.text}/><Label className="text-[11px] leading-[15px]">{title}</Label></Pressable>;
-  return <View className="flex-1 bg-card"><PageScroll>{header}<PageColumns><View>
+  return <View className="flex-1"><PageScroll><PageColumns><View>
     <SectionTitle>{t('settings.home')}</SectionTitle>
     {hasHomeToShow ? <>
       {/* Demo mode's name is the fake "Spring Street" — there are no real Homes behind it to switch between. */}

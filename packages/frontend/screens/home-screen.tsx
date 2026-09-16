@@ -41,7 +41,7 @@ const categoryForDomain = (domain: string): Category =>
 /** The controls Favorites shows one of, in the order they appear there. */
 const FAVOURITE_DOMAINS = ['light', 'lock', 'cover', 'vacuum', 'media_player'];
 
-export function HomeScreen({ onNavigate, header }: ScreenProps) {
+export function HomeScreen({ onNavigate }: ScreenProps) {
   const { state, demoMode, unitSystem } = useHome();
   const { dispatch, setSheet, sendCommand } = useHomeActions();
   const devices = useDevices();
@@ -189,10 +189,9 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     : selected === 'Cameras' ? (cameraCards.length ? cameraCards : [emptyCard('home.noCameras', 'camera-off')])
     : selected === 'Lights' ? (lights.length ? inCategory('Lights') : [emptyCard('home.noLights', 'light')])
     : inCategory(selected);
-  return <View className="min-h-0 flex-1 bg-card">
+  return <View className="min-h-0 flex-1">
     <PageScroll>
-      {header}
-      {/* Cancels PageScroll's own horizontal padding (a real horizontal
+            {/* Cancels PageScroll's own horizontal padding (a real horizontal
           scroller must reach the true edges, not stop at the resting
           container's padding) and puts the same inset back on the scrollable
           content's start/end instead, so it still rests inset but can pan

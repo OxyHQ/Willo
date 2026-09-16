@@ -6,5 +6,5 @@ export default function Assistant() {
   const onNavigate = useScreenNavigate('assistant');
   return <ScreenSurface screen="assistant" onNavigate={onNavigate}
     header={<AssistantHeader onNavigate={onNavigate}/>}
-    renderContent={header => <AssistantScreen onNavigate={onNavigate} header={header}/>}/>;
+    renderContent={() => <AssistantScreen onNavigate={onNavigate}/>}/>;
 }

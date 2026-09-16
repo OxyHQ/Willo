@@ -6,5 +6,5 @@ export default function Emergency() {
   const onNavigate = useScreenNavigate('emergency');
   return <ScreenSurface screen="emergency" onNavigate={onNavigate}
     header={<EmergencyHeader onNavigate={onNavigate}/>}
-    renderContent={header => <EmergencyScreen onNavigate={onNavigate} header={header}/>}/>;
+    renderContent={() => <EmergencyScreen onNavigate={onNavigate}/>}/>;
 }

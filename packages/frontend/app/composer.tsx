@@ -8,6 +8,6 @@ export default function Composer() {
   return <ComposerProvider onNavigate={onNavigate}>
     <ScreenSurface screen="composer" onNavigate={onNavigate}
       header={<ComposerHeader onNavigate={onNavigate}/>}
-      renderContent={header => <ComposerScreen onNavigate={onNavigate} header={header}/>}/>
+      renderContent={() => <ComposerScreen onNavigate={onNavigate}/>}/>
   </ComposerProvider>;
 }

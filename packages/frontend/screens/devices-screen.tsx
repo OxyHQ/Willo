@@ -27,7 +27,7 @@ const groupByRoom = <T extends { room: string | null }>(items: T[], otherRoomLab
 const CAMERA_DOMAINS = new Set(['camera', 'doorbell']);
 const READING_DOMAINS = new Set(['sensor', 'binary_sensor']);
 
-export function DevicesScreen({ onNavigate, header }: ScreenProps) {
+export function DevicesScreen({ onNavigate }: ScreenProps) {
   const { setSheet } = useHomeActions();
   const devices = useDevices();
   const { t } = useTranslation();
@@ -49,7 +49,7 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
     }));
   }, [devices, t]);
 
-  return <View className="flex-1 bg-card"><PageScroll bottom={96}>{header}<SectionGrid>
+  return <View className="flex-1"><PageScroll bottom={96}><SectionGrid>
     {rooms.map(({ room, controls, cameras, readings }) => (
       <View key={room}><SectionTitle>{room}</SectionTitle><View className="gap-2">
         {chunkPairs(controls).map((pair, index) => <View key={`controls-${index}`} className="flex-row gap-2">

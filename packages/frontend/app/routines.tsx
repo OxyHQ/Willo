@@ -9,5 +9,5 @@ export default function Routines() {
   const { t } = useTranslation();
   return <ScreenSurface screen="routines" onNavigate={onNavigate}
     header={<ClassicHeader title={t('nav.automations')} onNavigate={onNavigate}/>}
-    renderContent={header => <RoutinesScreen onNavigate={onNavigate} header={header}/>}/>;
+    renderContent={() => <RoutinesScreen onNavigate={onNavigate}/>}/>;
 }

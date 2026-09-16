@@ -21,7 +21,7 @@ const categories = [
   { id: 'wifi', icon: 'wifi', titleKey: 'favorites.categories.wifi', countKey: 'favorites.counts.devices', count: 2, assistantCount: 2, tone: 'green' },
   { id: 'climate', icon: 'climate', titleKey: 'favorites.categories.climate', countKey: 'favorites.counts.devices', count: 2, assistantCount: 2, tone: 'peach' },
 ] as const satisfies readonly { id: string; icon: IconName; titleKey: string; countKey: string; count: number; assistantCount: number; tone: Tone }[];
-export function FavoritesScreen({ onNavigate, withAssistant = false, header }: ScreenProps & { withAssistant?: boolean }) {
+export function FavoritesScreen({ onNavigate, withAssistant = false }: ScreenProps & { withAssistant?: boolean }) {
   const { state } = useHome();
   const { dispatch, setSheet, notify } = useHomeActions();
   const devices = useDevices();
@@ -50,8 +50,8 @@ export function FavoritesScreen({ onNavigate, withAssistant = false, header }: S
     ...deviceCard(pick('cover')),
     ...deviceCard(pick('vacuum')),
   ];
-  return <View className="min-h-0 flex-1 bg-card">
-    <PageScroll>{header}<CardStrip>
+  return <View className="min-h-0 flex-1">
+    <PageScroll><CardStrip>
       {displayCategories.map(category => <Pressable key={category.id} accessibilityRole="button" accessibilityLabel={t(category.titleKey)}
         onPress={() => category.id === 'cameras' ? setSheet({ kind: 'camera', title: t('camera.backyardTitle'), garden: true }) : onNavigate(category.id === 'wifi' ? 'settings' : 'devices')}
         className={`min-h-[100px] justify-between rounded-[23px] p-3.5 active:opacity-70 ${tones[category.tone].tile}`}

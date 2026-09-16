@@ -14,6 +14,14 @@ export const tabs: NavigationItem[] = [
   { screen: 'automations', titleKey: 'nav.automations', icon: 'automations' },
   { screen: 'settings', titleKey: 'nav.settings', icon: 'settings' },
 ];
+/**
+ * A tab's route name inside the `(tabs)` group, which expo-router takes from
+ * the FILE — so home, living at `app/(tabs)/index.tsx`, is `index` and not
+ * `home`. The pager looks its pages up by this name; getting it wrong renders
+ * an empty page under a highlight that says otherwise.
+ */
+export const routeNameForTab = (screen: ScreenId): string => (screen === 'home' ? 'index' : screen);
+
 // `favorites`/`favorites-assistant`/`timeline`/`routines` are no longer
 // their own rail destinations (see `tabs` above) but their screens/routes
 // still exist — visiting one directly highlights the tab it's closest to

@@ -19,6 +19,8 @@ const DEMO_STILLS: Record<string, number> = {
 /** How long a demo cycle takes, and how often it ticks — short enough that starting the vacuum visibly does something. */
 const CYCLE_MINUTES = 8;
 const TICK_MS = 5000;
+/** How long the demo home waits for a change to settle before writing itself down. */
+const SAVE_DEBOUNCE_MS = 400;
 
 /**
  * The demo home behaves like a real one: turning a light off is a fact about
@@ -51,6 +53,7 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
   const listeners = new Set<(devices: Device[]) => void>();
   const emit = () => listeners.forEach(listener => listener(devices));
   let ticker: ReturnType<typeof setInterval> | null = null;
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
   // `BroadcastChannel` is a web API; on native there are no other tabs to tell.
   const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL_NAME);
 
@@ -59,11 +62,25 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
     devices = devices.map(device => stored[device.id] ? { ...device, capabilities: stored[device.id] } : device);
   }
 
-  /** Every change is announced to the other tabs and written down, so the demo home has one state rather than one per tab. */
+  /**
+   * Every change is announced to the other tabs and written down, so the demo
+   * home has one state rather than one per tab.
+   *
+   * The announcement is immediate; the WRITE is not. Persisting means
+   * stringifying every device in the house, and a drag commands one of them
+   * several times a second — so the write trails the last change by
+   * `SAVE_DEBOUNCE_MS` instead of running on each one. Nothing reads storage
+   * mid-session; it exists so a reload picks up where the last one left off.
+   */
   function publish() {
     const stored = capabilitiesById(devices);
     channel?.postMessage(stored);
-    storage.setItemAsync(STORAGE_KEY, JSON.stringify(stored)).catch((error: unknown) => console.error('Failed to save the demo home:', error));
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      storage.setItemAsync(STORAGE_KEY, JSON.stringify(capabilitiesById(devices)))
+        .catch((error: unknown) => console.error('Failed to save the demo home:', error));
+    }, SAVE_DEBOUNCE_MS);
     emit();
   }
 
@@ -121,6 +138,8 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
     disconnect() {
       if (ticker) clearInterval(ticker);
       ticker = null;
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = null;
       channel?.close();
       listeners.clear();
     },
