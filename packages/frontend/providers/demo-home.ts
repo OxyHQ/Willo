@@ -1,4 +1,4 @@
-import { Image } from 'react-native';
+import { Asset } from 'expo-asset';
 import type { TFunction } from 'i18next';
 import { assets } from '../data/assets';
 import * as storage from '../storage';
@@ -42,7 +42,10 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
     domain: entry.domain,
     capabilities: entry.capabilities.map(capability =>
       capability.kind === 'camera' && DEMO_STILLS[entry.id] !== undefined
-        ? { ...capability, snapshotUrl: Image.resolveAssetSource(DEMO_STILLS[entry.id]).uri }
+        // `Asset.fromModule` resolves a bundled image to a URL on web and on
+        // native alike; `Image.resolveAssetSource` is native-only and threw
+        // here the moment demo mode was switched on in a browser.
+        ? { ...capability, snapshotUrl: Asset.fromModule(DEMO_STILLS[entry.id]).uri }
         : { ...capability }),
   }));
   const listeners = new Set<(devices: Device[]) => void>();
