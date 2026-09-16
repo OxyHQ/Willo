@@ -18,11 +18,9 @@
   },
   "header": {
     "ask": "Pregunta a {{home}}",
-    "createAutomation": "Crear rutina",
     "homeSettings": "Ajustes de la casa",
     "chooseHome": "Elegir casa",
     "filter": "Filtrar",
-    "notifications": "Notificaciones",
     "noNotifications": "Esta demo de la interfaz no tiene notificaciones en directo."
   },
   "camera": {
@@ -52,8 +50,7 @@
     "noneFound": "No se han encontrado sensores",
     "showMore_one": "Mostrar {{count}} sensor más",
     "showMore_other": "Mostrar {{count}} sensores más",
-    "more_one": "+{{count}} más",
-    "more_other": "+{{count}} más"
+    "more": "+{{count}} más"
   },
   "events": {
     "motionDetected": "Movimiento detectado",
@@ -70,7 +67,6 @@
   "activity": {
     "loadFailed": "No se ha podido cargar la actividad.",
     "filters": {
-      "devices": "Dispositivos",
       "allDevices": "Todos los dispositivos",
       "events": "Eventos",
       "allEvents": "Todos los eventos",
@@ -120,7 +116,6 @@
       "fridayJam": "Música del viernes",
       "fridayJamDescription": "A las 20:00, los viernes, pon «Música del viernes»",
       "garageMotionLight": "Luz con movimiento del garaje",
-      "movieMode": "Modo cine",
       "partyTime": "Hora de fiesta",
       "oneStarterOneAction": "1 activador · 1 acción",
       "oneStarterThreeActions": "1 activador · 3 acciones",
@@ -141,7 +136,6 @@
     "save": "Guardar",
     "saveLabel": "Guardar rutina",
     "saved": "Rutina guardada en esta sesión de demo",
-    "defaultText": "Cuando no haya nadie en casa las mañanas entre semana, apaga todas las luces",
     "describe": "Describe tu rutina",
     "placeholder": "Describe lo que quieres que haga tu casa",
     "review": "Revisar rutina",
@@ -160,7 +154,6 @@
   },
   "assistant": {
     "back": "Volver al inicio",
-    "ask": "Pregunta a {{home}}",
     "send": "Enviar pregunta",
     "defaultQuestion": "¿Algo se ha comido mis plantas?",
     "plantAnswer": "Sí, unos conejos se comieron las plantas el 29 y el 28 de septiembre. El 29 de septiembre se vio varias veces a dos conejos comiendo plantas de colores en el jardín. Ese mismo día también apareció en el jardín un conejo marrón y gris.",
@@ -192,8 +185,7 @@
     "diningRoom": "Comedor",
     "noLongerHeard": "La alarma de humo ya no suena",
     "diningDescription": "La alarma de humo ya no suena. Es un estado de ejemplo de la referencia, no un sensor conectado.",
-    "footer": "Alerta de demo · No hay sensores de humo conectados.",
-    "livingRoom": "Salón"
+    "footer": "Alerta de demo · No hay sensores de humo conectados."
   },
   "deviceState": {
     "on": "Encendido",
@@ -255,7 +247,6 @@
     "roomCameras": "Cámaras · {{room}}",
     "roomSensors": "Sensores · {{room}}",
     "readings": "Lecturas",
-    "addTitle": "Añadir a tu casa",
     "setUpDevice": "Configurar un dispositivo",
     "uiDemoOnly": "Solo demostración de la interfaz",
     "setUpDeviceDescription": "Conecta aquí tu propia API de casa inteligente. Esta recreación no busca ni empareja dispositivos físicos.",
@@ -301,7 +292,6 @@
     "airPreviewTitle": "Vista previa de la calidad del aire",
     "airDescription": "El ICA de 32 es un valor fijo de referencia, no una lectura en directo.",
     "indoorReadings": "Lecturas interiores",
-    "officeWifi": "Wi-Fi del despacho",
     "settingsPreview": "Vista previa de ajustes"
   },
   "units": {
@@ -335,10 +325,8 @@
     "miniFrontDoorLock": "Cerradura\nde la entrada",
     "officeWifi": "Wi-Fi del despacho",
     "officeWifiDescription": "Ajustes de Wi-Fi de ejemplo. No hay ningún router ni red conectados.",
-    "livingRoom": "Salón",
     "notPaired": "{{home}} todavía no está conectada a Home Assistant: emparéjala para gestionar aquí dispositivos, habitaciones y miembros, o activa el modo demo más abajo para verlo.",
     "noHome": "Todavía no hay ninguna casa configurada: termina la configuración para gestionar aquí dispositivos, habitaciones y miembros, o activa el modo demo más abajo para verlo.",
-    "connectHomeAssistant": "Conectar Home Assistant",
     "setUpHome": "Configurar tu casa",
     "services": "Servicios",
     "servicesDescription": "Las tarjetas de servicios son solo referencias visuales. No hay ninguna cuenta de Oxy ni de vídeo conectada.",
@@ -354,9 +342,7 @@
     "musicDescription": "No hay ninguna cuenta de música conectada.",
     "homeFeatures": "Funciones de la casa",
     "addHomeFeature": "Añadir una función a la casa",
-    "add": "Añadir",
     "addToHome": "Añadir a tu casa",
-    "devices": "Dispositivos",
     "automation": "Rutina",
     "app": "App",
     "notifications": "Notificaciones",

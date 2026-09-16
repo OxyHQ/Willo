@@ -24,9 +24,11 @@ export type TemperatureUnit = '°C' | '°F';
  */
 export function convertTemperature(value: number, fromUnit: TemperatureUnit, system: UnitSystem): { value: number; unit: TemperatureUnit } {
   const unit: TemperatureUnit = system === 'imperial' ? '°F' : '°C';
-  const converted = fromUnit === unit ? value : unit === '°F' ? value * 9 / 5 + 32 : (value - 32) * 5 / 9;
-  const rounded = unit === '°F' ? Math.round(converted) : Math.round(converted * 10) / 10;
-  return { value: fromUnit === unit ? value : rounded, unit };
+  // A reading already in the Home's unit is shown exactly as reported — only a
+  // converted value is rounded, so a sensor's own precision survives.
+  if (fromUnit === unit) return { value, unit };
+  const converted = unit === '°F' ? value * 9 / 5 + 32 : (value - 32) * 5 / 9;
+  return { value: unit === '°F' ? Math.round(converted) : Math.round(converted * 10) / 10, unit };
 }
 
 export function formatTemperature(value: number, fromUnit: TemperatureUnit, system: UnitSystem): string {

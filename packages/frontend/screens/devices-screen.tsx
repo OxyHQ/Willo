@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import { PageScroll, SectionGrid } from '../layout/page-layout';
 import { AddButton, SectionTitle, Tile, useOptimisticValue } from '@willo.sh/ui';
@@ -20,7 +20,9 @@ const groupByRoom = <T extends { room: string | null }>(items: T[], otherRoomLab
   const byRoom = new Map<string, T[]>();
   for (const item of items) {
     const room = item.room ?? otherRoomLabel;
-    byRoom.set(room, [...(byRoom.get(room) ?? []), item]);
+    const roomItems = byRoom.get(room);
+    if (roomItems) roomItems.push(item);
+    else byRoom.set(room, [item]);
   }
   return byRoom;
 };
@@ -77,12 +79,21 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
   // doc comment. Real Home Assistant devices are grouped by their actual
   // room below; the fixed Front room/Living room/Office sections above them
   // are the demo catalog and only ever appear on their own.
-  const lightsByRoom = demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'light'), t('devices.otherRoom'));
-  const camerasByRoom = demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'camera'), t('devices.otherRoom'));
-  // Every relevant reading, not the Home card's capped prefix — this is where
-  // that card's "+N more" leads. Unlike lights and cameras, demo mode doesn't
-  // hide this section: it swaps in the demo catalog's own readings.
-  const sensorsByRoom = groupByRoom(selectRelevantSensors(demoMode ? demoSensors(t) : devices), t('devices.otherRoom'));
+  // One memo for all three groupings — the tunnel replaces `devices` on every
+  // Home Assistant state change, and re-grouping the whole catalogue on every
+  // render that causes is the most expensive thing this screen does.
+  const { lightsByRoom, camerasByRoom, sensorsByRoom } = useMemo(() => {
+    const otherRoom = t('devices.otherRoom');
+    return {
+      lightsByRoom: demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'light'), otherRoom),
+      camerasByRoom: demoMode ? new Map<string, Device[]>() : groupByRoom(devices.filter(d => d.domain === 'camera'), otherRoom),
+      // Every relevant reading, not the Home card's capped prefix — this is
+      // where that card's "+N more" leads. Unlike lights and cameras, demo
+      // mode doesn't hide this section: it swaps in the demo catalog's own
+      // readings.
+      sensorsByRoom: groupByRoom(selectRelevantSensors(demoMode ? demoSensors(t) : devices), otherRoom),
+    };
+  }, [devices, demoMode, t]);
   return <View className="flex-1 bg-card"><PageScroll bottom={96}>{header}<SectionGrid>
     {demoMode && <>
       <View><SectionTitle>{t('demo.rooms.frontRoom')}</SectionTitle><View className="flex-row gap-2">{device('tv', t('demo.devices.tv'), 'tv')}<Tile title={t('demo.devices.thermostat')} subtitle={t('deviceState.indoor', { temperature: formatTemperature(70, '°F', unitSystem) })} icon="thermometer" tone="peach" chevron onPress={() => onNavigate('home')}/></View>
@@ -103,7 +114,7 @@ export function DevicesScreen({ onNavigate, header }: ScreenProps) {
     {[...sensorsByRoom.entries()].map(([room, roomSensors]) => (
       <View key={`sensors-${room}`}><SectionTitle>{t('devices.roomSensors', { room })}</SectionTitle><SensorReadingsCard title={t('devices.readings')} sensors={roomSensors}/></View>
     ))}
-  </SectionGrid></PageScroll><AddButton onPress={() => setSheet({ kind: 'menu', title: t('devices.addTitle'), options: [
+  </SectionGrid></PageScroll><AddButton onPress={() => setSheet({ kind: 'menu', title: t('settings.addToHome'), options: [
     { label: t('devices.setUpDevice'), description: t('devices.uiDemoOnly'), onPress: () => setSheet({ kind: 'message', title: t('devices.setUpDevice'), description: t('devices.setUpDeviceDescription') }) },
     { label: t('devices.createAutomation'), onPress: () => { setSheet(null); onNavigate('composer'); } },
   ] })} label={t('common.add')} accessibilityLabel={t('common.addAutomationOrDevice')}/></View>;

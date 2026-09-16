@@ -18,11 +18,9 @@
   },
   "header": {
     "ask": "Ask {{home}}",
-    "createAutomation": "Create automation",
     "homeSettings": "Home settings",
     "chooseHome": "Choose home",
     "filter": "Filter",
-    "notifications": "Notifications",
     "noNotifications": "This UI demo has no live notifications."
   },
   "camera": {
@@ -52,8 +50,7 @@
     "noneFound": "No sensors found",
     "showMore_one": "Show {{count}} more sensor",
     "showMore_other": "Show {{count}} more sensors",
-    "more_one": "+{{count}} more",
-    "more_other": "+{{count}} more"
+    "more": "+{{count}} more"
   },
   "events": {
     "motionDetected": "Motion detected",
@@ -70,7 +67,6 @@
   "activity": {
     "loadFailed": "Could not load activity.",
     "filters": {
-      "devices": "Devices",
       "allDevices": "All devices",
       "events": "Events",
       "allEvents": "All events",
@@ -120,7 +116,6 @@
       "fridayJam": "Friday jam",
       "fridayJamDescription": "At 8:00 PM, on Fridays, play “Friday jam”",
       "garageMotionLight": "Garage motion light",
-      "movieMode": "Movie mode",
       "partyTime": "Party time",
       "oneStarterOneAction": "1 starter · 1 action",
       "oneStarterThreeActions": "1 starter · 3 actions",
@@ -141,7 +136,6 @@
     "save": "Save",
     "saveLabel": "Save automation",
     "saved": "Automation saved in this demo session",
-    "defaultText": "When no one is home on weekday mornings, turn off all lights",
     "describe": "Describe your automation",
     "placeholder": "Describe what you want your home to do",
     "review": "Review automation",
@@ -160,7 +154,6 @@
   },
   "assistant": {
     "back": "Back to home",
-    "ask": "Ask {{home}}",
     "send": "Send question",
     "defaultQuestion": "Did something eat my plants?",
     "plantAnswer": "Yes, rabbits ate plants on September 29th and 28th. On September 29th, two rabbits were seen eating colorful plants in the garden multiple times. One brown and gray rabbit were also seen in the garden on September 29th.",
@@ -192,8 +185,7 @@
     "diningRoom": "Dining room",
     "noLongerHeard": "Smoke alarm no longer heard",
     "diningDescription": "Smoke alarm no longer heard. This is a sample state from the reference, not a connected sensor.",
-    "footer": "Demo alert · No smoke sensors are connected.",
-    "livingRoom": "Living room"
+    "footer": "Demo alert · No smoke sensors are connected."
   },
   "deviceState": {
     "on": "On",
@@ -255,7 +247,6 @@
     "roomCameras": "{{room}} cameras",
     "roomSensors": "{{room}} sensors",
     "readings": "Readings",
-    "addTitle": "Add to your home",
     "setUpDevice": "Set up a device",
     "uiDemoOnly": "UI demonstration only",
     "setUpDeviceDescription": "Connect your own smart-home API here. This recreation does not discover or pair physical devices.",
@@ -285,7 +276,7 @@
       "all": "All",
       "cameras": "Cameras",
       "lights": "Lights",
-      "wifi": "Wifi",
+      "wifi": "Wi-Fi",
       "climate": "Climate"
     },
     "noLights": "No lights found",
@@ -301,7 +292,6 @@
     "airPreviewTitle": "Air quality preview",
     "airDescription": "AQI 32 is a static reference value, not a live reading.",
     "indoorReadings": "Indoor readings",
-    "officeWifi": "Office WiFi",
     "settingsPreview": "Settings preview"
   },
   "units": {
@@ -333,12 +323,10 @@
     "devicesGroupsRooms": "Devices, groups & rooms",
     "miniHallwayThermostat": "Hallway\nthermostat",
     "miniFrontDoorLock": "Front door\nlock",
-    "officeWifi": "Office WiFi",
+    "officeWifi": "Office Wi-Fi",
     "officeWifiDescription": "Wi-Fi settings placeholder. No router or network is connected.",
-    "livingRoom": "Living room",
     "notPaired": "{{home}} isn’t connected to Home Assistant yet — pair it to manage devices, rooms and members here, or turn on Demo mode below to preview it.",
     "noHome": "No home set up yet — finish setup to manage devices, rooms and members here, or turn on Demo mode below to preview it.",
-    "connectHomeAssistant": "Connect Home Assistant",
     "setUpHome": "Set up your home",
     "services": "Services",
     "servicesDescription": "Service cards are visual references only. No Oxy or video account is connected.",
@@ -354,9 +342,7 @@
     "musicDescription": "No music account connected.",
     "homeFeatures": "Home features",
     "addHomeFeature": "Add home feature",
-    "add": "Add",
     "addToHome": "Add to your home",
-    "devices": "Devices",
     "automation": "Automation",
     "app": "App",
     "notifications": "Notifications",

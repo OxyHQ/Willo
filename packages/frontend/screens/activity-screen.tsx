@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { PageColumns, PageScroll } from '../layout/page-layout';
 import { ClassicHeader } from '../components/headers';
-import { EventRow, dayBucket } from '../components/event-row';
+import { EventRow, dayBucket, daysAgo } from '../components/event-row';
 import { Icon } from '@willo.sh/ui';
 import { Label, Pill, SectionTitle } from '@willo.sh/ui';
 import { BRIEF_PARAGRAPH_KEYS } from '../data/events';
@@ -11,7 +11,7 @@ import { type ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-import type { ParseKeys } from 'i18next';
+import type { ParseKeys, TFunction } from 'i18next';
 
 /** The Events filter's label for each of Willo's own real activity categories — see `providers/types.ts`'s `HOME_EVENT_TYPES` doc comment for why this vocabulary is deliberately small today. */
 const EVENT_TYPE_FILTER_KEYS: Record<HomeEventType, ParseKeys> = {
@@ -21,9 +21,21 @@ const EVENT_TYPE_FILTER_KEYS: Record<HomeEventType, ParseKeys> = {
   other: 'activity.filters.other',
 };
 const EVENT_TYPES = Object.keys(EVENT_TYPE_FILTER_KEYS) as HomeEventType[];
-/** The Date filter's choices besides "All dates"; each matches the day heading `dayBucket` gives the same events. */
-const DAY_FILTER_KEYS = { today: 'events.today', yesterday: 'events.yesterday' } as const satisfies Record<string, ParseKeys>;
-type DayFilter = keyof typeof DAY_FILTER_KEYS;
+/** The Date filter's choices besides "All dates": the label to show, and how many days ago that is — the events are matched on the NUMBER, never on the translated heading. */
+const DAY_FILTERS = { today: { labelKey: 'events.today', daysAgo: 0 }, yesterday: { labelKey: 'events.yesterday', daysAgo: 1 } } as const satisfies Record<string, { labelKey: ParseKeys; daysAgo: number }>;
+type DayFilter = keyof typeof DAY_FILTERS;
+
+/** Events under their day heading, in feed order — one pass, so a screen never re-buckets the whole feed once per heading it renders. */
+function groupByDay(events: HomeActivityEvent[], t: TFunction, language: string): Map<string, HomeActivityEvent[]> {
+  const byDay = new Map<string, HomeActivityEvent[]>();
+  for (const event of events) {
+    const bucket = dayBucket(event.occurredAt, t, language);
+    const dayEvents = byDay.get(bucket);
+    if (dayEvents) dayEvents.push(event);
+    else byDay.set(bucket, [event]);
+  }
+  return byDay;
+}
 
 function useActivityEvents() {
   const { fetchEvents, notify } = useHome();
@@ -67,22 +79,21 @@ export function ActivityScreen({ onNavigate, header }: ScreenProps) {
     const choices = [{ value: null, label: allLabel }, ...values];
     setSheet({ kind: 'menu', title, options: choices.map(choice => ({ label: choice.label, selected: current === choice.value, onPress: () => { onSelect(choice.value); setSheet(null); } })) });
   }
-  const bucketOf = (occurredAt: string) => dayBucket(occurredAt, t, i18n.language);
   const deviceNames = [...new Set(allEvents.map(event => event.name))].sort((a, b) => a.localeCompare(b));
   const events = allEvents.filter(event =>
     (device === null || event.name === device) &&
     (eventType === null || event.eventType === eventType) &&
-    (day === null || bucketOf(event.occurredAt) === t(DAY_FILTER_KEYS[day]))
+    (day === null || daysAgo(event.occurredAt) === DAY_FILTERS[day].daysAgo)
   );
-  const dayBuckets = [...new Set(events.map(event => bucketOf(event.occurredAt)))];
+  const eventsByDay = groupByDay(events, t, i18n.language);
   return <View className="flex-1 bg-card"><PageScroll>
     {header}
-    <View className="flex-row flex-wrap gap-2 py-3"><Pill label={device ?? t('activity.filters.devices')} selected={device !== null} onPress={() => selectFilter(t('activity.filters.devices'), t('activity.filters.allDevices'), deviceNames.map(name => ({ value: name, label: name })), device, setDevice)}/><Pill label={eventType ? t(EVENT_TYPE_FILTER_KEYS[eventType]) : t('activity.filters.events')} selected={eventType !== null} onPress={() => selectFilter(t('activity.filters.events'), t('activity.filters.allEvents'), EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) })), eventType, setEventType)}/><Pill label={day ? t(DAY_FILTER_KEYS[day]) : t('activity.filters.date')} selected={day !== null} onPress={() => selectFilter(t('activity.filters.date'), t('activity.filters.allDates'), (Object.keys(DAY_FILTER_KEYS) as DayFilter[]).map(value => ({ value, label: t(DAY_FILTER_KEYS[value]) })), day, setDay)}/></View>
+    <View className="flex-row flex-wrap gap-2 py-3"><Pill label={device ?? t('nav.devices')} selected={device !== null} onPress={() => selectFilter(t('nav.devices'), t('activity.filters.allDevices'), deviceNames.map(name => ({ value: name, label: name })), device, setDevice)}/><Pill label={eventType ? t(EVENT_TYPE_FILTER_KEYS[eventType]) : t('activity.filters.events')} selected={eventType !== null} onPress={() => selectFilter(t('activity.filters.events'), t('activity.filters.allEvents'), EVENT_TYPES.map(type => ({ value: type, label: t(EVENT_TYPE_FILTER_KEYS[type]) })), eventType, setEventType)}/><Pill label={day ? t(DAY_FILTERS[day].labelKey) : t('activity.filters.date')} selected={day !== null} onPress={() => selectFilter(t('activity.filters.date'), t('activity.filters.allDates'), (Object.keys(DAY_FILTERS) as DayFilter[]).map(value => ({ value, label: t(DAY_FILTERS[value].labelKey) })), day, setDay)}/></View>
     <PageColumns weights={[1, 1.25]}><View><View className="rounded-[23px] bg-muted p-4"><View className="mb-3 flex-row items-center gap-3"><Icon name="calendar" size={21} color={themeColors.primary}/><Label className="text-[13px] font-medium">{t('activity.brief.title')}</Label></View><View className="pl-[33px]">{BRIEF_PARAGRAPH_KEYS.slice(0, expanded ? 3 : 2).map(key => <Label key={key} className="mb-4 text-[12px] leading-[18px] text-muted-foreground">{t(key)}</Label>)}
       <View className="flex-row items-center gap-3"><Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => setExpanded(value => !value)} className="flex-row items-center gap-2 rounded-full bg-primary-subtle px-3 py-2"><Icon name="sparkle" size={15} color={themeColors.primary} filled/><Label className="text-[11px] font-medium text-primary-text">{expanded ? t('activity.brief.seeLess') : t('activity.brief.seeMore')}</Label></Pressable>{(['up', 'down'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={value === 'up' ? t('activity.brief.helpful') : t('activity.brief.unhelpful')} accessibilityState={{ selected: feedback === value }} onPress={() => { setFeedback(feedback === value ? null : value); notify(t('activity.brief.feedbackSaved')); }} className="p-2"><Icon name={value === 'up' ? 'thumb-up' : 'thumb-down'} size={16} color={feedback === value ? themeColors.info : themeColors.textSecondary}/></Pressable>)}</View>
     </View></View></View><View>
     {loading ? <View className="items-center p-6"><ActivityIndicator color={themeColors.primary}/></View>
-      : events.length ? dayBuckets.map(bucket => <View key={bucket}><SectionTitle>{bucket}</SectionTitle>{events.filter(event => bucketOf(event.occurredAt) === bucket).map(event => <EventRow card key={event.id} event={event}/>)}</View>)
+      : events.length ? [...eventsByDay].map(([bucket, dayEvents]) => <View key={bucket}><SectionTitle>{bucket}</SectionTitle>{dayEvents.map(event => <EventRow card key={event.id} event={event}/>)}</View>)
       : <View className="p-6"><Label className="text-center text-[13px] text-muted-foreground">{allEvents.length ? t('activity.filters.noMatches') : t('activity.emptyWithSensors')}</Label>{allEvents.length > 0 && <Pressable onPress={() => { setDevice(null); setEventType(null); setDay(null); }} className="mt-3 p-2"><Label className="text-center text-[13px] text-info-text">{t('activity.filters.clear')}</Label></Pressable>}</View>}
   </View></PageColumns></PageScroll></View>;
 }
@@ -116,15 +127,14 @@ export function TimelineScreen({ onNavigate: _onNavigate, header }: ScreenProps)
   const { filter, openFilter } = useTimelineFilter();
   const { events: allEvents, loading } = useActivityEvents();
   const { t, i18n } = useTranslation();
-  const bucketOf = (occurredAt: string) => dayBucket(occurredAt, t, i18n.language);
   const events = allEvents.filter(event => filter === null || event.eventType === filter);
-  const dayBuckets = [...new Set(events.map(event => bucketOf(event.occurredAt)))];
+  const eventsByDay = groupByDay(events, t, i18n.language);
   const { colors: themeColors } = useTheme();
   return <View className="flex-1 bg-card"><PageScroll maxWidth={1200}>
     {header}
     {filter !== null && <Pressable onPress={openFilter} className="self-start rounded-full bg-primary-subtle px-3 py-2"><Label className="text-[12px] text-primary-text">{t(EVENT_TYPE_FILTER_KEYS[filter])}</Label></Pressable>}
     {loading ? <View className="items-center p-6"><ActivityIndicator color={themeColors.primary}/></View>
-      : <PageColumns>{dayBuckets.map(bucket => <View key={bucket}><SectionTitle>{bucket}</SectionTitle>{events.filter(event => bucketOf(event.occurredAt) === bucket).map(event => <EventRow key={event.id} event={event}/>)}</View>)}
+      : <PageColumns>{[...eventsByDay].map(([bucket, dayEvents]) => <View key={bucket}><SectionTitle>{bucket}</SectionTitle>{dayEvents.map(event => <EventRow key={event.id} event={event}/>)}</View>)}
       {events.length === 0 && <Label className="p-6 text-center text-[13px] text-muted-foreground">{t('activity.empty')}</Label>}
     </PageColumns>}
   </PageScroll></View>;

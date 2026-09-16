@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, View } from 'react-native';
 import { CameraCard, RealCameraCard } from '../components/camera-card';
 import { DemoLightTile } from './devices-screen';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { Label, Tile, useOptimisticValue } from '@willo.sh/ui';
 import { ThermostatCard } from '../components/thermostat-card';
-import { SensorReadingsCard } from '../components/sensor-readings-card';
+import { SensorReadingsCard, estimateSensorCardHeight } from '../components/sensor-readings-card';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { PageScroll } from '../layout/page-layout';
 import { useResponsiveLayout } from '../layout/responsive-context';
@@ -21,14 +21,14 @@ import { useTranslation } from 'react-i18next';
 import type { ParseKeys } from 'i18next';
 
 type Category = 'Favorites' | 'All' | 'Cameras' | 'Lights' | 'Wifi' | 'Climate';
-/** Keyed by `Category` so selection logic never depends on the (translated) label. */
-const CATEGORY_LABEL_KEYS: Record<Category, ParseKeys> = {
-  Favorites: 'home.categories.favorites', All: 'home.categories.all', Cameras: 'home.categories.cameras',
-  Lights: 'home.categories.lights', Wifi: 'home.categories.wifi', Climate: 'home.categories.climate',
-};
-const categories: { name: Category; icon: IconName }[] = [
-  { name: 'Favorites', icon: 'heart' }, { name: 'All', icon: 'grid' }, { name: 'Cameras', icon: 'camera' },
-  { name: 'Lights', icon: 'light' }, { name: 'Wifi', icon: 'wifi' }, { name: 'Climate', icon: 'climate' },
+/** `name` is what selection compares — never the (translated) `labelKey` beside it. */
+const categories: { name: Category; labelKey: ParseKeys; icon: IconName }[] = [
+  { name: 'Favorites', labelKey: 'home.categories.favorites', icon: 'heart' },
+  { name: 'All', labelKey: 'home.categories.all', icon: 'grid' },
+  { name: 'Cameras', labelKey: 'home.categories.cameras', icon: 'camera' },
+  { name: 'Lights', labelKey: 'home.categories.lights', icon: 'light' },
+  { name: 'Wifi', labelKey: 'home.categories.wifi', icon: 'wifi' },
+  { name: 'Climate', labelKey: 'home.categories.climate', icon: 'climate' },
 ];
 type HomeCard = DashboardCard & { category: Category };
 
@@ -143,10 +143,17 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   // `base` entries below) means every derived list — `extraLightCards`,
   // `extraCameraCards`, the "no lights/cameras found" fallbacks — stays
   // correct for free instead of needing its own demoMode check.
-  const lights = demoMode ? [] : devices.filter(d => d.domain === 'light');
-  const cameras = demoMode ? [] : devices.filter(d => d.domain === 'camera');
-  const fan = demoMode ? undefined : devices.find(d => d.domain === 'fan');
-  const sensors = demoMode ? demoSensors(t) : devices.filter(d => d.domain === 'sensor');
+  // Memoised together: the tunnel pushes a new `devices` array on every
+  // Home Assistant state change (several a second in a real house), and every
+  // one of those re-renders this screen. Only a real device push should pay
+  // for scanning the catalogue and ranking the sensors again.
+  const { lights, cameras, fan, relevantSensors } = useMemo(() => ({
+    lights: demoMode ? [] : devices.filter(d => d.domain === 'light'),
+    cameras: demoMode ? [] : devices.filter(d => d.domain === 'camera'),
+    fan: demoMode ? undefined : devices.find(d => d.domain === 'fan'),
+    // `selectRelevantSensors` filters to `sensor` itself, so the real list goes in whole.
+    relevantSensors: selectRelevantSensors(demoMode ? demoSensors(t) : devices),
+  }), [devices, demoMode, t]);
   const noLights = <Tile grow={false} height={80} title={t('home.noLights')} subtitle={t('home.checkHomeAssistant')} icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
   const noCameras = <Tile grow={false} height={80} title={t('home.noCameras')} subtitle={t('home.checkHomeAssistant')} icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
@@ -163,11 +170,9 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const air = <Tile grow={false} title={t('home.airTitle')} subtitle={t('home.airSubtitle')} icon="waves" height={72}
     onPress={() => message(t('home.airPreviewTitle'), t('home.airDescription'))}/>;
   const noFan = <Tile grow={false} height={80} title={t('home.noFan')} subtitle={t('home.checkHomeAssistant')} icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
-  const relevantSensors = selectRelevantSensors(sensors);
   const cardSensors = relevantSensors.slice(0, SENSOR_CARD_LIMIT);
   const hiddenSensorCount = relevantSensors.length - cardSensors.length;
-  // 16px padding top and bottom plus a ~24px header, then ~28px (16px text
-  // + 12px gap) per row: the empty state and the "+N more" row count as rows.
+  // The empty state and the "+N more" row each take a row's worth of space.
   const sensorRowCount = Math.max(cardSensors.length, 1) + (hiddenSensorCount > 0 ? 1 : 0);
   const sensorList = <SensorReadingsCard title={t('home.indoorReadings')} sensors={cardSensors} hiddenCount={hiddenSensorCount} onShowMore={() => onNavigate('devices')}/>;
   const base = {
@@ -183,9 +188,9 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', t('demo.devices.speaker'), 'speaker') },
     garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: demoMode ? <CameraCard garden height={240}/> : (cameras[1] ? cameraTile(cameras[1], 240) : noCameras) },
     plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', t('demo.devices.plug'), 'plug') },
-    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: 56 + 28 * sensorRowCount, content: sensorList },
+    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: estimateSensorCardHeight(sensorRowCount), content: sensorList },
     floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title={t('demo.devices.lamp')}/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
-    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title={t('home.officeWifi')} subtitle={t('home.settingsPreview')} icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
+    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title={t('settings.officeWifi')} subtitle={t('home.settingsPreview')} icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
   // Demo-only tiles (no real Home Assistant equivalent — see `useHome()`'s
   // `demoMode` doc comment) only ever appear WITH the rest of the demo
@@ -224,11 +229,11 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           // Desktop always shows every label — nothing to animate, so it
           // stays the plain, un-animated render it always was.
           if (!compact) {
-            return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(CATEGORY_LABEL_KEYS[category.name])} accessibilityState={{ selected: active }}
+            return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(category.labelKey)} accessibilityState={{ selected: active }}
               onPress={() => selectCategory(category.name)}
               className={`h-[50px] flex-row items-center justify-center gap-2 rounded-[18px] px-4 active:opacity-70 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={18} color={active ? themeColors.primary : themeColors.textSecondary}/>
-              <Label className={labelClassName}>{t(CATEGORY_LABEL_KEYS[category.name])}</Label>
+              <Label className={labelClassName}>{t(category.labelKey)}</Label>
             </Pressable>;
           }
           // Compact: only the SELECTED chip shows its label — the rest
@@ -241,7 +246,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           // real width is measured (first paint only).
           const widthAnim = chipWidths[category.name];
           const naturalWidth = labelWidths[`${i18n.language}:${category.name}`] ?? 54;
-          return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(CATEGORY_LABEL_KEYS[category.name])} accessibilityState={{ selected: active }}
+          return <Pressable key={category.name} accessibilityRole="button" accessibilityLabel={t(category.labelKey)} accessibilityState={{ selected: active }}
             onPress={() => selectCategory(category.name)} className="active:opacity-70">
             <Animated.View className={`h-[50px] flex-row items-center rounded-full px-4 ${active ? 'bg-primary-subtle' : 'bg-muted'}`}>
               <Icon name={category.icon} filled={active && category.icon === 'heart'} size={21} color={active ? themeColors.primary : themeColors.textSecondary}/>
@@ -250,7 +255,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
                 width: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, naturalWidth] }),
                 marginLeft: widthAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 8] }),
               }}>
-                <Label numberOfLines={1} className={labelClassName}>{t(CATEGORY_LABEL_KEYS[category.name])}</Label>
+                <Label numberOfLines={1} className={labelClassName}>{t(category.labelKey)}</Label>
               </Animated.View>
             </Animated.View>
           </Pressable>;
@@ -273,7 +278,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
         <Label key={`measure-${i18n.language}-${category.name}`} numberOfLines={1}
           onLayout={event => setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: event.nativeEvent.layout.width }))}
           className="text-[14px] font-medium" style={{ position: 'absolute', opacity: 0 }} pointerEvents="none">
-          {t(CATEGORY_LABEL_KEYS[category.name])}
+          {t(category.labelKey)}
         </Label>
       ))}
       <Animated.View style={{ opacity: gridOpacity }}>

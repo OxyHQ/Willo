@@ -48,7 +48,7 @@ export function AskHeader({ onNavigate }: { onNavigate: Navigate }) {
         <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{t('header.ask', { home: homeName })}</Label>
       </Pressable>
       {!compact && <View className="flex-1"/>}
-      <IconButton icon="plus" label={t('header.createAutomation')} onPress={() => onNavigate('composer')} className="bg-card"/>
+      <IconButton icon="plus" label={t('composer.title')} onPress={() => onNavigate('composer')} className="bg-card"/>
       <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
     </View>
   </ContentWidth></View>;
@@ -66,7 +66,7 @@ export function ClassicHeader({ title, onNavigate, home = false, filter, notific
   return <View><ContentWidth><View className={`min-h-[52px] flex-row items-center gap-2 pt-2 ${compact ? 'pb-2' : ''}`}>
     {home ? <Pressable onPress={account} accessibilityRole="button" accessibilityLabel={t('header.chooseHome')} className="flex-1 flex-row items-center gap-2"><View className="h-7 w-7 items-center justify-center rounded-full bg-home-nav"><Icon name="home" size={16} color={themeColors.info}/></View><Label numberOfLines={1} className="min-w-0 flex-1 text-[16px]">{title}</Label><Icon name="down" size={13} color={themeColors.textSecondary}/></Pressable> : <Label className="flex-1 text-[19px]">{title}</Label>}
     {filter && <Pressable accessibilityRole="button" onPress={filter} className="px-2 py-3"><Label className="text-[12px] text-info-text">{t('header.filter')}</Label></Pressable>}
-    {notifications && <IconButton size={19} icon="bell" label={t('header.notifications')} onPress={() => setSheet({ kind: 'message', title: t('header.notifications'), description: t('header.noNotifications') })}/>}
+    {notifications && <IconButton size={19} icon="bell" label={t('settings.notifications')} onPress={() => setSheet({ kind: 'message', title: t('settings.notifications'), description: t('header.noNotifications') })}/>}
     <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
   </View></ContentWidth></View>;
 }

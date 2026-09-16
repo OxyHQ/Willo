@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { AddButton, Label, SectionTitle } from '@willo.sh/ui';
@@ -20,8 +20,8 @@ const upcoming: { id: string; hour: number; minute: number; nameKey: ParseKeys; 
  * number large and the day period ("AM"/"PM") small. Languages that use a
  * 24-hour clock (Spanish) have no day period, so `period` is empty there.
  */
-function formatRoutineTime(hour: number, minute: number, language: string): { time: string; period: string } {
-  const parts = new Intl.DateTimeFormat(language, { hour: 'numeric', minute: '2-digit' }).formatToParts(new Date(2000, 0, 1, hour, minute));
+function formatRoutineTime(hour: number, minute: number, timeFormat: Intl.DateTimeFormat): { time: string; period: string } {
+  const parts = timeFormat.formatToParts(new Date(2000, 0, 1, hour, minute));
   const period = parts.find(part => part.type === 'dayPeriod')?.value ?? '';
   const time = parts.filter(part => part.type !== 'dayPeriod').map(part => part.value).join('').trim();
   return { time, period };
@@ -31,11 +31,13 @@ export function AutomationsScreen({ onNavigate, header }: ScreenProps) {
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
   const { compact, split } = useResponsiveLayout();
+  // Building an `Intl.DateTimeFormat` costs far more than formatting with one, and this screen re-renders on every device push.
+  const timeFormat = useMemo(() => new Intl.DateTimeFormat(i18n.language, { hour: 'numeric', minute: '2-digit' }), [i18n.language]);
   const shown = upcoming.filter(item => !state.dismissedUpcoming.includes(item.id));
   return <View className="min-h-0 flex-1 bg-card">
     <PageScroll>{header}<PageColumns weights={[1, 1.35]}>
       <View><SectionTitle>{t('automations.upcoming')}</SectionTitle><CardStrip gap={12}>
-        {shown.length ? shown.map((item, index) => { const { time, period } = formatRoutineTime(item.hour, item.minute, i18n.language); return <View key={item.id}
+        {shown.length ? shown.map((item, index) => { const { time, period } = formatRoutineTime(item.hour, item.minute, timeFormat); return <View key={item.id}
           className={`min-h-[173px] justify-between rounded-[27px] p-4 ${index === 0 ? 'bg-primary-subtle' : 'bg-muted'}`}
           style={{ width: compact ? 156 : split ? '100%' : 196, gap: 32 }}>
           <View className="flex-row items-center justify-between"><Icon name={item.icon} size={23} color={index === 0 ? themeColors.primary : themeColors.text}/>
@@ -64,7 +66,7 @@ export function RoutinesScreen({ onNavigate, header }: ScreenProps) {
     <PageScroll bottom={96}>{header}<PageColumns>
       <View><SectionTitle>{t('automations.household')}</SectionTitle><View className="gap-2">
         <RoutineRow title={t('automations.demo.garageMotionLight')} description={t('automations.demo.oneStarterOneAction')} icon="settings"/>
-        <RoutineRow title={t('automations.demo.movieMode')} description={t('automations.demo.oneStarterThreeActions')} icon="light" onRun={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? t('automations.movieStopped') : t('automations.movieStarted')); }}/>
+        <RoutineRow title={t('demo.devices.movieMode')} description={t('automations.demo.oneStarterThreeActions')} icon="light" onRun={() => { dispatch({ type: 'TOGGLE_MOVIE' }); notify(state.movieMode ? t('automations.movieStopped') : t('automations.movieStarted')); }}/>
         <RoutineRow title={t('automations.demo.partyTime')} description={t('automations.demo.oneStarterFourActions')} icon="speaker"/>
         <RoutineRow title={t('automations.demo.home')} description={t('automations.demo.homeDescription')} icon="home" playable={false}/>
         <RoutineRow title={t('automations.demo.away')} description={t('automations.demo.awayDescription')} icon="home" playable={false}/>

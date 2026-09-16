@@ -30,24 +30,30 @@ export const SENSOR_CARD_LIMIT = 6;
  * list and the Devices screen shows all of it, so "+N more" always matches.
  */
 export function selectRelevantSensors(devices: Device[]): Device[] {
-  const relevant = devices.filter(device => {
+  // One pass: every device's class is read once here, and the ordering below
+  // walks these buckets instead of re-reading capabilities per class.
+  const byClassAndRoom = new Map<string, Map<string, Device[]>>();
+  for (const device of devices) {
     const measurement = getCapability(device, 'measurement');
-    return device.domain === 'sensor'
-      && measurement !== undefined
-      && measurement.value !== null
-      && measurement.deviceClass !== null
-      && RELEVANT_SENSOR_CLASSES.includes(measurement.deviceClass);
-  });
-  return RELEVANT_SENSOR_CLASSES.flatMap(deviceClass => {
-    const byRoom = new Map<string, Device[]>();
-    const ofClass = relevant
-      .filter(device => getCapability(device, 'measurement')?.deviceClass === deviceClass)
-      .sort((first, second) => first.name.localeCompare(second.name));
-    for (const device of ofClass) {
-      const room = device.room ?? '';
-      byRoom.set(room, [...(byRoom.get(room) ?? []), device]);
+    if (device.domain !== 'sensor' || measurement?.value == null || measurement.deviceClass === null) continue;
+    if (!RELEVANT_SENSOR_CLASSES.includes(measurement.deviceClass)) continue;
+    let rooms = byClassAndRoom.get(measurement.deviceClass);
+    if (!rooms) {
+      rooms = new Map<string, Device[]>();
+      byClassAndRoom.set(measurement.deviceClass, rooms);
     }
-    const rooms = [...byRoom.values()];
+    const room = device.room ?? '';
+    const roomSensors = rooms.get(room);
+    if (roomSensors) roomSensors.push(device);
+    else rooms.set(room, [device]);
+  }
+  return RELEVANT_SENSOR_CLASSES.flatMap(deviceClass => {
+    const rooms = [...(byClassAndRoom.get(deviceClass)?.values() ?? [])];
+    // By name within a room, then rooms against each other by their own first
+    // sensor — so the same set of sensors always comes out in the same order,
+    // whatever order Home Assistant happened to report them in.
+    for (const roomSensors of rooms) roomSensors.sort((first, second) => first.name.localeCompare(second.name));
+    rooms.sort((first, second) => (first[0]?.name ?? '').localeCompare(second[0]?.name ?? ''));
     const longestRoom = Math.max(0, ...rooms.map(roomSensors => roomSensors.length));
     const interleaved: Device[] = [];
     for (let round = 0; round < longestRoom; round++) {

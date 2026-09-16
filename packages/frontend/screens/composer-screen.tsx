@@ -28,7 +28,7 @@ function useComposer(): ComposerValue {
 export function ComposerProvider({ onNavigate, children }: ScreenProps & { children: React.ReactNode }) {
   const { dispatch, notify } = useHome();
   const { t } = useTranslation();
-  const [text, setText] = useState(() => t('composer.defaultText'));
+  const [text, setText] = useState(() => t('composer.suggestions.saveEnergyText'));
   const [review, setReview] = useState(false);
   const valid = text.trim().length >= 8;
   function save() {

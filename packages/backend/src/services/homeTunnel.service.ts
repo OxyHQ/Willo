@@ -388,12 +388,16 @@ export interface LiveDevicesResult {
  */
 export async function getLiveDevices(homeId: string, userId: string): Promise<LiveDevicesResult> {
   await assertActiveMember(homeId, userId);
-  const [connectionRow] = await getDb()
-    .select({ ...HOME_CONNECTION_DISPLAY_COLUMNS, hasSecret: sql<boolean>`${homeConnections.tunnelSecretHash} is not null` })
-    .from(homeConnections)
-    .where(eq(homeConnections.homeId, homeId))
-    .limit(1);
-  const [homeRow] = await getDb().select({ name: homes.name, unitSystem: homes.unitSystem }).from(homes).where(eq(homes.id, homeId)).limit(1);
+  // The connection row and the Home row don't depend on each other — one
+  // round trip, not two, on an endpoint every app open and Home switch hits.
+  const [[connectionRow], [homeRow]] = await Promise.all([
+    getDb()
+      .select({ ...HOME_CONNECTION_DISPLAY_COLUMNS, hasSecret: sql<boolean>`${homeConnections.tunnelSecretHash} is not null` })
+      .from(homeConnections)
+      .where(eq(homeConnections.homeId, homeId))
+      .limit(1),
+    getDb().select({ name: homes.name, unitSystem: homes.unitSystem }).from(homes).where(eq(homes.id, homeId)).limit(1),
+  ]);
   return {
     connected: isHomeConnected(homeId),
     paired: connectionRow?.hasSecret ?? false,

@@ -27,10 +27,15 @@ export function formatEventTime(occurredAt: string, language: string): string {
   return new Date(occurredAt).toLocaleTimeString(language, { hour: 'numeric', minute: '2-digit' });
 }
 
+/** Whole days between today and the event's own day — 0 today, 1 yesterday. The value a date filter compares, never the heading text below. */
+export function daysAgo(occurredAt: string): number {
+  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  return Math.round((startOfDay(new Date()) - startOfDay(new Date(occurredAt))) / (24 * 60 * 60 * 1000));
+}
+
 /** 'Today'/'Yesterday' for the common case, a short date otherwise — this feed has no fixed two-day window the way the old demo data did. */
 export function dayBucket(occurredAt: string, t: TFunction, language: string): string {
-  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(new Date(occurredAt))) / (24 * 60 * 60 * 1000));
+  const diffDays = daysAgo(occurredAt);
   if (diffDays === 0) return t('events.today');
   if (diffDays === 1) return t('events.yesterday');
   return new Date(occurredAt).toLocaleDateString(language, { month: 'short', day: 'numeric' });

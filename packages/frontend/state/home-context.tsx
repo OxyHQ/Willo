@@ -135,7 +135,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const { t } = useTranslation();
-  const { oxyServices } = useOxy();
+  const { oxyServices, currentLanguage } = useOxy();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const getAccessToken = useCallback(() => oxyServices.getAccessToken(), [oxyServices]);
 
@@ -159,7 +159,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // a stale pre-render value the way `paired` state would.
   const pairedRef = useRef(false);
   const [demoMode, setDemoModeState] = useState(false);
-  const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(Intl.NumberFormat().resolvedOptions().locale));
+  // Seeded from the SAME locale Oxy resolved for the UI language (the
+  // account's when signed in, the device's otherwise) — never re-derived from
+  // `Intl`, which would answer with the machine's region and disagree with it.
+  const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(currentLanguage));
   const [pairingCode, setPairingCode] = useState<{ code: string; expiresAt: string } | null>(null);
 
   useEffect(() => {
@@ -189,6 +192,11 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // one underneath it. "Spring Street" matches the reference UI's own demo
   // home name from before this app had any real Home Assistant data.
   const homeName = demoMode ? 'Spring Street' : (rawHomeName ?? t('homes.defaultName'));
+
+  const getAuthHeaders = useCallback((): Record<string, string> => {
+    const token = getAccessToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [getAccessToken]);
 
   const connectHome = useCallback(
     async (id: string) => {
@@ -246,18 +254,6 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     setPairingCode(null);
   }, []);
 
-  const loadHomes = useCallback(async (): Promise<HomeSummary[]> => {
-    const token = getAccessToken();
-    const response = await fetch(`${WILLO_API_URL}/homes/me`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!response.ok) throw new Error(`GET /homes/me answered ${response.status}`);
-    const result = (await response.json()) as { home: HomeSummary }[];
-    const summaries = result.map(({ home }) => ({ id: home.id, name: home.name }));
-    setHomes(summaries);
-    return summaries;
-  }, [getAccessToken]);
-
   const switchHome = useCallback(
     (id: string) => {
       if (id === homeId) return;
@@ -298,7 +294,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // never push someone who has a Home into setup.
       let activeHomeId = storedHomeId;
       try {
-        const myHomes = await loadHomes();
+        const response = await fetch(`${WILLO_API_URL}/homes/me`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error(`GET /homes/me answered ${response.status}`);
+        const myHomes = ((await response.json()) as { home: HomeSummary }[]).map(({ home }) => ({ id: home.id, name: home.name }));
+        setHomes(myHomes);
         activeHomeId = myHomes.find((home) => home.id === storedHomeId)?.id ?? myHomes[0]?.id ?? null;
       } catch (error) {
         console.error(`Failed to load Homes; falling back to this device's stored Home (${storedHomeId ?? 'none'}):`, error);
@@ -313,13 +312,13 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       setHomeId(activeHomeId);
       await connectHome(activeHomeId);
     })();
-  }, [isAuthResolved, isAuthenticated, connectHome, loadHomes]);
+  }, [isAuthResolved, isAuthenticated, connectHome, getAuthHeaders]);
 
   const createHome = useCallback(
     async (name?: string) => {
       const response = await fetch(`${WILLO_API_URL}/homes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}) },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(name ? { name, unitSystem } : { unitSystem }),
       });
       if (!response.ok) throw new Error('Could not create your home.');
@@ -330,18 +329,16 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       setRawHomeName(home.name);
       await connectHome(home.id);
     },
-    [getAccessToken, connectHome, unitSystem]
+    [getAuthHeaders, connectHome, unitSystem]
   );
 
   const setUnitSystem = useCallback(
     (value: UnitSystem) => {
-      const previous = unitSystem;
       setUnitSystemState(value);
       if (!homeId) return;
-      const token = getAccessToken();
       fetch(`${WILLO_API_URL}/homes/${homeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ unitSystem: value }),
       })
         .then((response) => {
@@ -349,19 +346,18 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         })
         .catch((error: unknown) => {
           console.error(`Failed to save unit system "${value}" for Home ${homeId}:`, error);
-          setUnitSystemState(previous);
+          setUnitSystemState(unitSystem);
           notify(t('errors.unitsNotSaved'));
         });
     },
-    [unitSystem, homeId, getAccessToken, notify, t]
+    [unitSystem, homeId, getAuthHeaders, notify, t]
   );
 
   const requestPairingCode = useCallback(async () => {
     if (!homeId) throw new Error('Create a home before requesting a pairing code.');
-    const token = getAccessToken();
     const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/pairing-code`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Could not generate a pairing code.');
     // Issuing a code nulls any existing secret server-side (`issuePairingCode`) —
@@ -372,15 +368,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     const result = (await response.json()) as { code: string; expiresAt: string };
     setPairingCode(result);
     return result;
-  }, [homeId, getAccessToken]);
+  }, [homeId, getAuthHeaders]);
 
   const claimDevice = useCallback(
     async (claimCode: string) => {
       if (!homeId) throw new Error('Create a home before claiming a device.');
-      const token = getAccessToken();
       const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/claim-device`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ claimCode }),
       });
       if (!response.ok) throw new ClaimDeviceError(response.status === 404 ? 'invalid-code' : 'failed');
@@ -389,25 +384,19 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // race ahead of the tunnel's own real `onPaired`/`onConnectionChange`.
       pairedRef.current = false;
     },
-    [homeId, getAccessToken]
+    [homeId, getAuthHeaders]
   );
 
   const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
     if (!homeId) return [];
-    const token = getAccessToken();
     const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/events`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Could not load activity.');
     return (await response.json()) as HomeActivityEvent[];
-  }, [homeId, getAccessToken]);
+  }, [homeId, getAuthHeaders]);
 
   const sendCommand = useCallback((id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command), []);
-
-  const getAuthHeaders = useCallback((): Record<string, string> => {
-    const token = getAccessToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, [getAccessToken]);
 
   const value = useMemo(
     () => ({ state, dispatch, sheet, setSheet, toast, notify, devices, setupStage, tunnelConnected, homeName, demoMode, setDemoMode, unitSystem, setUnitSystem, homes, homeId, switchHome, startNewHome, createHome, requestPairingCode, pairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders }),

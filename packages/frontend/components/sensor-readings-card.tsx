@@ -20,6 +20,13 @@ const formatReading = (value: number | null, unit: string | null, unitSystem: Un
 };
 
 /**
+ * What `DashboardGrid` should reserve for this card: 16px padding top and
+ * bottom plus a ~24px header, then ~28px (16px text + 12px gap) per row. Lives
+ * here, with the padding and gap it measures, so the two can't drift apart.
+ */
+export const estimateSensorCardHeight = (rowCount: number) => 56 + 28 * rowCount;
+
+/**
  * A titled list of sensor readings on the green tone's tinted surface — the
  * same shape as `ThermostatCard`'s `bg-tertiary-subtle` card, so the two read
  * as siblings on the dashboard. Which sensors to pass, and in what order, is
