@@ -8,6 +8,7 @@ import { ThermostatCard } from '../components/thermostat-card';
 import { SensorReadingsCard, estimateSensorCardHeight } from '../components/sensor-readings-card';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';
 import { PageScroll } from '../layout/page-layout';
+import { CARD_ROW_HEIGHT, cardHeight, cardRowsFor } from '../layout/card-sizes';
 import { useResponsiveLayout } from '../layout/responsive-context';
 import type { ScreenProps } from '../data/screens';
 import { useHome } from '../state/home-context';
@@ -54,7 +55,7 @@ function LightTile({ light }: { light: Device }) {
   const dimmable = brightnessCapability !== undefined;
   const [percent, setPercent] = useOptimisticValue(dimmable ? (onOff?.on ? brightnessCapability.percent ?? 100 : 0) : 0);
   const on = dimmable ? percent > 0 : (onOff?.on ?? false);
-  return <Tile grow={false} height={80} title={light.name}
+  return <Tile grow={false} height={CARD_ROW_HEIGHT} title={light.name}
     subtitle={on ? (dimmable ? t('deviceState.onPercent', { percent }) : t('deviceState.on')) : t('deviceState.off')}
     icon="light" tone={on ? 'yellow' : 'neutral'} active={on}
     brightness={dimmable ? percent : undefined}
@@ -77,7 +78,7 @@ function FanTile({ fan }: { fan: Device }) {
   const adjustable = speedCapability !== undefined;
   const [percent, setPercent] = useOptimisticValue(adjustable ? (onOff?.on ? speedCapability.percent ?? 100 : 0) : 0);
   const on = adjustable ? percent > 0 : (onOff?.on ?? false);
-  return <Tile grow={false} height={80} title={fan.name}
+  return <Tile grow={false} height={CARD_ROW_HEIGHT} title={fan.name}
     subtitle={on ? (adjustable ? t('deviceState.onPercent', { percent }) : t('deviceState.on')) : t('deviceState.off')}
     icon="fan" tone={on ? 'blue' : 'neutral'} active={on}
     brightness={adjustable ? percent : undefined}
@@ -90,7 +91,7 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const { state, dispatch, setSheet, devices, sendCommand, demoMode, unitSystem } = useHome();
   const { colors: themeColors } = useTheme();
   const { t, i18n } = useTranslation();
-  const { compact, columns, gutter } = useResponsiveLayout();
+  const { compact, columns, gutter, gap } = useResponsiveLayout();
   const [selected, setSelected] = useState<Category>('Favorites');
   // Crossfades the grid on category change instead of snapping straight to
   // the new set of cards — an instant swap reads as "nothing happened" (the
@@ -137,6 +138,11 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     });
   }
   const full = compact ? 2 : 1;
+  // Every card is a whole number of tile rows tall, so a tall one ends level
+  // with the stack of tiles beside it — see `layout/card-sizes.ts`.
+  const tile = cardHeight(1, gap);
+  const twoRows = cardHeight(2, gap);
+  const threeRows = cardHeight(3, gap);
   const message = (title: string, description: string) => setSheet({ kind: 'message', title, description });
   // Demo mode never mixes with real devices — see `useHome()`'s own doc
   // comment on `demoMode`. Forcing these to empty here (rather than at the
@@ -154,10 +160,10 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
     // `selectRelevantSensors` filters to `sensor` itself, so the real list goes in whole.
     relevantSensors: selectRelevantSensors(demoMode ? demoSensors(t) : devices),
   }), [devices, demoMode, t]);
-  const noLights = <Tile grow={false} height={80} title={t('home.noLights')} subtitle={t('home.checkHomeAssistant')} icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const noLights = <Tile grow={false} height={tile} title={t('home.noLights')} subtitle={t('home.checkHomeAssistant')} icon="light" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cameraTile = (camera: Device, cameraHeight: number) => <RealCameraCard key={camera.id} camera={camera} height={cameraHeight}/>;
-  const noCameras = <Tile grow={false} height={80} title={t('home.noCameras')} subtitle={t('home.checkHomeAssistant')} icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
-  const device = (id: DeviceKey, title: string, icon: IconName) => <Tile grow={false} height={80} title={title}
+  const noCameras = <Tile grow={false} height={tile} title={t('home.noCameras')} subtitle={t('home.checkHomeAssistant')} icon="camera-off" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const device = (id: DeviceKey, title: string, icon: IconName) => <Tile grow={false} height={tile} title={title}
     subtitle={id === 'garage' ? (state.devices[id] ? t('deviceState.open') : t('deviceState.closed')) : state.devices[id] ? (id === 'speaker' ? t('deviceState.playingPercent', { percent: state.brightness[id] ?? 50 }) : t('deviceState.on')) : t('deviceState.off')}
     icon={icon} tone={state.devices[id] ? 'blue' : id === 'garage' ? 'blue' : 'neutral'}
     active={state.devices[id]}
@@ -165,32 +171,33 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   const lock = <Tile grow={false} title={t('demo.devices.frontDoorLock')} subtitle={state.locked ? t('deviceState.locked') : t('deviceState.unlocked')}
     icon={state.locked ? 'lock' : 'unlock'} tone={state.locked ? 'blue' : 'neutral'} active={state.locked}
     onPress={() => dispatch({ type: 'TOGGLE_LOCK' })}/>;
-  const weather = <Tile grow={false} title={t('home.weatherCity')} subtitle={t('home.weatherSubtitle', { temperature: formatTemperature(56, '°F', unitSystem) })} icon="sun" height={72}
+  const weather = <Tile grow={false} title={t('home.weatherCity')} subtitle={t('home.weatherSubtitle', { temperature: formatTemperature(56, '°F', unitSystem) })} icon="sun" height={tile}
     onPress={() => message(t('home.weatherTitle'), t('home.weatherDescription'))}/>;
-  const air = <Tile grow={false} title={t('home.airTitle')} subtitle={t('home.airSubtitle')} icon="waves" height={72}
+  const air = <Tile grow={false} title={t('home.airTitle')} subtitle={t('home.airSubtitle')} icon="waves" height={tile}
     onPress={() => message(t('home.airPreviewTitle'), t('home.airDescription'))}/>;
-  const noFan = <Tile grow={false} height={80} title={t('home.noFan')} subtitle={t('home.checkHomeAssistant')} icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
+  const noFan = <Tile grow={false} height={tile} title={t('home.noFan')} subtitle={t('home.checkHomeAssistant')} icon="fan" tone="neutral" onPress={() => onNavigate('settings')}/>;
   const cardSensors = relevantSensors.slice(0, SENSOR_CARD_LIMIT);
   const hiddenSensorCount = relevantSensors.length - cardSensors.length;
   // The empty state and the "+N more" row each take a row's worth of space.
   const sensorRowCount = Math.max(cardSensors.length, 1) + (hiddenSensorCount > 0 ? 1 : 0);
-  const sensorList = <SensorReadingsCard title={t('home.indoorReadings')} sensors={cardSensors} hiddenCount={hiddenSensorCount} onShowMore={() => onNavigate('devices')}/>;
+  const sensorCardHeight = cardHeight(cardRowsFor(estimateSensorCardHeight(sensorRowCount), gap), gap);
+  const sensorList = <SensorReadingsCard title={t('home.indoorReadings')} sensors={cardSensors} hiddenCount={hiddenSensorCount} height={sensorCardHeight} onShowMore={() => onNavigate('devices')}/>;
   const base = {
-    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: compact ? 188 : 170, content: demoMode ? <CameraCard label={t('demo.rooms.livingRoom')} height={compact ? 188 : 170}/> : (cameras[0] ? cameraTile(cameras[0], compact ? 188 : 170) : noCameras) },
-    lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: 80, content: lock },
-    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="living-lamp" title={t('demo.devices.lamp')}/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
-    thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: compact ? 228 : 238, content: <ThermostatCard/> },
-    weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: 72, content: weather },
-    air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: 72, content: air },
-    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: 80, content: demoMode ? device('fan', t('demo.devices.fan'), 'fan') : (fan ? <FanTile fan={fan}/> : noFan) },
-    tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: 80, content: device('tv', t('demo.devices.tv'), 'tv') },
-    garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: 80, content: device('garage', t('demo.devices.garage'), 'garage') },
-    speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: 80, content: device('speaker', t('demo.devices.speaker'), 'speaker') },
-    garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: 240, content: demoMode ? <CameraCard garden height={240}/> : (cameras[1] ? cameraTile(cameras[1], 240) : noCameras) },
-    plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: 80, content: device('plug', t('demo.devices.plug'), 'plug') },
-    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: estimateSensorCardHeight(sensorRowCount), content: sensorList },
-    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: 80, content: demoMode ? <DemoLightTile id="office-lamp" title={t('demo.devices.lamp')}/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
-    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: 80, content: <Tile grow={false} title={t('settings.officeWifi')} subtitle={t('home.settingsPreview')} icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
+    camera: { id: 'camera', category: 'Cameras', span: full, lane: 0, estimatedHeight: twoRows, content: demoMode ? <CameraCard label={t('demo.rooms.livingRoom')} height={twoRows}/> : (cameras[0] ? cameraTile(cameras[0], twoRows) : noCameras) },
+    lock: { id: 'lock', category: 'All', lane: 0, estimatedHeight: tile, content: lock },
+    light: { id: 'light', category: 'Lights', lane: 1, estimatedHeight: tile, content: demoMode ? <DemoLightTile id="living-lamp" title={t('demo.devices.lamp')}/> : (lights[0] ? <LightTile light={lights[0]}/> : noLights) },
+    thermostat: { id: 'thermostat', category: 'Climate', span: full, lane: 2, estimatedHeight: twoRows, content: <ThermostatCard height={twoRows}/> },
+    weather: { id: 'weather', category: 'Climate', lane: 3, estimatedHeight: tile, content: weather },
+    air: { id: 'air', category: 'Climate', lane: 3, estimatedHeight: tile, content: air },
+    fan: { id: 'fan', category: 'Climate', lane: 3, estimatedHeight: tile, content: demoMode ? device('fan', t('demo.devices.fan'), 'fan') : (fan ? <FanTile fan={fan}/> : noFan) },
+    tv: { id: 'tv', category: 'All', lane: 1, estimatedHeight: tile, content: device('tv', t('demo.devices.tv'), 'tv') },
+    garage: { id: 'garage', category: 'All', lane: 0, estimatedHeight: tile, content: device('garage', t('demo.devices.garage'), 'garage') },
+    speaker: { id: 'speaker', category: 'All', lane: 1, estimatedHeight: tile, content: device('speaker', t('demo.devices.speaker'), 'speaker') },
+    garden: { id: 'garden', category: 'Cameras', lane: 2, estimatedHeight: threeRows, content: demoMode ? <CameraCard garden height={threeRows}/> : (cameras[1] ? cameraTile(cameras[1], threeRows) : noCameras) },
+    plug: { id: 'plug', category: 'All', lane: 1, estimatedHeight: tile, content: device('plug', t('demo.devices.plug'), 'plug') },
+    sensors: { id: 'sensors', category: 'Climate', lane: 3, estimatedHeight: sensorCardHeight, content: sensorList },
+    floor: { id: 'floor', category: 'Lights', lane: 1, estimatedHeight: tile, content: demoMode ? <DemoLightTile id="office-lamp" title={t('demo.devices.lamp')}/> : (lights[1] ? <LightTile light={lights[1]}/> : noLights) },
+    wifi: { id: 'wifi', category: 'Wifi', estimatedHeight: tile, content: <Tile grow={false} title={t('settings.officeWifi')} subtitle={t('home.settingsPreview')} icon="wifi" tone="green" onPress={() => onNavigate('settings')}/> },
   } satisfies Record<string, HomeCard>;
   // Demo-only tiles (no real Home Assistant equivalent — see `useHome()`'s
   // `demoMode` doc comment) only ever appear WITH the rest of the demo
@@ -204,10 +211,10 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
   // Beyond the favorite slots above, the full Lights/Cameras tabs list every
   // real light or camera Home Assistant reports, not just a fixed pair.
   const extraLightCards: HomeCard[] = lights.slice(2).map((light, index) => ({
-    id: `light-${light.id}`, category: 'Lights', lane: index % 4, estimatedHeight: 80, content: <LightTile key={light.id} light={light}/>,
+    id: `light-${light.id}`, category: 'Lights', lane: index % 4, estimatedHeight: tile, content: <LightTile key={light.id} light={light}/>,
   }));
   const extraCameraCards: HomeCard[] = cameras.slice(2).map((camera, index) => ({
-    id: `camera-${camera.id}`, category: 'Cameras', lane: index % 2, estimatedHeight: 170, content: cameraTile(camera, 170),
+    id: `camera-${camera.id}`, category: 'Cameras', lane: index % 2, estimatedHeight: twoRows, content: cameraTile(camera, twoRows),
   }));
   const visible: HomeCard[] = selected === 'Favorites' ? order.map(id => base[id])
     : selected === 'All' ? [...order, ...(Object.keys(base) as (keyof typeof base)[]).filter(id => !order.includes(id) && !hiddenCards.has(id))].map(id => ({ ...base[id], lane: undefined }))

@@ -27,37 +27,37 @@ function darkenedTertiary(tertiary: string, fallback: string): string {
   const shade = (channel: number) => Math.round(channel * STEPPER_ICON_SHADE);
   return `rgb(${shade(channels.r)} ${shade(channels.g)} ${shade(channels.b)})`;
 }
-export function ThermostatCard() {
+export function ThermostatCard({ height }: { height: number }) {
   const { state, dispatch, setSheet, unitSystem } = useHome();
   // The demo reducer counts in whole °F (50–90); only what's displayed follows the Home's unit system.
   const displayed = convertTemperature(state.temperature, '°F', unitSystem);
   const minimum = formatTemperature(50, '°F', unitSystem);
   const maximum = formatTemperature(90, '°F', unitSystem);
-  const { compact, fontScale } = useResponsiveLayout();
+  const { compact } = useResponsiveLayout();
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
-  const sideControls = compact && fontScale <= 1.2;
   const stepperIconColor = darkenedTertiary(themeColors.tertiary, themeColors.tertiaryForeground);
-  const decrease = <IconButton icon="remove-bold" label={t('thermostat.decrease')} color={stepperIconColor} shape={sideControls ? 'stepper' : 'regular'}
+  // Steppers beside the reading, never under it: that's what lets the card
+  // stand exactly as tall as the two tiles next to it (`cardHeight`).
+  const decrease = <IconButton icon="remove-bold" label={t('thermostat.decrease')} color={stepperIconColor} shape="stepper"
     className="bg-tertiary" disabled={state.temperature <= 50} onPress={() => dispatch({ type: 'TEMPERATURE', delta: -1 })}/>;
-  const increase = <IconButton icon="add-bold" label={t('thermostat.increase')} color={stepperIconColor} shape={sideControls ? 'stepper' : 'regular'}
+  const increase = <IconButton icon="add-bold" label={t('thermostat.increase')} color={stepperIconColor} shape="stepper"
     className="bg-tertiary" disabled={state.temperature >= 90} onPress={() => dispatch({ type: 'TEMPERATURE', delta: 1 })}/>;
-  return <View className="rounded-[28px] bg-tertiary-subtle p-4">
+  return <View className="justify-between rounded-[28px] bg-tertiary-subtle p-4" style={{ height }}>
     <View className="flex-row items-center gap-2">
       <Icon name="climate" size={20} color={themeColors.tertiary}/><Label className="min-w-0 flex-1 text-[14px] font-medium text-tertiary-text">{t('thermostat.downstairs')}</Label>
       <IconButton icon="chevron" label={t('thermostat.info')} color={themeColors.tertiary} size={16} shape="small"
         onPress={() => setSheet({ kind: 'message', title: t('thermostat.infoTitle'), description: t('thermostat.infoDescription', { minimum, maximum }) })}/>
     </View>
-    <View className="mt-2 flex-row items-center justify-between">
-      {sideControls && decrease}
+    <View className="flex-row items-center justify-between">
+      {decrease}
       <View className="min-w-0 flex-1 items-center">
         <Label selectable testID="thermostat-value" accessibilityLabel={displayed.unit === '°F' ? t('thermostat.valueFahrenheit', { value: displayed.value }) : t('thermostat.valueCelsius', { value: displayed.value })} accessibilityLiveRegion="polite"
-          className={`${compact ? 'text-[65px] leading-[80px]' : 'text-[58px] leading-[72px]'} text-tertiary-text`}
+          className={`${compact ? 'text-[44px] leading-[52px]' : 'text-[48px] leading-[56px]'} text-tertiary-text`}
           style={{ fontVariant: ['tabular-nums'] }}>{displayed.value}</Label>
       </View>
-      {sideControls && increase}
+      {increase}
     </View>
-    <Label className="mb-3 mt-1 text-center text-[13px] text-tertiary-text">{t('thermostat.comfort')}</Label>
-    {!sideControls && <View className="flex-row items-center justify-around gap-2">{decrease}{increase}</View>}
+    <Label className="text-center text-[13px] text-tertiary-text">{t('thermostat.comfort')}</Label>
   </View>;
 }

@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BREAKPOINTS, getLayoutMetrics, packMasonry } from '../packages/frontend/layout/metrics.ts';
-import { isNavigationActive, modernTabs, classicTabs } from '../packages/frontend/components/navigation-items.ts';
+import { GRID_GAP } from '../packages/frontend/layout/metrics.ts';
+import { cardHeight, cardRowsFor } from '../packages/frontend/layout/card-sizes.ts';
+import { isNavigationActive, tabs } from '../packages/frontend/components/navigation-items.ts';
 import { homeReducer, initialHomeState } from '../packages/frontend/state/home-reducer.ts';
 
-for (const [width, rail] of [[320, false], [599, false], [600, true], [1024, true], [1439, true], [1440, true]] as const) {
+for (const [width, rail] of [[320, false], [639, false], [640, true], [1024, true], [1439, true], [1440, true]] as const) {
   test(`navigation boundary at ${width}`, () => {
     const layout = getLayoutMetrics(width, 900);
     assert.equal(!layout.compact, rail);
@@ -25,7 +27,7 @@ test('wide desktop content has a cap instead of stretching endlessly', () => {
 test('geometry depends on host width, not device orientation or model', () => {
   assert.equal(getLayoutMetrics(520, 1100).compact, true);
   assert.equal(getLayoutMetrics(1024, 500).compact, false);
-  assert.equal(BREAKPOINTS.rail, 600);
+  assert.equal(BREAKPOINTS.rail, 640);
 });
 test('larger font scales allocate fewer, wider dashboard columns', () => {
   const ordinary = getLayoutMetrics(1024, 768, 1);
@@ -94,9 +96,9 @@ test('all placements stay in bounds and do not overlap across 46 widths', () => 
   }
 });
 test('bottom navigation and rail use the same destinations and parent selection', () => {
-  assert.equal(modernTabs.length, 3);
-  assert.equal(classicTabs.length, 5);
-  assert.equal(isNavigationActive('favorites-assistant', 'favorites'), true);
+  // One list for both, since the modern/classic split was consolidated into a single rail.
+  assert.deepEqual(tabs.map(tab => tab.screen), ['home', 'devices', 'activity', 'automations', 'settings']);
+  assert.equal(isNavigationActive('favorites-assistant', 'home'), true);
   assert.equal(isNavigationActive('composer', 'automations'), true);
   assert.equal(isNavigationActive('assistant', 'home'), true);
 });
@@ -108,4 +110,27 @@ test('new reference tiles use the existing reducer rather than separate desktop 
   }
   state = homeReducer(state, { type: 'SET_BRIGHTNESS', id: 'floor-lamp', value: 76 });
   assert.equal(state.brightness['floor-lamp'], 76);
+});
+
+test('a two-row card ends level with the two tiles stacked beside it', () => {
+  const gap = GRID_GAP;
+  const tile = cardHeight(1, gap);
+  const camera = cardHeight(2, gap);
+  const { placements, height } = packMasonry([
+    { id: 'camera', height: camera, lane: 0 },
+    { id: 'lamp', height: tile, lane: 1 },
+    { id: 'tv', height: tile, lane: 1 },
+  ], 900, 4, gap);
+  const [cameraCard, lamp, tv] = placements;
+  assert.equal(lamp?.y, cameraCard?.y, 'the first tile starts at the camera’s own top');
+  assert.equal(tv?.y, (cameraCard?.y ?? 0) + tile + gap, 'the second tile starts one row below the first');
+  assert.equal((tv?.y ?? 0) + tile, (cameraCard?.y ?? 0) + camera, 'and the pair ends exactly where the camera does');
+  assert.equal(height, camera);
+});
+
+test('a card sized for its content is rounded up to whole rows', () => {
+  assert.equal(cardRowsFor(80, GRID_GAP), 1);
+  assert.equal(cardRowsFor(81, GRID_GAP), 2);
+  assert.equal(cardRowsFor(172, GRID_GAP), 2);
+  assert.equal(cardRowsFor(173, GRID_GAP), 3);
 });

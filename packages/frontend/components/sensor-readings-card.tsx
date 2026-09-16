@@ -32,11 +32,11 @@ export const estimateSensorCardHeight = (rowCount: number) => 56 + 28 * rowCount
  * as siblings on the dashboard. Which sensors to pass, and in what order, is
  * `selectRelevantSensors`'s job, not this component's.
  */
-export function SensorReadingsCard({ title, sensors, hiddenCount = 0, onShowMore }: { title: string; sensors: Device[]; hiddenCount?: number; onShowMore?: () => void }) {
+export function SensorReadingsCard({ title, sensors, hiddenCount = 0, onShowMore, height }: { title: string; sensors: Device[]; hiddenCount?: number; onShowMore?: () => void; /** Set on the dashboard, where the card stands a whole number of tile rows tall; left off where it sizes to its own content (the Devices screen). */ height?: number }) {
   const { colors: themeColors } = useTheme();
   const { unitSystem } = useHome();
   const { t } = useTranslation();
-  return <View className="gap-3 rounded-[28px] bg-success-subtle p-4">
+  return <View className="gap-3 rounded-[28px] bg-success-subtle p-4" style={height === undefined ? undefined : { height }}>
     <View className="flex-row items-center gap-2">
       <Icon name="thermometer" size={20} color={themeColors.success}/>
       <Label className="min-w-0 flex-1 text-[14px] font-medium text-success-text">{title}</Label>
