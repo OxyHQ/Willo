@@ -246,10 +246,16 @@ export function HomeScreen({ onNavigate, header }: ScreenProps) {
           measures WIDER than the regular one this used to measure with, so
           it was undercounting the one width that's ever really on screen.
           One `onLayout` per name per language — a label only changes when the
-          UI language does, and then its new width is measured once too. */}
+          UI language does, and then its new width is measured once too.
+          Android delivers the first event for an absolutely-positioned `Text`
+          with no `layout` payload at all; that one carries no measurement, so
+          it's ignored and the real event that follows does the measuring. */}
       {compact && categories.map(category => labelWidths[`${i18n.language}:${category.name}`] === undefined && (
         <Label key={`measure-${i18n.language}-${category.name}`} numberOfLines={1}
-          onLayout={event => setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: event.nativeEvent.layout.width }))}
+          onLayout={event => {
+            const measured = event.nativeEvent.layout;
+            if (measured) setLabelWidths(widths => ({ ...widths, [`${i18n.language}:${category.name}`]: measured.width }));
+          }}
           className="text-[14px] font-medium" style={{ position: 'absolute', opacity: 0 }} pointerEvents="none">
           {t(category.labelKey)}
         </Label>
