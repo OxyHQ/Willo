@@ -218,19 +218,6 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     [getAccessToken, notify, t]
   );
 
-  /** Demo mode is a PROVIDER, not a mode every screen branches on: the demo catalog arrives as the same `Device[]` a real Home Assistant reports, so tiles, sheets and commands take one path. */
-  const connectDemo = useCallback(() => {
-    const provider = createDemoProvider(t);
-    providerRef.current = provider;
-    connectingHomeIdRef.current = null;
-    setSetupStage('ready');
-    setTunnelConnected(true);
-    provider.connect().then((initialDevices) => {
-      setDevices(initialDevices);
-      provider.subscribe(setDevices);
-    });
-  }, [t]);
-
   /** Closes the current Home's connection and clears everything read from it. */
   const leaveCurrentHome = useCallback(() => {
     connectingHomeIdRef.current = null;
@@ -254,19 +241,49 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // wherever a previous demo session's toggling/dragging happened to
       // leave it.
       dispatch({ type: 'RESET' });
-      leaveCurrentHome();
-      if (value) connectDemo();
-      else if (homeId) connectHome(homeId);
-      else setSetupStage('needs-home');
+      // Turning demo mode ON is all the effect below: it builds the demo
+      // provider and, on the way out, disconnects it. Turning it OFF is what
+      // needs doing here, because only this side knows there is a real Home
+      // to go back to.
+      if (!value) {
+        leaveCurrentHome();
+        if (homeId) connectHome(homeId);
+        else setSetupStage('needs-home');
+      }
     },
-    [dispatch, leaveCurrentHome, connectDemo, connectHome, homeId]
+    [dispatch, leaveCurrentHome, connectHome, homeId]
   );
 
-  // Rebuilds the demo catalog when the UI language changes, so its device and
-  // room names follow it the way every other string does.
+  /**
+   * The demo home's whole lifetime: built when demo mode goes on (or the UI
+   * language changes, so its names follow), torn down when it goes off. One
+   * owner, so a previous demo provider can never be left running — two of them
+   * pushing devices is what left the app showing the home you just left.
+   */
   useEffect(() => {
-    if (demoMode) connectDemo();
-  }, [demoMode, connectDemo]);
+    if (!demoMode) return;
+    let ignore = false;
+    const provider = createDemoProvider(t);
+    providerRef.current = provider;
+    connectingHomeIdRef.current = null;
+    setSetupStage('ready');
+    setTunnelConnected(true);
+    provider.connect().then((initialDevices) => {
+      if (ignore) return;
+      setDevices(initialDevices);
+      provider.subscribe(setDevices);
+    });
+    return () => {
+      ignore = true;
+      provider.disconnect();
+      // Only if nothing has taken its place: switching demo mode off connects
+      // the real Home first, and that provider must not be cleared here.
+      if (providerRef.current === provider) {
+        providerRef.current = null;
+        setDevices([]);
+      }
+    };
+  }, [demoMode, t]);
 
   const switchHome = useCallback(
     (id: string) => {
@@ -301,11 +318,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       }
       // Demo mode is read here rather than in its own effect so the two can't
       // race: a device that last used the demo catalog must not also open a
-      // tunnel to its real Home.
-      if ((await storage.getItemAsync('demoMode')) === 'true') {
-        setDemoModeState(true);
-        return;
-      }
+      // tunnel to its real Home. The real Home is still resolved below — it's
+      // what switching demo mode back off returns to.
+      const demo = (await storage.getItemAsync('demoMode')) === 'true';
+      if (demo) setDemoModeState(true);
       const storedHomeId = await storage.getItemAsync('homeId');
       // The person's real Homes decide which one opens: the one this device
       // last used if they still belong to it, otherwise their first. That's
@@ -324,14 +340,16 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         console.error(`Failed to load Homes; falling back to this device's stored Home (${storedHomeId ?? 'none'}):`, error);
       }
       if (!activeHomeId) {
-        setSetupStage('needs-home');
+        if (!demo) setSetupStage('needs-home');
         return;
       }
       if (activeHomeId !== storedHomeId) {
         await storage.setItemAsync('homeId', activeHomeId);
       }
       setHomeId(activeHomeId);
-      await connectHome(activeHomeId);
+      // In demo mode the effect above owns the provider; the real Home is
+      // remembered, not connected, until demo mode goes off.
+      if (!demo) await connectHome(activeHomeId);
     })();
   }, [isAuthResolved, isAuthenticated, connectHome, getAuthHeaders]);
 
