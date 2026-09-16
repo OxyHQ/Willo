@@ -86,6 +86,10 @@ export const DEMO_CATALOG: CatalogEntry[] = [
   { id: 'sensor.bedroom_humidity', nameKey: 'demo.sensors.bedroomHumidity', roomKey: BEDROOM, domain: 'sensor', capabilities: measurement(48, '%', 'humidity') },
   { id: 'sensor.office_temperature', nameKey: 'demo.sensors.officeTemperature', roomKey: OFFICE, domain: 'sensor', capabilities: measurement(20.1, '°C', 'temperature') },
   { id: 'sensor.office_illuminance', nameKey: 'demo.sensors.officeIlluminance', roomKey: OFFICE, domain: 'sensor', capabilities: measurement(320, 'lx', 'illuminance') },
+  { id: 'sensor.office_humidity', nameKey: 'demo.sensors.officeHumidity', roomKey: OFFICE, domain: 'sensor', capabilities: measurement(41, '%', 'humidity') },
+  { id: 'sensor.office_co2', nameKey: 'demo.sensors.officeCo2', roomKey: OFFICE, domain: 'sensor', capabilities: measurement(845, 'ppm', 'carbon_dioxide') },
+  // A diagnostic reading on purpose: the readings card filters battery levels out, and the demo should exercise that.
+  { id: 'sensor.office_battery', nameKey: 'demo.sensors.officeBattery', roomKey: OFFICE, domain: 'sensor', capabilities: measurement(87, '%', 'battery') },
   { id: 'sensor.bathroom_humidity', nameKey: 'demo.sensors.bathroomHumidity', roomKey: BATHROOM, domain: 'sensor', capabilities: measurement(63, '%', 'humidity') },
   { id: 'sensor.home_energy', nameKey: 'demo.sensors.energyMeter', roomKey: null, domain: 'sensor', capabilities: measurement(412, 'W', 'power') },
   { id: 'sensor.garden_rain', nameKey: 'demo.sensors.rainfall', roomKey: GARDEN, domain: 'sensor', capabilities: measurement(0.4, 'mm', 'precipitation') },
