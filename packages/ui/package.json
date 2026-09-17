@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "@emotion/native": "^11.11.0",
-    "@oxy.so/bloom": "^1.1.1",
+    "@oxy.so/bloom": "^2.0.0",
     "color": "^3.1.0",
     "expo-haptics": "~57.0.3",
     "expo-image": "~57.0.5",
@@ -20,7 +20,7 @@
     "react-native-svg": "15.15.4"
   },
   "devDependencies": {
-    "@oxy.so/app-preset": "^1.0.1",
+    "@oxy.so/app-preset": "^2.0.0",
     "@types/color": "^4.2.1",
     "@types/react": "~19.2.4",
     "nativewind": "5.0.0-rc.0",
