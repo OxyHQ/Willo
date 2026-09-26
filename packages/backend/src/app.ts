@@ -1,6 +1,5 @@
 import express, { type Express } from 'express';
-import { OxyServices } from '@oxy.so/core';
-import { createOxyAuthMiddleware, createOxyCors } from '@oxy.so/core/server';
+import { OxyServer, createOxyAuthMiddleware, createOxyCors } from '@oxy.so/core/server';
 import { config } from './config';
 import homesRouter from './routes/homes.routes';
 import tunnelRouter from './routes/tunnel.routes';
@@ -12,7 +11,7 @@ import { ecosystemActivityMiddleware } from './ecosystemActivity';
  * it internally) so tests can pass one pointed at a mock Oxy API instead of
  * the real one.
  */
-export function createApp(oxy: OxyServices): Express {
+export function createApp(oxy: OxyServer): Express {
   const app = express();
 
   // First, unconditionally: observes every inbound request whether or not
@@ -43,7 +42,7 @@ export function createApp(oxy: OxyServices): Express {
   return app;
 }
 
-/** Build the default `OxyServices` client this process uses for both HTTP auth and Socket.IO auth. */
-export function createOxyClient(): OxyServices {
-  return new OxyServices({ baseURL: config.oxyApiUrl });
+/** Build the default `OxyServer` client this process uses for both HTTP auth and Socket.IO auth. */
+export function createOxyClient(): OxyServer {
+  return new OxyServer({ baseURL: config.oxyApiUrl });
 }
