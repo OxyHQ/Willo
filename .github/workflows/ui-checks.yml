@@ -30,7 +30,7 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
-      - run: bun test tests
+      - run: bun test ./tests
       - run: bun run typecheck
       - name: Export the real Expo web app
         working-directory: packages/frontend
