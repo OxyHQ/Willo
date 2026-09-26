@@ -153,7 +153,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { oxyServices, currentLanguage } = useOxy();
   const { isAuthenticated, isAuthResolved } = useAuth();
-  const getAccessToken = useCallback(() => oxyServices.getAccessToken(), [oxyServices]);
+  const getAccessToken = useCallback(() => oxyServices.session.accessToken, [oxyServices]);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [homes, setHomes] = useState<HomeSummary[]>([]);

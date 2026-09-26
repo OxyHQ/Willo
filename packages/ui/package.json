@@ -20,7 +20,7 @@
     "react-native-svg": "15.15.4"
   },
   "devDependencies": {
-    "@oxy.so/app-preset": "^2.0.3",
+    "@oxy.so/app-preset": "^2.0.5",
     "@types/color": "^4.2.1",
     "@types/react": "~19.2.4",
     "nativewind": "5.0.0-rc.0",

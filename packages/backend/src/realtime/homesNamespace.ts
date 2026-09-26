@@ -2,7 +2,7 @@
  * The `/homes` Socket.IO namespace: one room per Home (`home:${homeId}`),
  * joinable only by that Home's active members.
  *
- * Auth mechanism: `oxy.authSocket()`, the exact method OxyHQ/Mention's own
+ * Auth mechanism: `oxy.middleware.socket()`, the exact method OxyHQ/Mention's own
  * backend wires up for its namespaces (`runtime/socketIoServer.ts`,
  * `createSocketNamespaces`). It validates the bearer token the client sends
  * as `socket.handshake.auth.token` against the Oxy API (decode + a live
@@ -21,7 +21,7 @@
 
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { and, eq } from 'drizzle-orm';
-import type { OxyServices } from '@oxy.so/core';
+import type { OxyServer } from '@oxy.so/core/server';
 import { getDb } from '../db/postgres';
 import { homeMembers } from '../db/schema';
 import { setHomesNamespace } from './socketRegistry';
@@ -40,16 +40,16 @@ async function isActiveMember(homeId: string, userId: string): Promise<boolean> 
   return Boolean(row);
 }
 
-export function createHomesNamespace(io: SocketIOServer, oxy: OxyServices): void {
+export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
   const namespace = io.of(HOMES_NAMESPACE);
-  namespace.use(oxy.authSocket());
+  namespace.use(oxy.middleware.socket());
 
   namespace.on('connection', (socket: HomeSocket) => {
     observeEcosystemSocket(socket);
 
     const userId = socket.data.userId;
     if (!userId) {
-      // Defensive: authSocket() already rejects a handshake with no valid
+      // Defensive: middleware.socket() already rejects a handshake with no valid
       // session before `connection` ever fires. A socket reaching here with
       // no userId means the auth contract changed underneath this code.
       socket.disconnect(true);
