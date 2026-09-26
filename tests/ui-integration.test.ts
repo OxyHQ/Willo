@@ -1,12 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { colors, tones } from '../packages/ui/theme/tokens.ts';
 import { SCREENS } from '../packages/frontend/data/screens.ts';
 import { SCREEN_ROUTES } from '../packages/frontend/data/screen-routes.ts';
 
 const theme = readFileSync(new URL('../packages/ui/theme/home-ui.css', import.meta.url), 'utf8');
 const globalCss = readFileSync(new URL('../packages/frontend/global.css', import.meta.url), 'utf8');
+const bloomTheme = readFileSync(
+  createRequire(new URL('../packages/frontend/package.json', import.meta.url)).resolve('@oxy.so/bloom/design-tokens/theme.css'),
+  'utf8',
+);
 
 test('every icon palette color has the same Tailwind theme value', () => {
   for (const [name, value] of Object.entries(colors)) {
@@ -19,13 +24,15 @@ test('every tile tone resolves to a registered color utility', () => {
   for (const tone of Object.values(tones)) {
     for (const className of [tone.tile, tone.text]) {
       const token = className.replace(/^(bg|text)-/, '');
-      assert.ok(theme.includes(`--color-${token}:`), `Unregistered utility ${className}`);
+      const isRegistered = theme.includes(`--color-${token}:`) || bloomTheme.includes(`--color-${token}:`);
+      assert.ok(isRegistered, `Unregistered utility ${className}`);
     }
   }
 });
 
 test('the frontend loads the UI theme and scans the responsive layout source', () => {
   assert.ok(globalCss.includes('@import "../ui/theme/home-ui.css";'));
+  assert.ok(globalCss.includes('@import "@oxy.so/bloom/design-tokens/theme.css";'));
   assert.ok(globalCss.includes('@source "./layout/**/*.{js,jsx,ts,tsx}";'));
   assert.ok(globalCss.includes('@source "../ui/**/*.{js,jsx,ts,tsx}";'));
 });

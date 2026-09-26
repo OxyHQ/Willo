@@ -122,11 +122,11 @@ export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
 
   return (
     <View className="min-h-0 min-w-0 flex-1 shell:pb-2 shell:pr-2">
-      {/* `overlayTopOffset`: the panel's viewport-mode overlays are positioned
-          from the true viewport top, on the assumption that the panel starts
-          near it. The shell's header sits above it on desktop without moving
-          that maths, so without this an overlay would paint over the header. */}
-      <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayTopOffset={shellHeader.overlaysContent ? 0 : shellHeader.height} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: panelBottomInset }}>
+      {/* `overlayInset.top` is where the panel's own top edge sits: the web
+          header is a sticky sibling above it, so the panel starts at the
+          header's height, and the sticky frame must pin exactly there or it
+          snaps on the first scroll. The bottom matches `shell:pb-2`. */}
+      <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayInset={{ top: shellHeader.overlaysContent ? 0 : shellHeader.height, bottom: 8 }} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: panelBottomInset }}>
         {content}
       </ContentPanel>
     </View>
