@@ -4,13 +4,17 @@
  * Signs debug builds with the shared Oxy ecosystem keystore instead of Expo's
  * generic `debug.keystore`.
  *
- * `android:sharedUserId="so.oxy.shared"` (set by `@oxy.so/app-preset`) only
- * works between apps signed with the SAME certificate, so a debug build signed
- * with Expo's keystore cannot be installed next to Oxy, Commons or Mention —
- * Android rejects it with `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`. The
- * preset's own `withOxyAndroidRelease` already covers the release buildType
- * (`OXY_UPLOAD_*`); this is the same idea for the one a developer installs on
- * their phone.
+ * Willo has its own Android UID and gets the Oxy identity and device session
+ * from Commons over signature-protected IPC: the `so.oxy.permission.IDENTITY`
+ * and `so.oxy.permission.DEVICE_SESSION` permissions (declared by
+ * `@oxy.so/app-preset`) are signature-level, so Android grants them only to an
+ * app signed with the SAME certificate as Commons, and every Oxy app declares
+ * them. A debug build signed with Expo's keystore cannot be installed next to
+ * Oxy, Commons or Mention — Android rejects it with
+ * `INSTALL_FAILED_DUPLICATE_PERMISSION` — and Commons would refuse it anyway.
+ * The preset's own `withOxyAndroidRelease` already covers the release
+ * buildType (`OXY_UPLOAD_*`); this is the same idea for the one a developer
+ * installs on their phone.
  *
  * The credentials come from Gradle properties — `~/.gradle/gradle.properties`
  * or `-P` on the command line — so the keystore and its password never go near
@@ -33,11 +37,12 @@ const GENERATED_DEBUG_SIGNING = `        debug {
         }`;
 
 const OXY_DEBUG_SIGNING = `        debug {
-            // Willo joins Oxy's shared user id, and Android only lets apps
-            // share one if they carry the same signature — so a build meant
-            // for a phone that already has Oxy apps signs with the ecosystem
-            // key. Falls back to Expo's own debug keystore when the properties
-            // aren't set. See plugins/withOxyDebugSigning.js.
+            // The Oxy signature permissions (Commons' identity and the shared
+            // device session) are granted only to apps with the same
+            // signature, so a build meant for a phone that already has Oxy
+            // apps signs with the ecosystem key. Falls back to Expo's own
+            // debug keystore when the properties aren't set. See
+            // plugins/withOxyDebugSigning.js.
             storeFile file(findProperty('${STORE_FILE}') ?: 'debug.keystore')
             storePassword findProperty('OXY_DEBUG_STORE_PASSWORD') ?: 'android'
             keyAlias findProperty('OXY_DEBUG_KEY_ALIAS') ?: 'androiddebugkey'
