@@ -80,6 +80,12 @@ COPY --from=builder /app/packages/backend/package.json packages/backend/
 COPY --from=builder /app/packages/frontend/package.json packages/frontend/
 COPY --from=builder /app/packages/ui/package.json packages/ui/
 
+# Production dependencies only. --ignore-scripts for the same reason as the
+# builder stage's install. It runs from the manifests and lockfile alone,
+# BEFORE the source is copied, so a source-only change reuses this layer from
+# the build cache.
+RUN bun install --frozen-lockfile --production --ignore-scripts
+
 # The backend TS source (run directly under Bun — no compiled entrypoint) and
 # its tsconfig, plus the SQL migrations `bun run db:migrate` applies at
 # deploy time (see .github/scripts/run-migration-task.sh). drizzle.config.ts
@@ -88,10 +94,6 @@ COPY --from=builder /app/packages/ui/package.json packages/ui/
 COPY --from=builder /app/packages/backend/src/ packages/backend/src/
 COPY --from=builder /app/packages/backend/tsconfig.json packages/backend/
 COPY packages/backend/drizzle/ packages/backend/drizzle/
-
-# Production dependencies only. --ignore-scripts for the same reason as the
-# builder stage's install.
-RUN bun install --frozen-lockfile --production --ignore-scripts
 
 ENV NODE_ENV=production
 USER appuser
