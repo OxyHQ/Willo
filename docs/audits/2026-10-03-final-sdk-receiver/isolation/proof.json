@@ -34,7 +34,7 @@
     "Child fetch proxy refuses every non-http or non-127.0.0.1 request; test invokes the same installed SDK and middleware/factory with three controls.",
     "spawnSync has a 15-second timeout; child closes both HTTP servers in nested finally blocks. No product database is opened.",
     "Final run: one test asserts three receiver controls, exactly four authority validations and two admitted fixture handlers; types passed.",
-    "Final const-only declaration lint correction follows the final runtime/type run; scoped lint passes.",
+    "Final const-only declaration cleanup follows the final runtime/type run. Willo has no package lint command; no scoped lint result is claimed.",
     "Willo filtered parent command provides an explicit unused port1 DATABASE_URL for baseline module parsing, without a DB connection. Initial missing-env collection failure retained.",
     "Candidate package provenance remains in parent proof; frontend candidate manifests may now include Services/Bloom and remain local, uncommitted. No final registry or deploy claim."
   ]
