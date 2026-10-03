@@ -1,0 +1,165 @@
+$ bun test src --test-name-pattern "isolated loopback process"
+bun test v1.4.2 (744846f84)
+
+src/__tests__/receiverSdk.test.ts:
+(pass) validates receiver identity and revocation in an isolated loopback process [410.57ms]
+
+src/__tests__/ecosystemActivity.test.ts:
+
+src/services/__tests__/deviceClaim.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+src/services/__tests__/homeEvents.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+src/services/__tests__/homeTunnel.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+src/services/__tests__/homeMembers.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+src/services/__tests__/homeDevices.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+src/services/__tests__/homes.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+31 |   TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+32 | });
+33 | 
+34 | const parsed = envSchema.safeParse(process.env);
+35 | if (!parsed.success) {
+36 |   throw new Error(`Invalid environment configuration: ${parsed.error.message}`);
+                 ^
+error: Invalid environment configuration: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "DATABASE_URL"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+]
+      at /home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/config/index.ts:36:13
+-------------------------------
+
+
+ 1 pass
+ 4 filtered out
+ 6 fail
+ 6 errors
+ 5 expect() calls
+Ran 7 tests across 8 files. [657.00ms]
+error: script "test" exited with code 1
