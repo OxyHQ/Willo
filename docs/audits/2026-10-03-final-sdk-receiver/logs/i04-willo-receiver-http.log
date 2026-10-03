@@ -1,0 +1,143 @@
+$ bun test src src/__tests__/receiverSdk.test.ts
+bun test v1.4.2 (744846f84)
+
+src/__tests__/receiverSdk.test.ts:
+2026-10-03T17:09:07.245Z WARN [oxy.auth] refused SESSION_REQUIRED: User access token is not bound to a session {
+  component: "auth",
+  method: "auth",
+  code: "SESSION_REQUIRED",
+  stage: "token",
+  reason: "User access token is not bound to a session",
+  status: 401,
+  optional: true,
+  path: "/owned-fixture",
+}
+2026-10-03T17:09:07.245Z WARN [oxy.auth] 401 after refusal SESSION_REQUIRED: User access token is not bound to a session {
+  component: "auth",
+  method: "requireOxyAuth",
+  code: "SESSION_REQUIRED",
+  stage: "token",
+  reason: "User access token is not bound to a session",
+}
+(pass) candidate SDK receiver authority > refuses missing and sessionless bearers before the protected handler [9.38ms]
+2026-10-03T17:09:07.250Z WARN [oxy.auth] Token rejected — claimed user does not own the session {
+  component: "auth",
+  method: "auth",
+  claimedUserId: "other-owner",
+  validatedUserId: "receiver-owner",
+}
+2026-10-03T17:09:07.251Z WARN [oxy.auth] refused SESSION_USER_MISMATCH: Token user claim does not own the presented session {
+  component: "auth",
+  method: "auth",
+  code: "SESSION_USER_MISMATCH",
+  stage: "session",
+  reason: "Token user claim does not own the presented session",
+  status: 401,
+  optional: true,
+  path: "/owned-fixture",
+}
+2026-10-03T17:09:07.251Z WARN [oxy.auth] 401 after refusal SESSION_USER_MISMATCH: Token user claim does not own the presented session {
+  component: "auth",
+  method: "requireOxyAuth",
+  code: "SESSION_USER_MISMATCH",
+  stage: "session",
+  reason: "Token user claim does not own the presented session",
+}
+(pass) candidate SDK receiver authority > uses the live validated owner and rejects a conflicting token claim [5.82ms]
+2026-10-03T17:09:07.254Z WARN [oxy.auth] refused INVALID_SESSION: Session is invalid, revoked or expired {
+  component: "auth",
+  method: "auth",
+  code: "INVALID_SESSION",
+  stage: "session",
+  reason: "Session is invalid, revoked or expired",
+  status: 401,
+  optional: true,
+  path: "/owned-fixture",
+}
+2026-10-03T17:09:07.254Z WARN [oxy.auth] 401 after refusal INVALID_SESSION: Session is invalid, revoked or expired {
+  component: "auth",
+  method: "requireOxyAuth",
+  code: "INVALID_SESSION",
+  stage: "session",
+  reason: "Session is invalid, revoked or expired",
+}
+(pass) candidate SDK receiver authority > revalidates on the next call and refuses revocation without a cached admit [3.46ms]
+25 |   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+26 | }
+27 | async function close(server: Server | undefined): Promise<void> {
+28 |   if (!server) return;
+29 |   server.closeAllConnections();
+30 |   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+               ^
+error: Server is not running.
+ code: "ERR_SERVER_NOT_RUNNING"
+
+      at <anonymous> (node:_http_server:266:60)
+      at new Promise (1:11)
+      at close (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/__tests__/receiverSdk.test.ts:30:9)
+      at <anonymous> (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/__tests__/receiverSdk.test.ts:59:11)
+(fail) (unnamed) [0.45ms]
+
+src/__tests__/ecosystemActivity.test.ts:
+Ecosystem activity is disabled for willo: missing OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET
+(pass) ecosystem activity lifecycle > does not start when the API key is missing [0.17ms]
+Ecosystem activity is disabled for willo: missing OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET
+(pass) ecosystem activity lifecycle > does not start when the API secret is missing [0.02ms]
+Ecosystem activity is disabled for willo: missing OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET
+(pass) ecosystem activity lifecycle > treats a blank credential the same as an absent one [0.02ms]
+(pass) ecosystem activity lifecycle > starts once, wires the middleware and socket observer, and stops cleanly [0.12ms]
+
+src/services/__tests__/deviceClaim.service.test.ts:
+(fail) (unnamed) [5000.12ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+src/services/__tests__/homeEvents.service.test.ts:
+(fail) (unnamed) [5002.16ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+src/services/__tests__/homeTunnel.service.test.ts:
+(fail) (unnamed) [5000.08ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+src/services/__tests__/homeMembers.service.test.ts:
+(fail) (unnamed) [5000.26ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+src/services/__tests__/homeDevices.service.test.ts:
+(fail) (unnamed) [5001.57ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+src/services/__tests__/homes.service.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+257 |     chunk = nextWriteTimer = null
+258 |     return x
+259 |   }
+260 | 
+261 |   function connectTimedOut() {
+262 |     errored(Errors.connection('CONNECT_TIMEOUT', options, socket))
+                         ^
+error: write CONNECT_TIMEOUT 127.0.0.1:1
+   errno: "CONNECT_TIMEOUT",
+ address: "127.0.0.1",
+    port: 1,
+    code: "CONNECT_TIMEOUT"
+
+      at connectTimedOut (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/postgres/src/connection.js:262:20)
+      at done (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/postgres/src/connection.js:1059:8)
+      at cachedError (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/postgres/src/query.js:170:27)
+      at new Query (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/postgres/src/query.js:36:24)
+      at sql (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/postgres/src/index.js:112:15)
+      at connectPostgres (/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/packages/backend/src/db/postgres.ts:43:19)
+-------------------------------
+
+(fail) (unnamed) [5000.12ms]
+  ^ a beforeEach/afterEach hook timed out before its done callback was called. If a done callback was not intended, remove the last parameter from the hook callback function
+
+ 7 pass
+ 7 fail
+ 1 error
+ 26 expect() calls
+Ran 14 tests across 8 files. [30.23s]
+error: script "test" exited with code 1
