@@ -7,7 +7,7 @@ Smart home control app. Connects to a user's own self-hosted Home Assistant inst
 - **Home Assistant auth** (`LoginView.tsx`, `connect.ts`, `storage.ts`): the app's own OAuth connection to the user's Home Assistant instance. Nothing to do with Oxy accounts.
 - **Sign-in with Oxy** (`OxyProvider`/`useOxy` from `@oxy.so/services`): the user's Oxy account identity. Optional, reached from a settings screen — the app must stay fully usable via Home Assistant login with no Oxy account at all. Never gate the app behind `RequireOxyAuth`.
 
-No `OXY_CLIENT_ID` is provisioned yet (that requires an ops deploy to `OxyHQ/oxy`, not something this repo can self-serve). `OxyProvider` runs without `clientId` — this only disables the cross-app device sign-in (QR/approval) flow, ordinary sign-in still works. Add `clientId`/`authRedirectUri` once provisioned.
+The web deployment supplies Willo’s registered public `EXPO_PUBLIC_OXY_CLIENT_ID` and redirect URI in [deploy-frontend.yml](../../.github/workflows/deploy-frontend.yml). Local Oxy sign-in also requires a registered client ID; an absent value must not fall back to another identity. Home Assistant access remains independent.
 
 ## Existing custom UI stays as-is
 
