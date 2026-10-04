@@ -1,0 +1,34 @@
+{
+  "repository": "OxyHQ/Willo",
+  "installed": true,
+  "installedMembers": [
+    {
+      "importer": "packages/backend/package.json",
+      "name": "@oxy.so/core",
+      "version": "4.2.0",
+      "root": "/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/core",
+      "files": 581,
+      "allFilesEqual": true
+    },
+    {
+      "importer": "packages/frontend/package.json",
+      "name": "@oxy.so/core",
+      "version": "4.2.0",
+      "root": "/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/core",
+      "files": 581,
+      "allFilesEqual": true
+    },
+    {
+      "importer": "packages/frontend/package.json",
+      "name": "@oxy.so/services",
+      "version": "11.1.0",
+      "root": "/home/nate/Oxy/Willo/.worktrees/1519-final-sdk-adoption-20261003/node_modules/@oxy.so/services",
+      "files": 2418,
+      "allFilesEqual": true
+    }
+  ],
+  "lockSha256": "380fbee9db372061e48101ee38db437cc660a8532a8b75b32c9494ba027288b7",
+  "explicitMaterializationRepair": true,
+  "merged": false,
+  "deployed": false
+}

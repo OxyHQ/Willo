@@ -1,0 +1,17 @@
+[
+  {
+    "name": "export-0",
+    "cwd": "packages/frontend",
+    "argv": [
+      "bun",
+      "x",
+      "--no-install",
+      "expo",
+      "export",
+      "--platform",
+      "web"
+    ],
+    "exitCode": 0,
+    "seconds": 15.219
+  }
+]
