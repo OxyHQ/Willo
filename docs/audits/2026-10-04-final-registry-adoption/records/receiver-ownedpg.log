@@ -1,0 +1,31 @@
+waiting for server to start.... done
+server started
+{"verifiedOwnPostgresPid": 338041, "dataDirectory": "/home/nate/Oxy/.agent-evidence/willo-registry-pg-m9yk0f53/data", "port": 5620, "liveAccess": false}
+$ bun test src --test-name-pattern "validates receiver identity and revocation in an isolated loopback process"
+bun test v1.3.14 (0d9b296a)
+
+src/__tests__/receiverSdk.test.ts:
+(pass) validates receiver identity and revocation in an isolated loopback process [208.38ms]
+
+src/__tests__/ecosystemActivity.test.ts:
+
+src/services/__tests__/deviceClaim.service.test.ts:
+
+src/services/__tests__/homeEvents.service.test.ts:
+
+src/services/__tests__/homeTunnel.service.test.ts:
+
+src/services/__tests__/homeMembers.service.test.ts:
+
+src/services/__tests__/homeDevices.service.test.ts:
+
+src/services/__tests__/homes.service.test.ts:
+
+ 1 pass
+ 46 filtered out
+ 0 fail
+ 5 expect() calls
+Ran 1 test across 8 files. [418.00ms]
+waiting for server to shut down.... done
+server stopped
+{"ownedPostgresStopped": true, "pidAbsent": true, "record": "/home/nate/Oxy/.agent-evidence/willo-registry-pg-m9yk0f53"}

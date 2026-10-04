@@ -1,0 +1,24 @@
+[
+  {
+    "name": "check-2",
+    "cwd": "packages/backend",
+    "argv": [
+      "bun",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "seconds": 1.016
+  },
+  {
+    "name": "check-3",
+    "cwd": "packages/frontend",
+    "argv": [
+      "bun",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "seconds": 1.518
+  }
+]

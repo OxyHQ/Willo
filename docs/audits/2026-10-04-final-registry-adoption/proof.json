@@ -1,0 +1,171 @@
+{
+  "source": "550a376ca5f0922a0c5fbf65e13c051fa9c783de",
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "9fb3f62ed085fec0221f698d26e2c588affc0866fb149b0cb2335731aa5d430d"
+    },
+    {
+      "path": "packages/backend/package.json",
+      "sha256": "c1a9509ac0d2c1afabdeefc84c41ab4f49b3b1d3ddab53763a882f8cd636c9d1"
+    },
+    {
+      "path": "packages/frontend/package.json",
+      "sha256": "c066eb67f1d56ac425c951e9d243d43aabb4029b73008f5158379d6599865424"
+    },
+    {
+      "path": "bun.lock",
+      "sha256": "380fbee9db372061e48101ee38db437cc660a8532a8b75b32c9494ba027288b7"
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/Willo-frozen.log",
+      "sha256": "a037ef5cfdbdbc86e24457cc4a36f1341d0b70fbda0de0b46b4882dfa56c23dc",
+      "bytes": 98
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/Willo-installed.json",
+      "sha256": "44334c6545be0a97b5cc2427f0f71345dedf4639c37a62732f6c89c5effcff4c",
+      "bytes": 1088
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/Willo-resolve.log",
+      "sha256": "ed7dc2d8baa598f98a007c84fdb347bd59e8bc54c40256304935964f6a42238f",
+      "bytes": 177
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/bloom-final-importers.json",
+      "sha256": "2bbe231217139c4cb49848c958ef412e059b4228774140a1c7bc8b5e5f3e3fde",
+      "bytes": 605
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/check-2.log",
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "bytes": 15
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/check-3.log",
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "bytes": 15
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/checks-export.json",
+      "sha256": "c5ff22d61ff0410df90dfa7b3f8cddc5294867b790769639f004365ef335fa26",
+      "bytes": 454
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/checks-initial.json",
+      "sha256": "ade34503e742df87304bda0f9c0a8eae325390efc72fcd8a0366ecf7384b4d2f",
+      "bytes": 785
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/checks-types.json",
+      "sha256": "ae7c3c813984c25d6423da454d0c988763b690170d8fec43725419ffbc204fae",
+      "bytes": 525
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/contracts-registry.json",
+      "sha256": "fb1ded2797bdbd0ca31460f3cba087f078a86dc201365c923da9fcc23b07ed7b",
+      "bytes": 380
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/core-registry.json",
+      "sha256": "99b7f8a1cc87cf46ff54b3113a1911a938f39b4f086537e0a4138ee38dd035b7",
+      "bytes": 375
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/export-0.log",
+      "sha256": "f4d25c3adf5af00ad36d4e34f065a42497389e3a6cf174c80138cfdbb2b33f88",
+      "bytes": 9730
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/failed.json",
+      "sha256": "e45a08861b705a4bd04a1ac5bec7dfdc902621991070d99debf9062f9e6cfe3d",
+      "bytes": 89
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/intent.json",
+      "sha256": "530e8b459bf70fe967ec3faf9dad3a9efbc88aa65b515a7ce1a21bad0b5b31d4",
+      "bytes": 149
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/local-export-checks.json",
+      "sha256": "7d50ab996b665173c7c2da9ffb55208b3dd7fb6ea397122a8027db550a65077c",
+      "bytes": 238
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/local-initial-checks.json",
+      "sha256": "5d19629a2c8edb1fee06ff11fbf04af2ecb57f21b7ee72669174f017ebf13d12",
+      "bytes": 280
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/local-types-checks.json",
+      "sha256": "6443364f34aa716849284c3906475a0a2a04b2d54d958fcf9833073e4b8ae0cd",
+      "bytes": 340
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/materialization-frozen.log",
+      "sha256": "d5d83c6cd1b508d3c0d5aa3ce8ae4e37a4717bd0d460a74eaa22a9fb30be837b",
+      "bytes": 63
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/materialization-repair-intent.json",
+      "sha256": "0e909767e74cb4472465bd482bfe937de979a29d2d227c45c63e75fd9f5b0dee",
+      "bytes": 529
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/mcp-registry.json",
+      "sha256": "cc279f4f5b1ca68041f6f0d3583e4d9dc218bd7c0b77846207aa3b981086d7ac",
+      "bytes": 373
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/owned-pg.py",
+      "sha256": "3207f4e21c04ab562c7195f91e2e7e21fcfb0a76b577eca55dd6d8432fca10be",
+      "bytes": 3194
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/preflight.json",
+      "sha256": "d092d738d336039fa0342309170c55617d95b83d3e9c4231501a4c2689600718",
+      "bytes": 250
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/protocol-registry.json",
+      "sha256": "cc0b427dca92d55ea5e1debe7e76580618a26f997b2c888b8484537b64b70bbd",
+      "bytes": 379
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/receiver-ownedpg.log",
+      "sha256": "e38d7f268b93a4b98a782762293f6c4733b281726234dc311d540dfc2be5366d",
+      "bytes": 1093
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/receiver.log",
+      "sha256": "a660541d055ea19d9be4e8ab910e51ddda76b15e9f4f603e91710efb8b3dcbe5",
+      "bytes": 3713
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/registry.json",
+      "sha256": "a39da224fafeec388f0ac27e08ea13cf666427a0177b67f7b077c65cadb59df0",
+      "bytes": 415373
+    },
+    {
+      "path": "docs/audits/2026-10-04-final-registry-adoption/records/services-registry.json",
+      "sha256": "444599f0eb56d104d64c288ed3a6544163e54430c0f275c2feec219d5f624611",
+      "bytes": 381
+    }
+  ],
+  "validation": {
+    "receiverPassed": 1,
+    "filteredTests": 46,
+    "sdkImporterMembers": 3580,
+    "bloomImporterMembers": 41880,
+    "typesBuildExport": "passed"
+  },
+  "limits": [
+    "Published registry archives and all installed SDK importer members were compared byte for byte. Stale same-version candidate materializations were retained and repaired with a frozen install; their setup failures remain in the records.",
+    "Local web export proves compilation, not browser/native acceptance or deployed public-client configuration. Required PR/main CI and root image/promotion remain separate.",
+    "No production database, provider writes, grants, credentials or auth fixtures were changed. Owned PostgreSQL was stopped and its PID absence verified.",
+    "The package test-name filter excludes other tests; it does not claim a full suite. Willo first run loaded unrelated modules without DATABASE_URL; that setup failure is retained, and the successful rerun supplied only an owned PostgreSQL URL."
+  ]
+}

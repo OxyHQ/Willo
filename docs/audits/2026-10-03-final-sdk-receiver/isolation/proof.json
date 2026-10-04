@@ -1,0 +1,41 @@
+{
+  "sourceCommit": "9a246952824068de23ed0c19fa59363491007671",
+  "sources": [
+    {
+      "path": "packages/backend/src/__tests__/receiverSdk.test.ts",
+      "sha256": "18f0ec3a7b802c92bdfef1b657d1c41cc3066dc8a289c74a9ad2833965aa0f7c",
+      "bytes": 1045
+    },
+    {
+      "path": "packages/backend/src/__tests__/fixtures/receiver-sdk-probe.ts",
+      "sha256": "efc0b24908db1be79a9fbf087c219c8ab93119831e9cb449357014fc6d31ab20",
+      "bytes": 4602
+    }
+  ],
+  "records": [
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-receiver/isolation/logs/i04-willo-isolated-receiver.log",
+      "sha256": "61b250f8bc898174f2937c9a2daf8090a8aaf0df07f6fbe0757f3061595eb4b1",
+      "bytes": 5434
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-receiver/isolation/logs/i04-willo-isolated-types.log",
+      "sha256": "210c6535534076ed490bdc1902f71c368e285a045d12a82779858b6fc49e5ce0",
+      "bytes": 562
+    },
+    {
+      "path": "docs/audits/2026-10-03-final-sdk-receiver/isolation/logs/i04-willo-isolated-final.log",
+      "sha256": "5f09265e95aaca622e98652d2431f71612214966d3d381b2e5c7a147c6c578d9",
+      "bytes": 677
+    }
+  ],
+  "changes": [
+    "Parent test imports no product modules and mutates no environment; owned Bun child has minimal env and --no-env-file, setting loopback issuer before dynamic product imports.",
+    "Child fetch proxy refuses every non-http or non-127.0.0.1 request; test invokes the same installed SDK and middleware/factory with three controls.",
+    "spawnSync has a 15-second timeout; child closes both HTTP servers in nested finally blocks. No product database is opened.",
+    "Final run: one test asserts three receiver controls, exactly four authority validations and two admitted fixture handlers; types passed.",
+    "Final const-only declaration cleanup follows the final runtime/type run. Willo has no package lint command; no scoped lint result is claimed.",
+    "Willo filtered parent command provides an explicit unused port1 DATABASE_URL for baseline module parsing, without a DB connection. Initial missing-env collection failure retained.",
+    "Candidate package provenance remains in parent proof; frontend candidate manifests may now include Services/Bloom and remain local, uncommitted. No final registry or deploy claim."
+  ]
+}

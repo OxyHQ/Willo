@@ -1,0 +1,4 @@
+$ tsc --noEmit
+src/__tests__/fixtures/receiver-sdk-probe.ts(60,44): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../../app.js'?
+src/__tests__/fixtures/receiver-sdk-probe.ts(65,28): error TS2339: Property 'userId' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+src/__tests__/fixtures/receiver-sdk-probe.ts(107,1): error TS1309: The current file is a CommonJS module and cannot use 'await' at the top level.
