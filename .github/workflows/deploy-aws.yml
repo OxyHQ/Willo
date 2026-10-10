@@ -86,7 +86,9 @@ jobs:
       # pushed artefact a single-platform image manifest, as before, rather
       # than an index with an attestation.
       - name: Build and push (linux/arm64)
+        id: build
         run: |
+          set -euo pipefail
           IMG=$ECR_REGISTRY/oxy/$APP
           docker buildx build \
             --platform linux/arm64 \
@@ -96,19 +98,27 @@ jobs:
             -f "$DOCKERFILE" \
             -t "$IMG:${{ github.sha }}" \
             -t "$IMG:latest" \
+            --metadata-file "$RUNNER_TEMP/build-metadata.json" \
             --push \
             .
 
-      # The one-shot migration task below REUSES the service's live task
-      # definition and network configuration rather than registering its
-      # own, which is what gives it the same DATABASE_URL secret, subnets and
-      # security groups the service has. It therefore also runs the image the
-      # task definition points at — the `:latest` tag just pushed above — so
-      # `run-task` gets the NEW image without a second revision. If the task
-      # definition is ever pinned to an immutable tag, this step must
-      # register a revision instead, or the migrator uses the OLD image.
+          DIGEST=$(jq -r '.["containerimage.digest"] // empty' "$RUNNER_TEMP/build-metadata.json")
+          if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::buildx produced no usable image digest"
+            exit 1
+          fi
+          echo "image_uri=$IMG@$DIGEST" >> "$GITHUB_OUTPUT"
+
+      # Registers a revision derived from the service's LIVE task definition
+      # with only the image swapped for the digest just pushed, so the
+      # migration task and the rollout both run exactly this build while
+      # keeping the live secrets, role, subnets and security groups. The live
+      # definition pins its image by digest, so `--force-new-deployment` alone
+      # would restart the OLD image and report success.
       - name: Resolve the ECS one-shot shape
         id: ecs
+        env:
+          IMAGE_URI: ${{ steps.build.outputs.image_uri }}
         run: |
           set -euo pipefail
 
@@ -119,9 +129,17 @@ jobs:
             exit 0
           fi
 
-          TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].taskDefinition' --output text)
+          LIVE_TD=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].taskDefinition' --output text)
           NET=$(aws ecs describe-services --cluster "$CLUSTER" --services "$APP" --query 'services[0].networkConfiguration' --output json)
-          CONTAINER=$(aws ecs describe-task-definition --task-definition "$TD" --query 'taskDefinition.containerDefinitions[0].name' --output text)
+          CONTAINER=$(aws ecs describe-task-definition --task-definition "$LIVE_TD" --query 'taskDefinition.containerDefinitions[0].name' --output text)
+          RENDERED="$RUNNER_TEMP/task-definition.json"
+          aws ecs describe-task-definition --task-definition "$LIVE_TD" --query taskDefinition --output json \
+            | jq --arg container "$CONTAINER" --arg image "$IMAGE_URI" '
+                .containerDefinitions |= map(if .name == $container then .image = $image else . end)
+                | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities,
+                      .registeredAt, .registeredBy, .deregisteredAt)' > "$RENDERED"
+          TD=$(aws ecs register-task-definition --cli-input-json "file://$RENDERED" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
           echo "task_definition=$TD" >> "$GITHUB_OUTPUT"
           echo "container=$CONTAINER" >> "$GITHUB_OUTPUT"
           # JSON on one line: a GITHUB_OUTPUT value cannot span lines unhelped.
@@ -149,6 +167,8 @@ jobs:
           NETWORK_CONFIGURATION: ${{ steps.ecs.outputs.network }}
 
       - name: Deploy to ECS (rolling; skipped until the service exists)
+        env:
+          TASK_DEFINITION: ${{ steps.ecs.outputs.task_definition }}
         run: |
           set -euo pipefail
 
@@ -164,7 +184,7 @@ jobs:
             exit 0
           fi
 
-          aws ecs update-service --cluster "$CLUSTER" --service "$APP" --force-new-deployment >/dev/null
+          aws ecs update-service --cluster "$CLUSTER" --service "$APP" --task-definition "$TASK_DEFINITION" >/dev/null
           echo "Triggered new deployment for $APP; polling rolloutState (timeout ${MAX_WAIT_SECS}s)..."
 
           elapsed=0
