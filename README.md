@@ -10,3 +10,6 @@ Built with Expo (React Native).
 bun install
 bun start
 ```
+
+`bun run lint` runs Biome (formatting and linting) plus the frontend's minimal Expo ESLint
+config; `bun run format` formats with Biome.

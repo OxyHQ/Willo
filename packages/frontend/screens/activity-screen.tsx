@@ -35,6 +35,7 @@ function useActivityEvents() {
   const { t } = useTranslation();
   const [events, setEvents] = useState<HomeActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loads the activity feed once on mount
   useEffect(() => {
     let ignore = false;
     setLoading(true);
@@ -52,7 +53,6 @@ function useActivityEvents() {
     return () => {
       ignore = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return { events, loading };
 }

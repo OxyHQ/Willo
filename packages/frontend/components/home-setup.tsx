@@ -315,9 +315,9 @@ function PairingStep({ onBack }: { onBack: () => void }) {
   // code unconditionally on every mount used to silently invalidate
   // whatever code the person might be mid-typing into Home Assistant, with
   // no warning at all.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on mount only, by design (see above)
   useEffect(() => {
     if (!pairing || expired) generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The live countdown — ticks only while a non-expired code is showing, so
