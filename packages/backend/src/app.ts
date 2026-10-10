@@ -16,7 +16,7 @@ export function createApp(oxy: OxyServer): Express {
 
   // First, unconditionally: observes every inbound request whether or not
   // ecosystem-activity has actually started (see ecosystemActivity.ts — it
-  // no-ops until OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET are present), so
+  // no-ops outside ECS, where there is no workload identity to attest), so
   // there is nothing to plumb through `createApp` when it does.
   app.use(ecosystemActivityMiddleware);
   app.use(createOxyCors({ appOrigins: config.corsOrigins }));

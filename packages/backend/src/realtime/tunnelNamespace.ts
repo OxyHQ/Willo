@@ -22,6 +22,7 @@ import {
   saveDeviceSnapshot,
 } from '../services/homeTunnel.service';
 import { recordBinarySensorEvent, type BinarySensorTransition } from '../services/homeEvents.service';
+import { observeEcosystemSocket } from '../ecosystemActivity';
 import { emitToHome } from './socketRegistry';
 import { registerTunnelSocket, resolveCameraSnapshot, unregisterTunnelSocket } from './tunnelRegistry';
 
@@ -81,6 +82,8 @@ export function createTunnelNamespace(io: SocketIOServer): void {
   });
 
   namespace.on('connection', (socket: TunnelSocket) => {
+    observeEcosystemSocket(socket);
+
     const homeId = socket.data.homeId;
     if (!homeId) {
       // Defensive: the auth middleware above already refuses a handshake

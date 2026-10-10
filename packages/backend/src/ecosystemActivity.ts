@@ -1,28 +1,45 @@
 /**
  * Ecosystem-activity telemetry: publishes this service's inbound/outbound
- * traffic to Oxy so cross-app observability sees Willo like every other
- * product.
+ * traffic and its infrastructure heartbeat to Oxy, which feeds the central
+ * API's `/platform-activity` namespace and the live dashboard on oxy.so.
  *
- * Gated purely on credential presence — no separate enable flag — matching
- * the pattern every sibling backend (CrowdSource, Nilo, tnp, …) standardized
- * on. `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET` are provisioned once Oxy
- * registers an application for Willo; until then this module disables itself
- * with a warning instead of failing startup.
+ * ## Why there is no enable flag and no credential gate
+ *
+ * Every deployed Oxy service publishes activity. What a flag (or the presence
+ * of `OXY_SERVICE_API_KEY`) actually stood for was "am I a deployed process, or
+ * somebody's laptop", and that is a fact about where the code runs rather than
+ * something to configure: ECS sets the container credentials endpoint on every
+ * task and nothing else does, which is the same signal the credential-free
+ * service token uses to prove what this process IS (oxy ADR 0026).
+ *
+ * Gating on the key pair is why Willo never reported: its task definition
+ * carries no `OXY_SERVICE_API_KEY`/`OXY_SERVICE_API_SECRET`, so this module
+ * disabled itself on every boot. On ECS `createEcosystemTraffic` now
+ * authenticates by attesting the task role, and still uses a key pair when one
+ * is present.
  */
 
-import { createEcosystemTraffic } from '@oxy.so/core/server';
+import { canAttestWorkloadIdentity, createEcosystemTraffic } from '@oxy.so/core/server';
 import type { RequestHandler } from 'express';
 
 let activity: ReturnType<typeof createEcosystemTraffic> | undefined;
 
 /** Start only at process bootstrap; constructing a test app starts no publisher. */
 export function startEcosystemActivity(ready: () => boolean): void {
-  if (!process.env.OXY_SERVICE_API_KEY?.trim() || !process.env.OXY_SERVICE_API_SECRET?.trim()) {
-    console.warn('Ecosystem activity is disabled for willo: missing OXY_SERVICE_API_KEY/OXY_SERVICE_API_SECRET');
+  if (activity) return;
+  if (!canAttestWorkloadIdentity()) {
+    console.warn('Ecosystem activity is disabled for willo: not running on ECS (no workload identity to attest)');
     return;
   }
-  if (activity) return;
-  activity = createEcosystemTraffic({ service: 'willo', ready });
+  // Willo is a single-task service, so a telemetry misconfiguration (an
+  // unknown AWS_REGION, a half-set key pair) must not crash-loop it. The error
+  // is logged with its cause and the server keeps serving without a publisher.
+  try {
+    activity = createEcosystemTraffic({ service: 'willo', ready });
+  } catch (error: unknown) {
+    console.error('Ecosystem activity failed to start for willo; continuing without it:', error);
+    return;
+  }
   activity.installFetch();
 }
 

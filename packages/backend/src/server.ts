@@ -13,7 +13,8 @@ async function main(): Promise<void> {
   // Started before `createApp` so the readiness flag exists ahead of time;
   // `ecosystemActivityMiddleware` (mounted inside createApp) reads the
   // module-level publisher lazily on each request, so the ORDER of these two
-  // calls has no effect on correctness either way.
+  // calls has no effect on correctness either way. Publishes only on ECS
+  // (see ecosystemActivity.ts); the heartbeat reports `online` once listening.
   let isReady = false;
   startEcosystemActivity(() => isReady);
 
@@ -36,6 +37,8 @@ async function main(): Promise<void> {
   const shutdown = (signal: string): void => {
     if (shuttingDown) return;
     shuttingDown = true;
+    // The heartbeat stops claiming `online` the moment the task starts draining.
+    isReady = false;
     console.log(`Received ${signal}. Starting graceful shutdown...`);
 
     // Force-exit if close hangs (a stuck connection, a publisher that never
