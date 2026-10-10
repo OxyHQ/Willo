@@ -7,7 +7,7 @@ on:
       - 'tests/**'
       - 'package.json'
       - 'bun.lock'
-      - '.github/workflows/ui-checks.yml'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:

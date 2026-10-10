@@ -22,7 +22,8 @@
 # credential, OXY_SERVICE_API_KEY / OXY_SERVICE_API_SECRET (ecosystem-activity
 # telemetry; the service runs fine without them — see src/ecosystemActivity.ts)
 # from SSM `/oxy/willo/*`. Non-secret config (PORT, OXY_API_URL, CORS_ORIGINS)
-# is set as plain task-definition env. See .github/workflows/deploy-aws.yml.
+# is set as plain task-definition env. SSM is the only copy of each secret;
+# nothing in .github/workflows writes one (oxy-infra runbook 46).
 
 # ── Stage 1: build (install deps, type-gate the backend) ────────────────────
 FROM oven/bun:1.3.14-alpine AS builder
