@@ -34,28 +34,30 @@ const CHANNEL_NAME = 'willo-demo-home';
 type StoredCapabilities = Record<string, DeviceCapability[]>;
 
 const capabilitiesById = (devices: Device[]): StoredCapabilities =>
-  Object.fromEntries(devices.map(device => [device.id, device.capabilities]));
+  Object.fromEntries(devices.map((device) => [device.id, device.capabilities]));
 
 export function createDemoProvider(t: TFunction): SmartHomeProvider {
-  let devices: Device[] = DEMO_CATALOG.map(entry => ({
+  let devices: Device[] = DEMO_CATALOG.map((entry) => ({
     id: entry.id,
     name: t(entry.nameKey),
     room: entry.roomKey === null ? null : t(entry.roomKey),
     domain: entry.domain,
-    capabilities: entry.capabilities.map(capability =>
+    capabilities: entry.capabilities.map((capability) =>
       capability.kind === 'camera' && DEMO_STILLS[entry.id] !== undefined
-        // `Asset.fromModule` resolves a bundled image to a URL on web and on
-        // native alike; `Image.resolveAssetSource` is native-only and threw
-        // here the moment demo mode was switched on in a browser.
-        ? { ...capability, snapshotUrl: Asset.fromModule(DEMO_STILLS[entry.id]).uri }
-        : { ...capability }),
+        ? // `Asset.fromModule` resolves a bundled image to a URL on web and on
+          // native alike; `Image.resolveAssetSource` is native-only and threw
+          // here the moment demo mode was switched on in a browser.
+          { ...capability, snapshotUrl: Asset.fromModule(DEMO_STILLS[entry.id]).uri }
+        : { ...capability },
+    ),
   }));
   const listeners = new Set<(devices: Device[]) => void>();
-  const emit = () => listeners.forEach(listener => listener(devices));
+  const emit = () => listeners.forEach((listener) => listener(devices));
   let ticker: ReturnType<typeof setInterval> | null = null;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   // `BroadcastChannel` is a web API; on native there are no other tabs to tell.
-  const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL_NAME);
+  const channel =
+    typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(CHANNEL_NAME);
 
   /**
    * Takes a set of capabilities from storage or another tab, keeping this tab's
@@ -66,9 +68,10 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
    * every tile in the other.
    */
   function adopt(stored: StoredCapabilities) {
-    devices = devices.map(device => {
+    devices = devices.map((device) => {
       const capabilities = stored[device.id];
-      if (!capabilities || JSON.stringify(capabilities) === JSON.stringify(device.capabilities)) return device;
+      if (!capabilities || JSON.stringify(capabilities) === JSON.stringify(device.capabilities))
+        return device;
       return { ...device, capabilities };
     });
   }
@@ -91,7 +94,8 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       saveTimer = null;
-      storage.setItemAsync(STORAGE_KEY, JSON.stringify(capabilitiesById(devices)))
+      storage
+        .setItemAsync(STORAGE_KEY, JSON.stringify(capabilitiesById(devices)))
         .catch((error: unknown) => console.error('Failed to save the demo home:', error));
     }, SAVE_DEBOUNCE_MS);
     emit();
@@ -105,7 +109,9 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
   }
 
   const update = (id: string, change: (capability: DeviceCapability) => DeviceCapability) => {
-    devices = devices.map(device => device.id === id ? { ...device, capabilities: device.capabilities.map(change) } : device);
+    devices = devices.map((device) =>
+      device.id === id ? { ...device, capabilities: device.capabilities.map(change) } : device,
+    );
   };
 
   /**
@@ -117,14 +123,24 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
    */
   function tick() {
     let changed = false;
-    devices = devices.map(device => {
-      const counting = device.capabilities.some(capability => capability.kind === 'appliance' && capability.state === 'running' && capability.remainingMinutes !== null);
+    devices = devices.map((device) => {
+      const counting = device.capabilities.some(
+        (capability) =>
+          capability.kind === 'appliance' &&
+          capability.state === 'running' &&
+          capability.remainingMinutes !== null,
+      );
       if (!counting) return device;
       changed = true;
       return {
         ...device,
-        capabilities: device.capabilities.map(capability => {
-          if (capability.kind !== 'appliance' || capability.state !== 'running' || capability.remainingMinutes === null) return capability;
+        capabilities: device.capabilities.map((capability) => {
+          if (
+            capability.kind !== 'appliance' ||
+            capability.state !== 'running' ||
+            capability.remainingMinutes === null
+          )
+            return capability;
           const remaining = capability.remainingMinutes - 1;
           return remaining > 0
             ? { ...capability, remainingMinutes: remaining }
@@ -161,15 +177,18 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
       return () => listeners.delete(onDevices);
     },
     sendCommand(id: string, command: DeviceCommand) {
-      update(id, capability => {
+      update(id, (capability) => {
         switch (command.kind) {
           case 'setOnOff':
             if (capability.kind === 'onOff') return { ...capability, on: command.on };
-            if (capability.kind === 'brightness' || capability.kind === 'fanSpeed') return { ...capability, percent: command.on ? capability.percent ?? 100 : 0 };
-            if (capability.kind === 'climate') return { ...capability, mode: command.on ? 'heat' : 'off' };
+            if (capability.kind === 'brightness' || capability.kind === 'fanSpeed')
+              return { ...capability, percent: command.on ? (capability.percent ?? 100) : 0 };
+            if (capability.kind === 'climate')
+              return { ...capability, mode: command.on ? 'heat' : 'off' };
             return capability;
           case 'setBrightness':
-            if (capability.kind === 'brightness') return { ...capability, percent: command.percent };
+            if (capability.kind === 'brightness')
+              return { ...capability, percent: command.percent };
             if (capability.kind === 'onOff') return { ...capability, on: command.percent > 0 };
             return capability;
           case 'setFanSpeed':
@@ -177,21 +196,42 @@ export function createDemoProvider(t: TFunction): SmartHomeProvider {
             if (capability.kind === 'onOff') return { ...capability, on: command.percent > 0 };
             return capability;
           case 'setLocked':
-            return capability.kind === 'lock' ? { ...capability, locked: command.locked } : capability;
+            return capability.kind === 'lock'
+              ? { ...capability, locked: command.locked }
+              : capability;
           case 'setCoverPosition':
             return capability.kind === 'cover'
-              ? { ...capability, position: capability.position === null ? null : command.percent, open: command.percent > 0 }
+              ? {
+                  ...capability,
+                  position: capability.position === null ? null : command.percent,
+                  open: command.percent > 0,
+                }
               : capability;
           case 'setApplianceState':
             return capability.kind === 'appliance'
-              ? { ...capability, state: command.state, remainingMinutes: command.state === 'running' ? capability.remainingMinutes ?? CYCLE_MINUTES : capability.state === 'paused' ? capability.remainingMinutes : null }
+              ? {
+                  ...capability,
+                  state: command.state,
+                  remainingMinutes:
+                    command.state === 'running'
+                      ? (capability.remainingMinutes ?? CYCLE_MINUTES)
+                      : capability.state === 'paused'
+                        ? capability.remainingMinutes
+                        : null,
+                }
               : capability;
           case 'setTargetTemperature':
-            return capability.kind === 'climate' ? { ...capability, target: command.value } : capability;
+            return capability.kind === 'climate'
+              ? { ...capability, target: command.value }
+              : capability;
           case 'setPlaying':
-            return capability.kind === 'media' ? { ...capability, playing: command.playing } : capability;
+            return capability.kind === 'media'
+              ? { ...capability, playing: command.playing }
+              : capability;
           case 'setVolume':
-            return capability.kind === 'media' ? { ...capability, volume: command.percent, playing: command.percent > 0 } : capability;
+            return capability.kind === 'media'
+              ? { ...capability, volume: command.percent, playing: command.percent > 0 }
+              : capability;
         }
       });
       publish();

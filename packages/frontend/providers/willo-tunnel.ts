@@ -6,7 +6,9 @@ const domainOf = (entityId: string) => entityId.split('.')[0];
 
 const replaceOrAppend = <T extends { id: string }>(list: T[], item: T): T[] => {
   const index = list.findIndex((existing) => existing.id === item.id);
-  return index === -1 ? [...list, item] : list.map((existing, i) => (i === index ? item : existing));
+  return index === -1
+    ? [...list, item]
+    : list.map((existing, i) => (i === index ? item : existing));
 };
 
 type WilloTunnelCredentials = {
@@ -35,22 +37,63 @@ type WilloTunnelCredentials = {
  * `light.turn_on`); every other command belongs to exactly one domain, so it
  * names it outright.
  */
-function homeAssistantService(domain: string, command: DeviceCommand): { domain: string; service: string; serviceData: Record<string, unknown> } {
+function homeAssistantService(
+  domain: string,
+  command: DeviceCommand,
+): { domain: string; service: string; serviceData: Record<string, unknown> } {
   switch (command.kind) {
-    case 'setOnOff': return { domain, service: command.on ? 'turn_on' : 'turn_off', serviceData: {} };
-    case 'setBrightness': return { domain: 'light', service: 'turn_on', serviceData: { brightness_pct: Math.round(command.percent) } };
-    case 'setFanSpeed': return { domain: 'fan', service: 'set_percentage', serviceData: { percentage: Math.round(command.percent) } };
-    case 'setLocked': return { domain: 'lock', service: command.locked ? 'lock' : 'unlock', serviceData: {} };
-    case 'setCoverPosition': return { domain: 'cover', service: 'set_cover_position', serviceData: { position: Math.round(command.percent) } };
-    case 'setApplianceState': return { domain, service: APPLIANCE_SERVICES[command.state], serviceData: {} };
-    case 'setTargetTemperature': return { domain: 'climate', service: 'set_temperature', serviceData: { temperature: command.value } };
-    case 'setPlaying': return { domain: 'media_player', service: command.playing ? 'media_play' : 'media_pause', serviceData: {} };
-    case 'setVolume': return { domain: 'media_player', service: 'volume_set', serviceData: { volume_level: Math.round(command.percent) / 100 } };
+    case 'setOnOff':
+      return { domain, service: command.on ? 'turn_on' : 'turn_off', serviceData: {} };
+    case 'setBrightness':
+      return {
+        domain: 'light',
+        service: 'turn_on',
+        serviceData: { brightness_pct: Math.round(command.percent) },
+      };
+    case 'setFanSpeed':
+      return {
+        domain: 'fan',
+        service: 'set_percentage',
+        serviceData: { percentage: Math.round(command.percent) },
+      };
+    case 'setLocked':
+      return { domain: 'lock', service: command.locked ? 'lock' : 'unlock', serviceData: {} };
+    case 'setCoverPosition':
+      return {
+        domain: 'cover',
+        service: 'set_cover_position',
+        serviceData: { position: Math.round(command.percent) },
+      };
+    case 'setApplianceState':
+      return { domain, service: APPLIANCE_SERVICES[command.state], serviceData: {} };
+    case 'setTargetTemperature':
+      return {
+        domain: 'climate',
+        service: 'set_temperature',
+        serviceData: { temperature: command.value },
+      };
+    case 'setPlaying':
+      return {
+        domain: 'media_player',
+        service: command.playing ? 'media_play' : 'media_pause',
+        serviceData: {},
+      };
+    case 'setVolume':
+      return {
+        domain: 'media_player',
+        service: 'volume_set',
+        serviceData: { volume_level: Math.round(command.percent) / 100 },
+      };
   }
 }
 
 /** `finished` is a state an appliance reaches on its own, never one asked for — stopping is the closest thing to request. */
-const APPLIANCE_SERVICES: Record<ApplianceState, string> = { idle: 'stop', running: 'start', paused: 'pause', finished: 'stop' };
+const APPLIANCE_SERVICES: Record<ApplianceState, string> = {
+  idle: 'stop',
+  running: 'start',
+  paused: 'pause',
+  finished: 'stop',
+};
 
 function authHeaders(getAccessToken: () => string | null): Record<string, string> {
   const token = getAccessToken();
@@ -68,8 +111,11 @@ function withCameraUrls(devices: Device[], apiBaseUrl: string, homeId: string): 
     ...device,
     capabilities: device.capabilities.map((capability) =>
       capability.kind === 'camera'
-        ? { ...capability, snapshotUrl: `${apiBaseUrl}/homes/${homeId}/devices/${device.id}/camera` }
-        : capability
+        ? {
+            ...capability,
+            snapshotUrl: `${apiBaseUrl}/homes/${homeId}/devices/${device.id}/camera`,
+          }
+        : capability,
     ),
   }));
 }
@@ -85,7 +131,15 @@ function withCameraUrls(devices: Device[], apiBaseUrl: string, homeId: string): 
  * left in this file at all.
  */
 export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): SmartHomeProvider {
-  const { apiBaseUrl, homeId, getAccessToken, onConnectionChange, onHomeName, onUnitSystem, onPaired } = credentials;
+  const {
+    apiBaseUrl,
+    homeId,
+    getAccessToken,
+    onConnectionChange,
+    onHomeName,
+    onUnitSystem,
+    onPaired,
+  } = credentials;
 
   let devices: Device[] = [];
   let socket: Socket | null = null;
@@ -101,7 +155,13 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       headers: authHeaders(getAccessToken),
     });
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
-    const live = (await liveResponse.json()) as { connected: boolean; paired: boolean; devices: Device[]; homeName: string | null; unitSystem: UnitSystem };
+    const live = (await liveResponse.json()) as {
+      connected: boolean;
+      paired: boolean;
+      devices: Device[];
+      homeName: string | null;
+      unitSystem: UnitSystem;
+    };
     if (isDisconnected) return [];
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
     onHomeName(live.homeName);
@@ -109,7 +169,10 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     onPaired(live.paired);
     onConnectionChange(live.connected);
 
-    socket = io(`${apiBaseUrl}/homes`, { auth: { token: getAccessToken() }, transports: ['websocket'] });
+    socket = io(`${apiBaseUrl}/homes`, {
+      auth: { token: getAccessToken() },
+      transports: ['websocket'],
+    });
 
     await new Promise<void>((resolve, reject) => {
       const onConnect = () => {
@@ -131,7 +194,9 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       devices = replaceOrAppend(devices, withCameraUrls([device], apiBaseUrl, homeId)[0] ?? device);
       emit();
     });
-    socket.on('home:connection-status', (status: { connected: boolean }) => onConnectionChange(status.connected));
+    socket.on('home:connection-status', (status: { connected: boolean }) =>
+      onConnectionChange(status.connected),
+    );
 
     return devices;
   }

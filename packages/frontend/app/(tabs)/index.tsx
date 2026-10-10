@@ -5,8 +5,12 @@ import { useScreenNavigate } from '../../screens/use-screen-navigate';
 
 export default function Index() {
   const onNavigate = useScreenNavigate('home');
-  return <ScreenSurface screen="home"
-    renderContent={() => <HomeScreen onNavigate={onNavigate}/>}
-    // Home says what's missing inline rather than bouncing to /onboarding — see `HomeSetupPrompt`.
-    renderSetupPrompt={() => <HomeSetupPrompt onNavigate={onNavigate}/>}/>;
+  return (
+    <ScreenSurface
+      screen="home"
+      renderContent={() => <HomeScreen onNavigate={onNavigate} />}
+      // Home says what's missing inline rather than bouncing to /onboarding — see `HomeSetupPrompt`.
+      renderSetupPrompt={() => <HomeSetupPrompt onNavigate={onNavigate} />}
+    />
+  );
 }

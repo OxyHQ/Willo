@@ -4,5 +4,10 @@ import { useScreenNavigate } from '../screens/use-screen-navigate';
 
 export default function Favorites() {
   const onNavigate = useScreenNavigate('favorites');
-  return <ScreenSurface screen="favorites" renderContent={() => <FavoritesScreen onNavigate={onNavigate}/>}/>;
+  return (
+    <ScreenSurface
+      screen="favorites"
+      renderContent={() => <FavoritesScreen onNavigate={onNavigate} />}
+    />
+  );
 }

@@ -12,13 +12,22 @@ import type { ParseKeys, TFunction } from 'i18next';
 export function describeEvent(event: HomeActivityEvent): { titleKey: ParseKeys; icon: IconName } {
   switch (event.eventType) {
     case 'motion':
-      return { titleKey: event.active ? 'events.motionDetected' : 'events.motionCleared', icon: 'activity' };
+      return {
+        titleKey: event.active ? 'events.motionDetected' : 'events.motionCleared',
+        icon: 'activity',
+      };
     case 'contact':
-      return { titleKey: event.active ? 'events.opened' : 'events.closed', icon: event.active ? 'unlock' : 'lock' };
+      return {
+        titleKey: event.active ? 'events.opened' : 'events.closed',
+        icon: event.active ? 'unlock' : 'lock',
+      };
     case 'safety':
       return { titleKey: event.active ? 'events.alert' : 'events.alertCleared', icon: 'alert' };
     default:
-      return { titleKey: event.active === false ? 'events.cleared' : 'events.triggered', icon: 'bell' };
+      return {
+        titleKey: event.active === false ? 'events.cleared' : 'events.triggered',
+        icon: 'bell',
+      };
   }
 }
 
@@ -29,8 +38,11 @@ export function formatEventTime(occurredAt: string, language: string): string {
 
 /** Whole days between today and the event's own day — 0 today, 1 yesterday. The value a date filter compares, never the heading text below. */
 export function daysAgo(occurredAt: string): number {
-  const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-  return Math.round((startOfDay(new Date()) - startOfDay(new Date(occurredAt))) / (24 * 60 * 60 * 1000));
+  const startOfDay = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  return Math.round(
+    (startOfDay(new Date()) - startOfDay(new Date(occurredAt))) / (24 * 60 * 60 * 1000),
+  );
 }
 
 /** 'Today'/'Yesterday' for the common case, a short date otherwise — this feed has no fixed two-day window the way the old demo data did. */

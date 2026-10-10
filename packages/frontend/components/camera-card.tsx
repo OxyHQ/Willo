@@ -26,7 +26,7 @@ function watchSnapshotTick(onTick: () => void) {
   watchers.add(onTick);
   ticker ??= setInterval(() => {
     tick += 1;
-    watchers.forEach(watcher => watcher());
+    watchers.forEach((watcher) => watcher());
   }, SNAPSHOT_REFRESH_MS);
   return () => {
     watchers.delete(onTick);
@@ -37,34 +37,143 @@ function watchSnapshotTick(onTick: () => void) {
   };
 }
 
-export function RealCameraCard({ camera, height = 194, width }: { camera: Device; height?: number; width?: number }) {
+export function RealCameraCard({
+  camera,
+  height = 194,
+  width,
+}: {
+  camera: Device;
+  height?: number;
+  width?: number;
+}) {
   const { setSheet, getAuthHeaders } = useHomeActions();
   const { t } = useTranslation();
-  const refreshKey = useSyncExternalStore(watchSnapshotTick, () => tick, () => tick);
+  const refreshKey = useSyncExternalStore(
+    watchSnapshotTick,
+    () => tick,
+    () => tick,
+  );
   const snapshotUrl = getCapability(camera, 'camera')?.snapshotUrl ?? null;
   // The snapshot is Willo's OWN backend endpoint now (relayed over the
   // tunnel), which is Oxy-authenticated — never a raw Home Assistant URL, so
   // this needs the same bearer header every other backend call carries.
   const uri = snapshotUrl ? `${snapshotUrl}?_=${refreshKey}` : undefined;
-  return <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('camera.open', { name: camera.name })} onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl })} className="absolute inset-0">
-      {uri ? <Image source={{ uri, headers: getAuthHeaders() }} style={{ width: '100%', height: '100%' }} contentFit="cover"/> : <View className="h-full w-full items-center justify-center bg-home-ink"><Icon name="camera-off" color="white" size={28}/></View>}
-    </Pressable>
-    <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between">
-      <View className="flex-row items-center gap-2"><View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]"/><Label className="text-[13px] font-medium text-white" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}>{t('camera.live')}</Label></View>
+  return (
+    <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('camera.open', { name: camera.name })}
+        onPress={() => setSheet({ kind: 'camera', title: camera.name, snapshotUrl })}
+        className="absolute inset-0"
+      >
+        {uri ? (
+          <Image
+            source={{ uri, headers: getAuthHeaders() }}
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+          />
+        ) : (
+          <View className="h-full w-full items-center justify-center bg-home-ink">
+            <Icon name="camera-off" color="white" size={28} />
+          </View>
+        )}
+      </Pressable>
+      <View
+        pointerEvents="none"
+        className="absolute left-4 right-4 top-4 flex-row items-center justify-between"
+      >
+        <View className="flex-row items-center gap-2">
+          <View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]" />
+          <Label
+            className="text-[13px] font-medium text-white"
+            style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}
+          >
+            {t('camera.live')}
+          </Label>
+        </View>
+      </View>
+      <Label
+        pointerEvents="none"
+        className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white"
+        style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}
+      >
+        {camera.name}
+      </Label>
     </View>
-    <Label pointerEvents="none" className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white" style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}>{camera.name}</Label>
-  </View>;
+  );
 }
 
-export function CameraCard({ garden = false, height = 194, showBadge = true, label, width }: { garden?: boolean; height?: number; showBadge?: boolean; label?: string; width?: number }) {
+export function CameraCard({
+  garden = false,
+  height = 194,
+  showBadge = true,
+  label,
+  width,
+}: {
+  garden?: boolean;
+  height?: number;
+  showBadge?: boolean;
+  label?: string;
+  width?: number;
+}) {
   const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   const [muted, setMuted] = useState(true);
-  return <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
-    <Pressable accessibilityRole="button" accessibilityLabel={garden ? t('camera.openBackyardPreview') : t('camera.openLivingRoomPreview')} onPress={() => setSheet({ kind: 'camera', title: garden ? t('camera.backyardTitle') : t('camera.livingRoomTitle'), garden })} className="absolute inset-0"><Image source={garden ? assets.garden : assets.livingRoom} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>
-    <View pointerEvents="none" className="absolute left-4 right-4 top-4 flex-row items-center justify-between"><View className="flex-row items-center gap-2"><View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]"/><Label className="text-[13px] font-medium text-white" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}>{t('camera.live')}</Label></View>{showBadge && <Label className="text-[13px] text-white">{t('camera.badge')}</Label>}</View>
-    {(garden || label) && <Label pointerEvents="none" className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white" style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}>{label ?? t('camera.yardLabel')}</Label>}
-    <Pressable accessibilityRole="button" accessibilityLabel={muted ? t('camera.unmutePreview') : t('camera.mutePreview')} accessibilityState={{ selected: !muted }} onPress={() => setMuted(value => !value)} className="absolute bottom-3 right-3 h-9 w-9 items-center justify-center rounded-full bg-black/25 active:opacity-60"><Icon name={muted ? 'camera-off' : 'camera'} color="white" size={23}/></Pressable>
-  </View>;
+  return (
+    <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          garden ? t('camera.openBackyardPreview') : t('camera.openLivingRoomPreview')
+        }
+        onPress={() =>
+          setSheet({
+            kind: 'camera',
+            title: garden ? t('camera.backyardTitle') : t('camera.livingRoomTitle'),
+            garden,
+          })
+        }
+        className="absolute inset-0"
+      >
+        <Image
+          source={garden ? assets.garden : assets.livingRoom}
+          style={{ width: '100%', height: '100%' }}
+          contentFit="cover"
+        />
+      </Pressable>
+      <View
+        pointerEvents="none"
+        className="absolute left-4 right-4 top-4 flex-row items-center justify-between"
+      >
+        <View className="flex-row items-center gap-2">
+          <View className="h-[7px] w-[7px] rounded-full bg-[#7bdd17]" />
+          <Label
+            className="text-[13px] font-medium text-white"
+            style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 3 }}
+          >
+            {t('camera.live')}
+          </Label>
+        </View>
+        {showBadge && <Label className="text-[13px] text-white">{t('camera.badge')}</Label>}
+      </View>
+      {(garden || label) && (
+        <Label
+          pointerEvents="none"
+          className="absolute bottom-4 left-4 text-[12px] font-medium leading-[16px] text-white"
+          style={{ textShadowColor: 'rgba(0,0,0,0.8)', textShadowRadius: 3 }}
+        >
+          {label ?? t('camera.yardLabel')}
+        </Label>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={muted ? t('camera.unmutePreview') : t('camera.mutePreview')}
+        accessibilityState={{ selected: !muted }}
+        onPress={() => setMuted((value) => !value)}
+        className="absolute bottom-3 right-3 h-9 w-9 items-center justify-center rounded-full bg-black/25 active:opacity-60"
+      >
+        <Icon name={muted ? 'camera-off' : 'camera'} color="white" size={23} />
+      </Pressable>
+    </View>
+  );
 }

@@ -12,7 +12,11 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate';
-import { completePairing, getDeviceClaimStatus, issueDeviceClaim } from '../services/homeTunnel.service';
+import {
+  completePairing,
+  getDeviceClaimStatus,
+  issueDeviceClaim,
+} from '../services/homeTunnel.service';
 
 const router = Router();
 

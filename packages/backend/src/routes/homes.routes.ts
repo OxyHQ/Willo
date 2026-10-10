@@ -18,7 +18,10 @@ import * as membersService from '../services/homeMembers.service';
 import * as devicesService from '../services/homeDevices.service';
 import * as tunnelService from '../services/homeTunnel.service';
 import * as eventsService from '../services/homeEvents.service';
-import { sendCommand as sendTunnelCommand, requestCameraSnapshot } from '../realtime/tunnelRegistry';
+import {
+  sendCommand as sendTunnelCommand,
+  requestCameraSnapshot,
+} from '../realtime/tunnelRegistry';
 
 const router = Router();
 
@@ -81,12 +84,18 @@ router.post('/', validateBody(createHomeSchema), async (req: Request, res: Respo
 });
 
 /** PATCH /homes/:id — change the Home's shared settings (today: its unit system). Any active member. */
-router.patch('/:id', validateBody(updateHomeSettingsSchema), async (req: Request, res: Response) => {
-  const userId = getRequiredOxyUserId(req);
-  const { unitSystem } = req.body as z.infer<typeof updateHomeSettingsSchema>;
-  const result = await homesService.updateHomeSettings(pathParam(req.params.id), userId, { unitSystem });
-  res.status(200).json(result);
-});
+router.patch(
+  '/:id',
+  validateBody(updateHomeSettingsSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const { unitSystem } = req.body as z.infer<typeof updateHomeSettingsSchema>;
+    const result = await homesService.updateHomeSettings(pathParam(req.params.id), userId, {
+      unitSystem,
+    });
+    res.status(200).json(result);
+  },
+);
 
 /** GET /homes/me — every Home the caller actively belongs to, with its roster. */
 router.get('/me', async (req: Request, res: Response) => {
@@ -96,31 +105,51 @@ router.get('/me', async (req: Request, res: Response) => {
 });
 
 /** POST /homes/:id/members — invite a member by Oxy user id. Owner only. */
-router.post('/:id/members', validateBody(inviteMemberSchema), async (req: Request, res: Response) => {
-  const userId = getRequiredOxyUserId(req);
-  const { memberUserId } = req.body as z.infer<typeof inviteMemberSchema>;
-  const result = await membersService.inviteMember(pathParam(req.params.id), userId, memberUserId);
-  res.status(201).json(result);
-});
+router.post(
+  '/:id/members',
+  validateBody(inviteMemberSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const { memberUserId } = req.body as z.infer<typeof inviteMemberSchema>;
+    const result = await membersService.inviteMember(
+      pathParam(req.params.id),
+      userId,
+      memberUserId,
+    );
+    res.status(201).json(result);
+  },
+);
 
 /** POST /homes/:id/members/:memberId/accept — invitee only. */
 router.post('/:id/members/:memberId/accept', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const result = await membersService.acceptInvite(pathParam(req.params.id), pathParam(req.params.memberId), userId);
+  const result = await membersService.acceptInvite(
+    pathParam(req.params.id),
+    pathParam(req.params.memberId),
+    userId,
+  );
   res.status(200).json(result);
 });
 
 /** POST /homes/:id/members/:memberId/decline — invitee only. */
 router.post('/:id/members/:memberId/decline', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const result = await membersService.declineInvite(pathParam(req.params.id), pathParam(req.params.memberId), userId);
+  const result = await membersService.declineInvite(
+    pathParam(req.params.id),
+    pathParam(req.params.memberId),
+    userId,
+  );
   res.status(200).json(result);
 });
 
 /** DELETE /homes/:id/members/:memberId — owner only, never on oneself. */
 router.delete('/:id/members/:memberId', async (req: Request, res: Response) => {
   const userId = getRequiredOxyUserId(req);
-  const result = await membersService.removeMember(pathParam(req.params.id), userId, pathParam(req.params.memberId));
+  const result = await membersService.removeMember(
+    pathParam(req.params.id),
+    userId,
+    pathParam(req.params.memberId),
+  );
   res.status(200).json(result);
 });
 
@@ -139,12 +168,21 @@ router.get('/:id/devices', async (req: Request, res: Response) => {
 });
 
 /** PUT /homes/:id/devices/:entityId — upsert metadata for one device. Any active member. */
-router.put('/:id/devices/:entityId', validateBody(upsertDeviceMetadataSchema), async (req: Request, res: Response) => {
-  const userId = getRequiredOxyUserId(req);
-  const input = req.body as z.infer<typeof upsertDeviceMetadataSchema>;
-  const result = await devicesService.upsertDeviceMetadata(pathParam(req.params.id), userId, pathParam(req.params.entityId), input);
-  res.status(200).json(result);
-});
+router.put(
+  '/:id/devices/:entityId',
+  validateBody(upsertDeviceMetadataSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const input = req.body as z.infer<typeof upsertDeviceMetadataSchema>;
+    const result = await devicesService.upsertDeviceMetadata(
+      pathParam(req.params.id),
+      userId,
+      pathParam(req.params.entityId),
+      input,
+    );
+    res.status(200).json(result);
+  },
+);
 
 /** POST /homes/:id/pairing-code — issue a code to enter into the Home Assistant integration's config flow. Owner only. */
 router.post('/:id/pairing-code', async (req: Request, res: Response) => {
@@ -158,12 +196,16 @@ router.post('/:id/pairing-code', async (req: Request, res: Response) => {
  * `/pairing-code`: attach this Home to a claim a device already created via
  * `POST /tunnel/claim`. Owner only.
  */
-router.post('/:id/claim-device', validateBody(claimDeviceSchema), async (req: Request, res: Response) => {
-  const userId = getRequiredOxyUserId(req);
-  const { claimCode } = req.body as z.infer<typeof claimDeviceSchema>;
-  await tunnelService.completeDeviceClaim(claimCode, pathParam(req.params.id), userId);
-  res.status(200).json({ ok: true });
-});
+router.post(
+  '/:id/claim-device',
+  validateBody(claimDeviceSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const { claimCode } = req.body as z.infer<typeof claimDeviceSchema>;
+    await tunnelService.completeDeviceClaim(claimCode, pathParam(req.params.id), userId);
+    res.status(200).json({ ok: true });
+  },
+);
 
 /** GET /homes/:id/devices/live — cached device list + whether the tunnel is currently connected. Any active member. */
 router.get('/:id/devices/live', async (req: Request, res: Response) => {
@@ -180,14 +222,23 @@ router.get('/:id/events', async (req: Request, res: Response) => {
 });
 
 /** POST /homes/:id/devices/:entityId/command — relay a command to the Home's tunnel. Any active member. Fire-and-forget, matching the app's existing command pattern. */
-router.post('/:id/devices/:entityId/command', validateBody(sendCommandSchema), async (req: Request, res: Response) => {
-  const userId = getRequiredOxyUserId(req);
-  const homeId = pathParam(req.params.id);
-  await homesService.assertActiveMember(homeId, userId);
-  const { domain, service, serviceData } = req.body as z.infer<typeof sendCommandSchema>;
-  sendTunnelCommand(homeId, { domain, service, entityId: pathParam(req.params.entityId), serviceData });
-  res.status(202).json({ accepted: true });
-});
+router.post(
+  '/:id/devices/:entityId/command',
+  validateBody(sendCommandSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const homeId = pathParam(req.params.id);
+    await homesService.assertActiveMember(homeId, userId);
+    const { domain, service, serviceData } = req.body as z.infer<typeof sendCommandSchema>;
+    sendTunnelCommand(homeId, {
+      domain,
+      service,
+      entityId: pathParam(req.params.entityId),
+      serviceData,
+    });
+    res.status(202).json({ accepted: true });
+  },
+);
 
 /** GET /homes/:id/devices/:entityId/camera — request a fresh snapshot over the tunnel. Any active member. */
 router.get('/:id/devices/:entityId/camera', async (req: Request, res: Response) => {

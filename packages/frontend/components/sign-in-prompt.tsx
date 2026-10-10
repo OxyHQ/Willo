@@ -20,8 +20,12 @@ export function SignInPrompt() {
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <SignInIllustration width={200} />
-          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">{t('signIn.title')}</Label>
-          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('signIn.subtitle')}</Label>
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">
+            {t('signIn.title')}
+          </Label>
+          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+            {t('signIn.subtitle')}
+          </Label>
           <OxySignInButton variant="contained" style={{ marginTop: 28 }} />
         </View>
       </ContentWidth>

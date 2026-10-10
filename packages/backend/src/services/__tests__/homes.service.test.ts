@@ -72,7 +72,10 @@ test('listHomesForUser omits Homes the caller does not actively belong to', asyn
   const { home } = await createHome(otherUserId, 'Someone Else’s House');
   try {
     const myHomes = await listHomesForUser(userId);
-    assert.equal(myHomes.some((entry) => entry.home.id === home.id), false);
+    assert.equal(
+      myHomes.some((entry) => entry.home.id === home.id),
+      false,
+    );
   } finally {
     await deleteHome(home.id);
   }
@@ -109,7 +112,10 @@ test('updateHomeSettings refuses someone who is not a member, leaving the Home u
   const strangerId = `user-${crypto.randomUUID()}`;
   const { home } = await createHome(ownerId, 'Test House', 'metric');
   try {
-    await assert.rejects(updateHomeSettings(home.id, strangerId, { unitSystem: 'imperial' }), NotFoundError);
+    await assert.rejects(
+      updateHomeSettings(home.id, strangerId, { unitSystem: 'imperial' }),
+      NotFoundError,
+    );
     const [stored] = await getDb().select().from(homes).where(eq(homes.id, home.id));
     assert.equal(stored?.unitSystem, 'metric');
   } finally {

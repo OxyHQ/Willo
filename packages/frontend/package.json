@@ -7,7 +7,8 @@
     "web": "expo start --web --port 19006",
     "android": "expo start --android --port 19006",
     "ios": "expo start --ios --port 19006",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint ."
   },
   "dependencies": {
     "@emotion/native": "^11.11.0",

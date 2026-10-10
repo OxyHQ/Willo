@@ -15,14 +15,30 @@ import { useHomeActions } from '../state/home-context';
  * so the shell can mount the provider for the header without pulling the
  * composer screen in behind it.
  */
-type ComposerValue = { text: string; setText: (value: string) => void; review: boolean; setReview: (value: boolean) => void; valid: boolean; save: () => void };
+type ComposerValue = {
+  text: string;
+  setText: (value: string) => void;
+  review: boolean;
+  setReview: (value: boolean) => void;
+  valid: boolean;
+  save: () => void;
+};
 const ComposerContext = createContext<ComposerValue | null>(null);
 export function useComposer(): ComposerValue {
   const value = useContext(ComposerContext);
-  if (!value) throw new Error('ComposerHeader/ComposerScreen must be rendered inside ComposerProvider.');
+  if (!value)
+    throw new Error('ComposerHeader/ComposerScreen must be rendered inside ComposerProvider.');
   return value;
 }
-export function ComposerProvider({ active, onNavigate, children }: { active: boolean; onNavigate: Navigate; children: React.ReactNode }) {
+export function ComposerProvider({
+  active,
+  onNavigate,
+  children,
+}: {
+  active: boolean;
+  onNavigate: Navigate;
+  children: React.ReactNode;
+}) {
   const { dispatch, notify } = useHomeActions();
   const { t } = useTranslation();
   const [text, setText] = useState(() => t('composer.suggestions.saveEnergyText'));
@@ -44,14 +60,58 @@ export function ComposerProvider({ active, onNavigate, children }: { active: boo
   function save() {
     if (!valid) return;
     const title = text.trim();
-    dispatch({ type: 'ADD_ROUTINE', routine: { id: `custom-${Date.now()}`, title: title.length > 42 ? title.slice(0, 39) + '…' : title, description: title, icon: 'sparkle' } });
+    dispatch({
+      type: 'ADD_ROUTINE',
+      routine: {
+        id: `custom-${Date.now()}`,
+        title: title.length > 42 ? title.slice(0, 39) + '…' : title,
+        description: title,
+        icon: 'sparkle',
+      },
+    });
     notify(t('composer.saved'));
     onNavigate('automations');
   }
-  return <ComposerContext.Provider value={{ text, setText: value => { setText(value); setReview(false); }, review, setReview, valid, save }}>{children}</ComposerContext.Provider>;
+  return (
+    <ComposerContext.Provider
+      value={{
+        text,
+        setText: (value) => {
+          setText(value);
+          setReview(false);
+        },
+        review,
+        setReview,
+        valid,
+        save,
+      }}
+    >
+      {children}
+    </ComposerContext.Provider>
+  );
 }
 export function ComposerHeader({ onNavigate }: { onNavigate: Navigate }) {
   const { valid, save } = useComposer();
   const { t } = useTranslation();
-  return <ContentWidth maxWidth={808}><View className="flex-row items-center justify-between pt-2"><IconButton icon="close" label={t('composer.cancel')} onPress={() => onNavigate('automations')}/><Label className="text-[14px]">{t('composer.title')}</Label><Pressable accessibilityRole="button" accessibilityLabel={t('composer.saveLabel')} disabled={!valid} onPress={save} className={`px-3 py-3 ${!valid ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}`}><Label className="text-[14px] font-medium text-info-text">{t('composer.save')}</Label></Pressable></View></ContentWidth>;
+  return (
+    <ContentWidth maxWidth={808}>
+      <View className="flex-row items-center justify-between pt-2">
+        <IconButton
+          icon="close"
+          label={t('composer.cancel')}
+          onPress={() => onNavigate('automations')}
+        />
+        <Label className="text-[14px]">{t('composer.title')}</Label>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('composer.saveLabel')}
+          disabled={!valid}
+          onPress={save}
+          className={`px-3 py-3 ${!valid ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}`}
+        >
+          <Label className="text-[14px] font-medium text-info-text">{t('composer.save')}</Label>
+        </Pressable>
+      </View>
+    </ContentWidth>
+  );
 }

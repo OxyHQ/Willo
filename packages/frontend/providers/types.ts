@@ -20,7 +20,13 @@ export type DeviceCapability =
   /** An appliance that runs a cycle — a robot vacuum, a washer, an air fryer. `remainingMinutes` is `null` when it isn't running or doesn't report one. */
   | { kind: 'appliance'; state: ApplianceState; remainingMinutes: number | null }
   /** Anything that heats or cools toward a target: a thermostat, an air conditioner, a radiator valve. */
-  | { kind: 'climate'; current: number | null; target: number | null; unit: TemperatureUnit; mode: ClimateMode }
+  | {
+      kind: 'climate';
+      current: number | null;
+      target: number | null;
+      unit: TemperatureUnit;
+      mode: ClimateMode;
+    }
   /** A TV or a speaker: playing or not, and how loud, 0–100. */
   | { kind: 'media'; playing: boolean; volume: number | null };
 
@@ -42,9 +48,11 @@ export type Device = {
 
 export const getCapability = <K extends DeviceCapability['kind']>(
   device: Device,
-  kind: K
+  kind: K,
 ): Extract<DeviceCapability, { kind: K }> | undefined =>
-  device.capabilities.find((capability): capability is Extract<DeviceCapability, { kind: K }> => capability.kind === kind);
+  device.capabilities.find(
+    (capability): capability is Extract<DeviceCapability, { kind: K }> => capability.kind === kind,
+  );
 
 export type DeviceCommand =
   | { kind: 'setOnOff'; on: boolean }

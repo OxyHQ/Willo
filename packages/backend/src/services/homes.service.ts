@@ -19,10 +19,17 @@ export interface HomeWithRoster {
 export type UnitSystem = (typeof UNIT_SYSTEMS)[number];
 
 /** Create a Home; the caller becomes its first active owner. Without a `unitSystem` the column default (`metric`) applies. */
-export async function createHome(userId: string, name?: string, unitSystem?: UnitSystem): Promise<HomeWithRoster> {
+export async function createHome(
+  userId: string,
+  name?: string,
+  unitSystem?: UnitSystem,
+): Promise<HomeWithRoster> {
   const db = getDb();
   return db.transaction(async (tx) => {
-    const [home] = await tx.insert(homes).values({ name: name ?? null, unitSystem }).returning();
+    const [home] = await tx
+      .insert(homes)
+      .values({ name: name ?? null, unitSystem })
+      .returning();
     if (!home) throw new Error('Failed to create Home.');
 
     const now = new Date();
@@ -58,7 +65,12 @@ export async function listHomesForUser(userId: string): Promise<HomeWithRoster[]
     db
       .select()
       .from(homeMembers)
-      .where(and(inArray(homeMembers.homeId, homeIds), inArray(homeMembers.status, VISIBLE_MEMBER_STATUSES))),
+      .where(
+        and(
+          inArray(homeMembers.homeId, homeIds),
+          inArray(homeMembers.status, VISIBLE_MEMBER_STATUSES),
+        ),
+      ),
   ]);
 
   const homeById = new Map(homeRows.map((home) => [home.id, home]));
@@ -76,12 +88,18 @@ export async function listHomesForUser(userId: string): Promise<HomeWithRoster[]
     // the same instant this list was built is not a caller-visible error —
     // just drop it from the response.
     if (!home) return [];
-    return [{ home, myRole: membership.role, members: membersByHomeId.get(home.id) ?? [membership] }];
+    return [
+      { home, myRole: membership.role, members: membersByHomeId.get(home.id) ?? [membership] },
+    ];
   });
 }
 
 /** Change a Home's shared settings. Any active member — the same bar as relabeling a device, since this only changes how the household's own readings are displayed. */
-export async function updateHomeSettings(homeId: string, userId: string, settings: { unitSystem: UnitSystem }): Promise<HomeRow> {
+export async function updateHomeSettings(
+  homeId: string,
+  userId: string,
+  settings: { unitSystem: UnitSystem },
+): Promise<HomeRow> {
   await assertActiveMember(homeId, userId);
   const [home] = await getDb()
     .update(homes)
@@ -121,7 +139,10 @@ export async function assertActiveOwner(homeId: string, userId: string): Promise
 }
 
 /** Count of ACTIVE owners of a Home other than `excludeUserId`. Used by `leaveHome`'s sole-owner rule. */
-export async function countOtherActiveOwners(homeId: string, excludeUserId: string): Promise<number> {
+export async function countOtherActiveOwners(
+  homeId: string,
+  excludeUserId: string,
+): Promise<number> {
   const rows = await getDb()
     .select({ id: homeMembers.id })
     .from(homeMembers)
@@ -130,19 +151,26 @@ export async function countOtherActiveOwners(homeId: string, excludeUserId: stri
         eq(homeMembers.homeId, homeId),
         eq(homeMembers.role, 'owner'),
         eq(homeMembers.status, 'active'),
-        ne(homeMembers.memberUserId, excludeUserId)
-      )
+        ne(homeMembers.memberUserId, excludeUserId),
+      ),
     );
   return rows.length;
 }
 
 /** Count of ACTIVE members of a Home other than `excludeUserId` (any role). Used by `leaveHome`'s sole-owner rule. */
-export async function countOtherActiveMembers(homeId: string, excludeUserId: string): Promise<number> {
+export async function countOtherActiveMembers(
+  homeId: string,
+  excludeUserId: string,
+): Promise<number> {
   const rows = await getDb()
     .select({ id: homeMembers.id })
     .from(homeMembers)
     .where(
-      and(eq(homeMembers.homeId, homeId), eq(homeMembers.status, 'active'), ne(homeMembers.memberUserId, excludeUserId))
+      and(
+        eq(homeMembers.homeId, homeId),
+        eq(homeMembers.status, 'active'),
+        ne(homeMembers.memberUserId, excludeUserId),
+      ),
     );
   return rows.length;
 }

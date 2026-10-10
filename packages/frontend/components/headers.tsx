@@ -12,10 +12,21 @@ export function useAccountMenu(onNavigate: Navigate) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
   const { t } = useTranslation();
-  return () => setSheet({ kind: 'menu', title: homeName, options: [
-    { label: homeName, selected: true, onPress: () => setSheet(null) },
-    { label: t('header.homeSettings'), onPress: () => { setSheet(null); onNavigate('settings'); } },
-  ] });
+  return () =>
+    setSheet({
+      kind: 'menu',
+      title: homeName,
+      options: [
+        { label: homeName, selected: true, onPress: () => setSheet(null) },
+        {
+          label: t('header.homeSettings'),
+          onPress: () => {
+            setSheet(null);
+            onNavigate('settings');
+          },
+        },
+      ],
+    });
 }
 /**
  * The app's one header.
@@ -33,7 +44,15 @@ export function useAccountMenu(onNavigate: Navigate) {
  * the shell's own gradient, so painting one here would either repaint or hide
  * the fade.
  */
-export function AppHeader({ title, onNavigate, actions }: { title?: string; onNavigate: Navigate; actions?: React.ReactNode }) {
+export function AppHeader({
+  title,
+  onNavigate,
+  actions,
+}: {
+  title?: string;
+  onNavigate: Navigate;
+  actions?: React.ReactNode;
+}) {
   const account = useAccountMenu(onNavigate);
   const { homeName } = useHome();
   const { colors: themeColors } = useTheme();
@@ -44,42 +63,82 @@ export function AppHeader({ title, onNavigate, actions }: { title?: string; onNa
   // element. `card` is real white in light mode and a sensible raised dark
   // tone in dark mode.
   const pill = (
-    <Pressable accessibilityRole="button" accessibilityLabel={ask} onPress={() => onNavigate('assistant')}
-      className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70 shell:max-w-[520px]">
-      <View className="h-7 w-7 items-center justify-center rounded-full bg-background"><Icon name="home" size={17} color={themeColors.textSecondary} filled/></View>
-      <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">{ask}</Label>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={ask}
+      onPress={() => onNavigate('assistant')}
+      className="h-[50px] min-w-0 flex-1 flex-row items-center gap-2.5 rounded-full bg-card pl-3 pr-2 active:opacity-70 shell:max-w-[520px]"
+    >
+      <View className="h-7 w-7 items-center justify-center rounded-full bg-background">
+        <Icon name="home" size={17} color={themeColors.textSecondary} filled />
+      </View>
+      <Label numberOfLines={1} className="min-w-0 flex-1 text-[15px]">
+        {ask}
+      </Label>
     </Pressable>
   );
-  return <View><ContentWidth>
-    {/* The bottom inset stops at `shell:`: above that width the header is a
+  return (
+    <View>
+      <ContentWidth>
+        {/* The bottom inset stops at `shell:`: above that width the header is a
         sibling above ContentPanel and the column holding both already supplies
         the gap, so its own would double it. Below it the header floats over
         the screen and needs its own, symmetric with the top. Classes, not a
         measured `compact` — this is styling, and a measured one re-renders the
         subtree on every frame of a resize. */}
-    {/* `min-h-[50px]` is the pill's own height, held by the row whether or not
+        {/* `min-h-[50px]` is the pill's own height, held by the row whether or not
         there is a pill in it — otherwise a screen with a title had a shorter
         header than one without, and the whole thing jumped as you moved
         between them. */}
-    <View className="min-h-[50px] flex-row items-center gap-3 pb-2 pt-2 shell:pb-0 shell:pt-3">
-      {title === undefined
-        ? pill
-        : <Label accessibilityRole="header" numberOfLines={1} className="min-w-0 flex-1 text-[19px]">{title}</Label>}
-      <View className="hidden flex-1 shell:flex"/>
-      {actions}
-      <IconButton icon="plus" label={t('composer.title')} onPress={() => onNavigate('composer')} className="bg-card"/>
-      <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')}/>
+        <View className="min-h-[50px] flex-row items-center gap-3 pb-2 pt-2 shell:pb-0 shell:pt-3">
+          {title === undefined ? (
+            pill
+          ) : (
+            <Label
+              accessibilityRole="header"
+              numberOfLines={1}
+              className="min-w-0 flex-1 text-[19px]"
+            >
+              {title}
+            </Label>
+          )}
+          <View className="hidden flex-1 shell:flex" />
+          {actions}
+          <IconButton
+            icon="plus"
+            label={t('composer.title')}
+            onPress={() => onNavigate('composer')}
+            className="bg-card"
+          />
+          <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')} />
+        </View>
+      </ContentWidth>
     </View>
-  </ContentWidth></View>;
+  );
 }
 /** The assistant is a pushed, full-screen destination, so its header is a way back rather than a place. */
 export function AssistantHeader({ onNavigate }: { onNavigate: Navigate }) {
   const { homeName } = useHome();
   const { t } = useTranslation();
-  return <ContentWidth maxWidth={808}><View className="flex-row items-center gap-2 pt-2"><IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')}/><Label className="text-[13px] text-muted-foreground">{t('header.ask', { home: homeName })}</Label></View></ContentWidth>;
+  return (
+    <ContentWidth maxWidth={808}>
+      <View className="flex-row items-center gap-2 pt-2">
+        <IconButton icon="back" label={t('assistant.back')} onPress={() => onNavigate('home')} />
+        <Label className="text-[13px] text-muted-foreground">
+          {t('header.ask', { home: homeName })}
+        </Label>
+      </View>
+    </ContentWidth>
+  );
 }
 /** Emergency is a modal-feeling screen: one way out, nothing else. */
 export function EmergencyHeader({ onNavigate }: { onNavigate: Navigate }) {
   const { t } = useTranslation();
-  return <ContentWidth maxWidth={1200}><View className="items-start pt-2"><IconButton icon="close" label={t('emergency.close')} onPress={() => onNavigate('home')}/></View></ContentWidth>;
+  return (
+    <ContentWidth maxWidth={1200}>
+      <View className="items-start pt-2">
+        <IconButton icon="close" label={t('emergency.close')} onPress={() => onNavigate('home')} />
+      </View>
+    </ContentWidth>
+  );
 }

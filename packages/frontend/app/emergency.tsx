@@ -4,5 +4,10 @@ import { useScreenNavigate } from '../screens/use-screen-navigate';
 
 export default function Emergency() {
   const onNavigate = useScreenNavigate('emergency');
-  return <ScreenSurface screen="emergency" renderContent={() => <EmergencyScreen onNavigate={onNavigate}/>}/>;
+  return (
+    <ScreenSurface
+      screen="emergency"
+      renderContent={() => <EmergencyScreen onNavigate={onNavigate} />}
+    />
+  );
 }

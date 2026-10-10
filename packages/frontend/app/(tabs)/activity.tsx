@@ -4,5 +4,10 @@ import { useScreenNavigate } from '../../screens/use-screen-navigate';
 
 export default function Activity() {
   const onNavigate = useScreenNavigate('activity');
-  return <ScreenSurface screen="activity" renderContent={() => <ActivityScreen onNavigate={onNavigate}/>}/>;
+  return (
+    <ScreenSurface
+      screen="activity"
+      renderContent={() => <ActivityScreen onNavigate={onNavigate} />}
+    />
+  );
 }

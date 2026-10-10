@@ -83,8 +83,11 @@ function AppShell() {
     [headerHeight, headerOverlaysContent],
   );
   const header = (
-    <View style={{ paddingTop: insets.top }} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
-      <ScreenHeader screen={screen} onNavigate={onNavigate}/>
+    <View
+      style={{ paddingTop: insets.top }}
+      onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+    >
+      <ScreenHeader screen={screen} onNavigate={onNavigate} />
     </View>
   );
 
@@ -96,11 +99,18 @@ function AppShell() {
   // bottom, `BottomNav` for its own bar. Left/right stay here: they are 0 in
   // portrait and, in landscape, apply to every screen alike.
   return (
-    <View className="min-h-0 min-w-0 flex-1 bg-background" style={{ paddingLeft: insets.left, paddingRight: insets.right }}>
+    <View
+      className="min-h-0 min-w-0 flex-1 bg-background"
+      style={{ paddingLeft: insets.left, paddingRight: insets.right }}
+    >
       {/* Now that content sits behind the status bar, the clock and icons have
           to read against whatever is under them — dark glyphs on Willo's light
           shell, light ones in dark mode. */}
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        translucent
+        backgroundColor="transparent"
+      />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <ScreenChrome screen={screen} onNavigate={onNavigate}>
@@ -118,7 +128,12 @@ function AppShell() {
                   a real gradient rather than a CSS one because
                   `backgroundImage` is web-only — with that, Android had no
                   header background at all. */}
-              <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} colors={[colors.background, colors.background, 'transparent']} locations={[0, 0.6, 1]}/>
+              <LinearGradient
+                pointerEvents="none"
+                style={StyleSheet.absoluteFill}
+                colors={[colors.background, colors.background, 'transparent']}
+                locations={[0, 0.6, 1]}
+              />
               {header}
             </View>
             <View className="relative min-h-0 min-w-0 flex-1">
@@ -160,7 +175,12 @@ export default function RootLayout() {
             mode instead of an arbitrary derived color. Same reasoning for
             `secondaryColor` → `onYellow`: an unpinned `secondary` resolves to
             a red for this seed, not the yellow the "light is on" tone needs. */}
-        <BloomProvider defaultMode="system" seed="#00537f" secondaryColor="#625007" tertiaryColor="#8e3205">
+        <BloomProvider
+          defaultMode="system"
+          seed="#00537f"
+          secondaryColor="#625007"
+          tertiaryColor="#8e3205"
+        >
           <OxyProvider
             baseURL={process.env.EXPO_PUBLIC_OXY_API_URL}
             clientId={process.env.EXPO_PUBLIC_OXY_CLIENT_ID}
@@ -168,8 +188,11 @@ export default function RootLayout() {
             language={{
               supportedLocales: SUPPORTED_LANGUAGES,
               fallbackLocale: DEFAULT_LANGUAGE,
-              onChange: async locale => { await i18n.changeLanguage(locale); },
-              onError: (error, locale) => console.error(`Failed to switch Willo's language to ${locale}:`, error),
+              onChange: async (locale) => {
+                await i18n.changeLanguage(locale);
+              },
+              onError: (error, locale) =>
+                console.error(`Failed to switch Willo's language to ${locale}:`, error),
             }}
           >
             <HomeProvider>

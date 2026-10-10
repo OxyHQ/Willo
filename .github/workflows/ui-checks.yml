@@ -7,6 +7,7 @@ on:
       - 'tests/**'
       - 'package.json'
       - 'bun.lock'
+      - 'biome.json'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -30,6 +31,10 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      - name: Biome (format + lint)
+        run: bunx biome ci .
+      - name: ESLint (Expo rules Biome lacks)
+        run: bun run --cwd packages/frontend lint
       - run: bun test ./tests
       - run: bun run typecheck
       - name: Export the real Expo web app

@@ -14,7 +14,7 @@ import { SCREEN_ROUTES } from '../data/screen-routes';
  */
 export function useScreenNavigate(screen: ScreenId): Navigate {
   const router = useRouter();
-  return next => {
+  return (next) => {
     if (next === 'gallery' || next === screen) return;
     const destination = SCREEN_ROUTES[next];
     if (noTabScreens.includes(next)) router.push(destination);

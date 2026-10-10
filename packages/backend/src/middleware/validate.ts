@@ -7,7 +7,9 @@ import { BadRequestError } from '../errors';
  * possibly defaulted/trimmed) value on success, or forwarding a
  * `BadRequestError` to `errorHandler` on failure.
  */
-export function validateBody(schema: ZodType): (req: Request, res: Response, next: NextFunction) => void {
+export function validateBody(
+  schema: ZodType,
+): (req: Request, res: Response, next: NextFunction) => void {
   return (req, _res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {

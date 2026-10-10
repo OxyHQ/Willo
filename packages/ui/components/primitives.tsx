@@ -40,11 +40,43 @@ function setBodyCursorHidden(hidden: boolean) {
  * own `selectable` prop; when it does, this flips `userSelect` to `'text'`
  * instead of overriding it.
  */
-export function Label({ className = '', style, selectable, ...props }: TextProps & { className?: string }) {
-  return <Text {...props} selectable={selectable} style={[{ userSelect: selectable ? 'text' : 'none' }, style]} className={`font-sans text-foreground ${className}`} />;
+export function Label({
+  className = '',
+  style,
+  selectable,
+  ...props
+}: TextProps & { className?: string }) {
+  return (
+    <Text
+      {...props}
+      selectable={selectable}
+      style={[{ userSelect: selectable ? 'text' : 'none' }, style]}
+      className={`font-sans text-foreground ${className}`}
+    />
+  );
 }
-export function IconButton({ icon, onPress, label, color, className = '', size = 22, disabled = false, shape = 'regular' }: { icon: IconName; onPress: () => void; label: string; color?: string; className?: string; size?: number; disabled?: boolean; shape?: 'regular' | 'small' | 'stepper' }) {
-  const dimensions = { regular: 'h-11 w-11', small: 'h-9 w-9', stepper: 'h-[58px] w-[66px]' }[shape];
+export function IconButton({
+  icon,
+  onPress,
+  label,
+  color,
+  className = '',
+  size = 22,
+  disabled = false,
+  shape = 'regular',
+}: {
+  icon: IconName;
+  onPress: () => void;
+  label: string;
+  color?: string;
+  className?: string;
+  size?: number;
+  disabled?: boolean;
+  shape?: 'regular' | 'small' | 'stepper';
+}) {
+  const dimensions = { regular: 'h-11 w-11', small: 'h-9 w-9', stepper: 'h-[58px] w-[66px]' }[
+    shape
+  ];
   // `color` falls back to the theme's own text color (not a static default
   // parameter) so an unset one still follows the active theme/mode.
   const { colors: themeColors } = useTheme();
@@ -54,13 +86,61 @@ export function IconButton({ icon, onPress, label, color, className = '', size =
   // `BloomProvider` turns every haptic in the app off together, and so Android
   // keeps its clamp to the light impact.
   const haptic = useHaptics();
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={() => { haptic(); onPress(); }} hitSlop={4} className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}><Icon name={icon} size={size} color={color ?? themeColors.text}/></Pressable>;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={() => {
+        haptic();
+        onPress();
+      }}
+      hitSlop={4}
+      className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}
+    >
+      <Icon name={icon} size={size} color={color ?? themeColors.text} />
+    </Pressable>
+  );
 }
-export function Avatar({ onPress, source, label }: { onPress: () => void; source: ImageSource; label: string }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} className="h-9 w-9 cursor-pointer overflow-hidden rounded-full bg-muted active:opacity-70"><Image source={source} style={{ width: '100%', height: '100%' }} contentFit="cover"/></Pressable>;
+export function Avatar({
+  onPress,
+  source,
+  label,
+}: {
+  onPress: () => void;
+  source: ImageSource;
+  label: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      className="h-9 w-9 cursor-pointer overflow-hidden rounded-full bg-muted active:opacity-70"
+    >
+      <Image source={source} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+    </Pressable>
+  );
 }
-export function SectionTitle({ children, right, onPress }: { children: React.ReactNode; right?: string; onPress?: () => void }) {
-  return <View className="mb-3 mt-5 flex-row items-center justify-between"><Label className="text-[13px] font-medium">{children}</Label>{right && <Pressable onPress={onPress} accessibilityRole="button" className="cursor-pointer p-1"><Label className="text-[12px] font-medium text-info-text">{right}</Label></Pressable>}</View>;
+export function SectionTitle({
+  children,
+  right,
+  onPress,
+}: {
+  children: React.ReactNode;
+  right?: string;
+  onPress?: () => void;
+}) {
+  return (
+    <View className="mb-3 mt-5 flex-row items-center justify-between">
+      <Label className="text-[13px] font-medium">{children}</Label>
+      {right && (
+        <Pressable onPress={onPress} accessibilityRole="button" className="cursor-pointer p-1">
+          <Label className="text-[12px] font-medium text-info-text">{right}</Label>
+        </Pressable>
+      )}
+    </View>
+  );
 }
 /**
  * A tile's icon and its two lines of text. Rendered twice per tile: once
@@ -68,14 +148,46 @@ export function SectionTitle({ children, right, onPress }: { children: React.Rea
  * brightness fill's own width. One component rather than two copies, so the
  * clipped copy can't drift out of alignment with the one underneath it.
  */
-function TileFace({ icon, title, subtitle, color, labelClassName = '', labelStyle, filledIcon }: { icon: IconName; title: string; subtitle?: string; color: string; labelClassName?: string; labelStyle?: TextStyle; filledIcon: boolean }) {
-  return <>
-    <View className="relative"><Icon name={icon} size={20} color={color} filled={filledIcon}/></View>
-    <View className="min-w-0 flex-1 py-2">
-      <Label className={`text-[13px] font-medium leading-[17px] ${labelClassName}`} style={labelStyle}>{title}</Label>
-      {subtitle && <Label className={`mt-0.5 text-[11px] leading-[14px] ${labelClassName}`} style={labelStyle}>{subtitle}</Label>}
-    </View>
-  </>;
+function TileFace({
+  icon,
+  title,
+  subtitle,
+  color,
+  labelClassName = '',
+  labelStyle,
+  filledIcon,
+}: {
+  icon: IconName;
+  title: string;
+  subtitle?: string;
+  color: string;
+  labelClassName?: string;
+  labelStyle?: TextStyle;
+  filledIcon: boolean;
+}) {
+  return (
+    <>
+      <View className="relative">
+        <Icon name={icon} size={20} color={color} filled={filledIcon} />
+      </View>
+      <View className="min-w-0 flex-1 py-2">
+        <Label
+          className={`text-[13px] font-medium leading-[17px] ${labelClassName}`}
+          style={labelStyle}
+        >
+          {title}
+        </Label>
+        {subtitle && (
+          <Label
+            className={`mt-0.5 text-[11px] leading-[14px] ${labelClassName}`}
+            style={labelStyle}
+          >
+            {subtitle}
+          </Label>
+        )}
+      </View>
+    </>
+  );
 }
 /**
  * The brightness fill's solid color, by tone — `bg-{tone}` pairs with each
@@ -84,7 +196,13 @@ function TileFace({ icon, title, subtitle, color, labelClassName = '', labelStyl
  * back to `bg-secondary`: `neutral` (an off device) has no real solid
  * counterpart, and brightness on an off device doesn't occur in practice.
  */
-const TONE_FILL_CLASS: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue: 'bg-info', yellow: 'bg-secondary', peach: 'bg-tertiary', green: 'bg-success' };
+const TONE_FILL_CLASS: Partial<Record<Tone, string>> = {
+  sky: 'bg-primary',
+  blue: 'bg-info',
+  yellow: 'bg-secondary',
+  peach: 'bg-tertiary',
+  green: 'bg-success',
+};
 /**
  * A tone's icon colour, live from Bloom's theme rather than the static brand
  * hex in `tones.ts`: the `bg-*-subtle`/`text-*-text` classes beside it already
@@ -94,13 +212,20 @@ const TONE_FILL_CLASS: Partial<Record<Tone, string>> = { sky: 'bg-primary', blue
  */
 function toneColor(tone: Tone, theme: ThemeColors): string | undefined {
   switch (tone) {
-    case 'sky': return theme.primary;
-    case 'blue': return theme.info;
-    case 'yellow': return theme.secondary;
-    case 'peach': return theme.tertiary;
-    case 'green': return theme.success;
-    case 'neutral': return theme.textSecondary;
-    default: return undefined;
+    case 'sky':
+      return theme.primary;
+    case 'blue':
+      return theme.info;
+    case 'yellow':
+      return theme.secondary;
+    case 'peach':
+      return theme.tertiary;
+    case 'green':
+      return theme.success;
+    case 'neutral':
+      return theme.textSecondary;
+    default:
+      return undefined;
   }
 }
 /**
@@ -112,15 +237,49 @@ function toneColor(tone: Tone, theme: ThemeColors): string | undefined {
  */
 function onFillColor(tone: Tone, theme: ThemeColors, isDark: boolean): string | undefined {
   switch (tone) {
-    case 'sky': return theme.primaryForeground;
-    case 'yellow': return isDark ? colors.onYellow : theme.secondaryForeground;
-    case 'peach': return theme.tertiaryForeground;
-    case 'blue': return theme.infoForeground;
-    case 'green': return theme.successForeground;
-    default: return undefined;
+    case 'sky':
+      return theme.primaryForeground;
+    case 'yellow':
+      return isDark ? colors.onYellow : theme.secondaryForeground;
+    case 'peach':
+      return theme.tertiaryForeground;
+    case 'blue':
+      return theme.infoForeground;
+    case 'green':
+      return theme.successForeground;
+    default:
+      return undefined;
   }
 }
-export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongPress, brightness, onBrightnessCommit, chevron = false, active, height = 80, grow = true, accessibilityHint }: { title: string; subtitle?: string; icon: IconName; tone?: Tone; onPress: () => void; onLongPress?: () => void; /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */ accessibilityHint?: string; /** Where the fill rests when no finger is on the tile. While one is, the drag drives it on the UI thread instead. */ brightness?: number; /** The drag's value, rate-limited to `COMMIT_INTERVAL_MS` and sent once more when the finger lifts. Passing it is what turns the tile into a slider. */ onBrightnessCommit?: (percent: number) => void; chevron?: boolean; active?: boolean; height?: number; grow?: boolean }) {
+export function Tile({
+  title,
+  subtitle,
+  icon,
+  tone = 'neutral',
+  onPress,
+  onLongPress,
+  brightness,
+  onBrightnessCommit,
+  chevron = false,
+  active,
+  height = 80,
+  grow = true,
+  accessibilityHint,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: IconName;
+  tone?: Tone;
+  onPress: () => void;
+  onLongPress?: () => void /** Already translated by the caller — this package has no strings of its own. Describe the drag when there's a slider, or the long press when there's one. */;
+  accessibilityHint?: string /** Where the fill rests when no finger is on the tile. While one is, the drag drives it on the UI thread instead. */;
+  brightness?: number /** The drag's value, rate-limited to `COMMIT_INTERVAL_MS` and sent once more when the finger lifts. Passing it is what turns the tile into a slider. */;
+  onBrightnessCommit?: (percent: number) => void;
+  chevron?: boolean;
+  active?: boolean;
+  height?: number;
+  grow?: boolean;
+}) {
   const palette = tones[tone];
   const { colors: themeColors, isDark } = useTheme();
   // Tones migrated to Bloom's own theme so far (`tokens.ts`) need the SAME
@@ -196,7 +355,11 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       .minDuration(500)
       .onTouchesDown(() => setPressed(true))
       .onFinalize(() => setPressed(false))
-      .onStart(() => { longPressFired.value = true; haptic('medium'); onLongPress?.(); });
+      .onStart(() => {
+        longPressFired.value = true;
+        haptic('medium');
+        onLongPress?.();
+      });
     // Dragging anywhere on the tile jumps the fill straight to that point (an
     // absolute position, not a relative delta from where the drag started) —
     // that's what makes the tile itself read as a brightness slider.
@@ -216,7 +379,10 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       // sliders feel like they were lagging behind the finger.
       .activeOffsetX([-10, 10])
       .failOffsetY([-8, 8])
-      .onTouchesDown(() => { longPressFired.value = false; runOnJS(setPressed)(true); })
+      .onTouchesDown(() => {
+        longPressFired.value = false;
+        runOnJS(setPressed)(true);
+      })
       .onStart(() => runOnJS(setBodyCursorHidden)(true))
       // Two different rates, because the two callbacks pay for very different
       // things. The fill and the subtitle follow every step of the finger, but
@@ -226,14 +392,17 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       // every open tab picks up), so it goes out at most every
       // `COMMIT_INTERVAL_MS`; `onFinalize` then sends the value the finger
       // ended on, so the device never settles on a stale one.
-      .onUpdate(event => {
+      .onUpdate((event) => {
         if (width <= 0) return;
         // 1:1 across the tile, so the fill sits under the finger — with the
         // last few pixels at each end snapped to 0 and 100, which are
         // otherwise a single pixel wide and unreachable.
-        const percent = event.x <= EDGE_SNAP_PX ? 0
-          : event.x >= width - EDGE_SNAP_PX ? 100
-          : Math.round((event.x / width) * 100);
+        const percent =
+          event.x <= EDGE_SNAP_PX
+            ? 0
+            : event.x >= width - EDGE_SNAP_PX
+              ? 100
+              : Math.round((event.x / width) * 100);
         if (percent === lastReported.value) return;
         lastReported.value = percent;
         // The fill is this assignment and nothing else — no render, no bridge.
@@ -262,7 +431,8 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
       .onFinalize((_event, success) => {
         runOnJS(setPressed)(false);
         runOnJS(setBodyCursorHidden)(false);
-        if (lastReported.value >= 0 && onBrightnessCommit) runOnJS(onBrightnessCommit)(lastReported.value);
+        if (lastReported.value >= 0 && onBrightnessCommit)
+          runOnJS(onBrightnessCommit)(lastReported.value);
         lastReported.value = -1;
         lastCommitAt.value = 0;
         lastHapticStep.value = -1;
@@ -272,15 +442,30 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           runOnJS(onPress)();
         }
       });
-      return Gesture.Race(panGesture, longPressGesture);
-  }, [width, onPress, onLongPress, onBrightnessCommit, haptic, dragPercent, lastReported, lastCommitAt, lastHapticStep, longPressFired]);
+    return Gesture.Race(panGesture, longPressGesture);
+  }, [
+    width,
+    onPress,
+    onLongPress,
+    onBrightnessCommit,
+    haptic,
+    dragPercent,
+    lastReported,
+    lastCommitAt,
+    lastHapticStep,
+    longPressFired,
+  ]);
   // Web-only (NativeWind no-ops `cursor-*` on native, where the concept
   // doesn't exist): a plain `View` + `GestureDetector`, unlike the
   // `Pressable` this used to be, gets none of the browser's own hover-cursor
   // affordances for free. Draggable tiles hint `grab`/`grabbing` (open hand,
   // closed while actually dragging) instead of the plain `pointer` every tile
   // still gets for its tap — same distinction a real OS slider makes.
-  const cursorClassName = onBrightnessCommit ? (pressed ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer';
+  const cursorClassName = onBrightnessCommit
+    ? pressed
+      ? 'cursor-grabbing'
+      : 'cursor-grab'
+    : 'cursor-pointer';
   const restingBrightness = brightness !== undefined ? Math.min(100, Math.max(0, brightness)) : 0;
   // The fill's width, straight from the shared value while a finger is down
   // and from the prop the rest of the time. Both the fill and the clipped
@@ -291,22 +476,45 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
   );
   const fillTextColor = onFillColor(tone, themeColors, isDark);
   const filledIcon = active === true && (icon === 'light' || icon === 'lock');
-  return <GestureDetector gesture={composedGesture}>
-    <View collapsable={false} onLayout={event => setWidth(event.nativeEvent.layout.width)} accessibilityRole={active === undefined ? 'button' : 'switch'} accessibilityState={active === undefined ? undefined : { checked: active }} accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`} accessibilityHint={accessibilityHint} className={`relative min-w-0 ${grow ? 'flex-1' : ''} justify-center overflow-hidden rounded-[24px] ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`} style={{ minHeight: height, borderCurve: 'continuous' }}>
-      {/* The tone's own solid color, not its `-subtle` tint: a real
+  return (
+    <GestureDetector gesture={composedGesture}>
+      <View
+        collapsable={false}
+        onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+        accessibilityRole={active === undefined ? 'button' : 'switch'}
+        accessibilityState={active === undefined ? undefined : { checked: active }}
+        accessibilityLabel={`${title}${subtitle ? ', ' + subtitle : ''}`}
+        accessibilityHint={accessibilityHint}
+        className={`relative min-w-0 ${grow ? 'flex-1' : ''} justify-center overflow-hidden rounded-[24px] ${cursorClassName} ${pressed ? 'opacity-75' : ''} ${palette.tile}`}
+        style={{ minHeight: height, borderCurve: 'continuous' }}
+      >
+        {/* The tone's own solid color, not its `-subtle` tint: a real
           progress indicator, matching `ThermostatCard`'s solid `tertiary`
           buttons rather than the tinted `-subtle` surfaces. */}
-      {brightness !== undefined && <Animated.View pointerEvents="none" className={`absolute bottom-0 left-0 top-0 ${TONE_FILL_CLASS[tone] ?? 'bg-secondary'}`} style={fillStyle}/>}
-      {/* The tile's horizontal padding lives HERE, not on the root. A
+        {brightness !== undefined && (
+          <Animated.View
+            pointerEvents="none"
+            className={`absolute bottom-0 left-0 top-0 ${TONE_FILL_CLASS[tone] ?? 'bg-secondary'}`}
+            style={fillStyle}
+          />
+        )}
+        {/* The tile's horizontal padding lives HERE, not on the root. A
           percentage width on an absolutely positioned child resolves against
           its parent's CONTENT box, so with `px-4` on the root a 100% fill
           came up 32px short — visibly so, and it dragged the clipped overlay
           out of line with the text underneath it by the same amount. */}
-      <View className="min-w-0 flex-row items-center gap-3 px-4">
-        <TileFace icon={icon} title={title} subtitle={subtitle} color={iconColor} labelClassName={palette.text} filledIcon={filledIcon}/>
-        {chevron && <Icon name="chevron" size={16} color={iconColor}/>}
-      </View>
-      {/* The same `TileFace` again — in the on-fill contrast color —
+        <View className="min-w-0 flex-row items-center gap-3 px-4">
+          <TileFace
+            icon={icon}
+            title={title}
+            subtitle={subtitle}
+            color={iconColor}
+            labelClassName={palette.text}
+            filledIcon={filledIcon}
+          />
+          {chevron && <Icon name="chevron" size={16} color={iconColor} />}
+        </View>
+        {/* The same `TileFace` again — in the on-fill contrast color —
           clipped to EXACTLY the fill's own width via an OUTER
           `overflow: hidden` window (`width: X%`, a plain CSS percentage
           against the tile's own width, no JS measuring needed for that
@@ -324,20 +532,69 @@ export function Tile({ title, subtitle, icon, tone = 'neutral', onPress, onLongP
           it. Only basic `position`/`width`/`overflow` are used — no blend
           mode, no gradient-clip-text, both of which turned out not to
           reliably work through this app's actual styling pipeline. */}
-      {brightness !== undefined && width > 0 && fillTextColor !== undefined && (
-        <Animated.View pointerEvents="none" className="absolute bottom-0 left-0 top-0 overflow-hidden" style={fillStyle}>
-          <View className="flex-row items-center gap-3 px-4" style={{ width, height: '100%' }}>
-            <TileFace icon={icon} title={title} subtitle={subtitle} color={fillTextColor} labelStyle={{ color: fillTextColor }} filledIcon={filledIcon}/>
-          </View>
-        </Animated.View>
-      )}
-    </View>
-  </GestureDetector>;
+        {brightness !== undefined && width > 0 && fillTextColor !== undefined && (
+          <Animated.View
+            pointerEvents="none"
+            className="absolute bottom-0 left-0 top-0 overflow-hidden"
+            style={fillStyle}
+          >
+            <View className="flex-row items-center gap-3 px-4" style={{ width, height: '100%' }}>
+              <TileFace
+                icon={icon}
+                title={title}
+                subtitle={subtitle}
+                color={fillTextColor}
+                labelStyle={{ color: fillTextColor }}
+                filledIcon={filledIcon}
+              />
+            </View>
+          </Animated.View>
+        )}
+      </View>
+    </GestureDetector>
+  );
 }
-export function AddButton({ onPress, label, accessibilityLabel }: { onPress: () => void; label: string; accessibilityLabel: string }) {
+export function AddButton({
+  onPress,
+  label,
+  accessibilityLabel,
+}: {
+  onPress: () => void;
+  label: string;
+  accessibilityLabel: string;
+}) {
   const { colors: themeColors } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} className="absolute bottom-5 right-4 flex-row items-center gap-2 cursor-pointer rounded-[15px] bg-info-subtle px-4 py-3 active:opacity-70" style={{ boxShadow: '0 2px 5px rgba(29,52,91,0.14)' }}><Icon name="plus" size={20} color={themeColors.info}/><Label className="text-[13px] font-medium text-info-text">{label}</Label></Pressable>;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      className="absolute bottom-5 right-4 flex-row items-center gap-2 cursor-pointer rounded-[15px] bg-info-subtle px-4 py-3 active:opacity-70"
+      style={{ boxShadow: '0 2px 5px rgba(29,52,91,0.14)' }}
+    >
+      <Icon name="plus" size={20} color={themeColors.info} />
+      <Label className="text-[13px] font-medium text-info-text">{label}</Label>
+    </Pressable>
+  );
 }
-export function Pill({ label, onPress, selected = false }: { label: string; onPress: () => void; selected?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} className={`flex-row items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 active:opacity-70 ${selected ? 'border-primary-subtle bg-primary-subtle' : 'border-border bg-white'}`}><Label className="text-[12px]">{label}</Label><Icon name="down" size={12}/></Pressable>;
+export function Pill({
+  label,
+  onPress,
+  selected = false,
+}: {
+  label: string;
+  onPress: () => void;
+  selected?: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      className={`flex-row items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 active:opacity-70 ${selected ? 'border-primary-subtle bg-primary-subtle' : 'border-border bg-white'}`}
+    >
+      <Label className="text-[12px]">{label}</Label>
+      <Icon name="down" size={12} />
+    </Pressable>
+  );
 }

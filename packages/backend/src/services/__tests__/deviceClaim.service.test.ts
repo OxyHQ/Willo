@@ -14,7 +14,12 @@ import { eq } from 'drizzle-orm';
 import { closePostgres, connectPostgres, getDb } from '../../db/postgres';
 import { deviceClaims, homes } from '../../db/schema';
 import { createHome } from '../homes.service';
-import { authenticateTunnel, completeDeviceClaim, getDeviceClaimStatus, issueDeviceClaim } from '../homeTunnel.service';
+import {
+  authenticateTunnel,
+  completeDeviceClaim,
+  getDeviceClaimStatus,
+  issueDeviceClaim,
+} from '../homeTunnel.service';
 import { NotFoundError } from '../../errors';
 
 before(async () => {
@@ -44,7 +49,11 @@ test('issuing a device claim, then completing it, delivers the tunnel secret to 
     const firstRead = await getDeviceClaimStatus(claimToken);
     assert.equal(firstRead.status, 'claimed');
     assert.ok(firstRead.status === 'claimed' && firstRead.homeId === home.id);
-    assert.ok(firstRead.status === 'claimed' && typeof firstRead.secret === 'string' && firstRead.secret.length > 0);
+    assert.ok(
+      firstRead.status === 'claimed' &&
+        typeof firstRead.secret === 'string' &&
+        firstRead.secret.length > 0,
+    );
     const secret = firstRead.status === 'claimed' ? firstRead.secret : null;
     assert.ok(secret);
     assert.equal(await authenticateTunnel(home.id, secret), true);
@@ -67,12 +76,16 @@ test('the tunnel secret is encrypted at rest between completion and the device c
     const { claimCode, claimToken } = await issueDeviceClaim();
     await completeDeviceClaim(claimCode, home.id, owner);
 
-    const [row] = await getDb().select({ pendingSecret: deviceClaims.pendingSecret }).from(deviceClaims).where(eq(deviceClaims.claimCode, claimCode)).limit(1);
+    const [row] = await getDb()
+      .select({ pendingSecret: deviceClaims.pendingSecret })
+      .from(deviceClaims)
+      .where(eq(deviceClaims.claimCode, claimCode))
+      .limit(1);
     assert.ok(row?.pendingSecret, 'expected a pending secret to be stored after completion');
     // The stored value must not be (or contain) the plaintext secret this
     // poll is about to return — if it did, encryption isn't actually
     // happening and a raw DB read would recover the real tunnel secret.
-    const { secret } = await getDeviceClaimStatus(claimToken) as { secret: string };
+    const { secret } = (await getDeviceClaimStatus(claimToken)) as { secret: string };
     assert.ok(secret);
     assert.notEqual(row.pendingSecret, secret);
     assert.ok(!row.pendingSecret.includes(secret));

@@ -28,7 +28,10 @@ const envSchema = z.object({
   // this feature) but required in practice the moment that code path runs —
   // see `services/homeTunnel.service.ts`'s `getClaimEncryptionKey`, the
   // only place this is read. 64 hex characters = 32 raw bytes.
-  TUNNEL_CLAIM_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
+  TUNNEL_CLAIM_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i, 'TUNNEL_CLAIM_ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+    .optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -44,7 +47,9 @@ export const config = {
   databaseUrl: env.DATABASE_URL,
   oxyApiUrl: env.OXY_API_URL,
   corsOrigins: env.CORS_ORIGINS
-    ? env.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean)
+    ? env.CORS_ORIGINS.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean)
     : [],
   tunnelClaimEncryptionKey: env.TUNNEL_CLAIM_ENCRYPTION_KEY,
 };

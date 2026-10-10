@@ -52,7 +52,9 @@ function hashSecret(secret: string): string {
  */
 function getClaimEncryptionKey(): Buffer {
   if (!config.tunnelClaimEncryptionKey) {
-    throw new Error('TUNNEL_CLAIM_ENCRYPTION_KEY is not set — required to issue or complete a device claim. Generate one with `openssl rand -hex 32`.');
+    throw new Error(
+      'TUNNEL_CLAIM_ENCRYPTION_KEY is not set — required to issue or complete a device claim. Generate one with `openssl rand -hex 32`.',
+    );
   }
   return Buffer.from(config.tunnelClaimEncryptionKey, 'hex');
 }
@@ -94,7 +96,12 @@ export async function issuePairingCode(homeId: string, userId: string): Promise<
 
   await getDb()
     .insert(homeConnections)
-    .values({ homeId, provider: 'home_assistant', pairingCode: code, pairingCodeExpiresAt: expiresAt })
+    .values({
+      homeId,
+      provider: 'home_assistant',
+      pairingCode: code,
+      pairingCodeExpiresAt: expiresAt,
+    })
     .onConflictDoUpdate({
       target: [homeConnections.homeId],
       set: { pairingCode: code, pairingCodeExpiresAt: expiresAt, tunnelSecretHash: null },
@@ -118,7 +125,11 @@ export async function completePairing(code: string): Promise<CompletedPairing> {
   const normalized = code.trim().toUpperCase();
 
   const [row] = await getDb()
-    .select({ id: homeConnections.id, homeId: homeConnections.homeId, pairingCodeExpiresAt: homeConnections.pairingCodeExpiresAt })
+    .select({
+      id: homeConnections.id,
+      homeId: homeConnections.homeId,
+      pairingCodeExpiresAt: homeConnections.pairingCodeExpiresAt,
+    })
     .from(homeConnections)
     .where(eq(homeConnections.pairingCode, normalized))
     .limit(1);
@@ -202,7 +213,10 @@ export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceCl
   }
 
   if (row.status === 'pending' && row.expiresAt.getTime() < Date.now()) {
-    await getDb().update(deviceClaims).set({ status: 'expired' }).where(eq(deviceClaims.id, row.id));
+    await getDb()
+      .update(deviceClaims)
+      .set({ status: 'expired' })
+      .where(eq(deviceClaims.id, row.id));
     return { status: 'expired' };
   }
 
@@ -211,14 +225,20 @@ export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceCl
   }
 
   if (row.status === 'claimed') {
-    if (!row.homeId) throw new Error('A claimed device_claims row has no homeId — completeDeviceClaim should always set both together.');
+    if (!row.homeId)
+      throw new Error(
+        'A claimed device_claims row has no homeId — completeDeviceClaim should always set both together.',
+      );
 
     if (row.pendingSecret) {
       // Single delivery: decrypt, hand the plaintext secret back exactly
       // once, then clear the (still-encrypted) column in the same call so
       // the next poll gets `secret: null`.
       const secret = decryptPendingSecret(row.pendingSecret);
-      await getDb().update(deviceClaims).set({ pendingSecret: null }).where(eq(deviceClaims.id, row.id));
+      await getDb()
+        .update(deviceClaims)
+        .set({ pendingSecret: null })
+        .where(eq(deviceClaims.id, row.id));
       return { status: 'claimed', homeId: row.homeId, secret };
     }
     return { status: 'claimed', homeId: row.homeId, secret: null };
@@ -235,7 +255,11 @@ export async function getDeviceClaimStatus(claimToken: string): Promise<DeviceCl
  * `pendingSecret` for the device's own next `getDeviceClaimStatus` poll to
  * collect, since the caller of THIS function is the Oxy app, not the device.
  */
-export async function completeDeviceClaim(claimCode: string, homeId: string, userId: string): Promise<void> {
+export async function completeDeviceClaim(
+  claimCode: string,
+  homeId: string,
+  userId: string,
+): Promise<void> {
   await assertActiveOwner(homeId, userId);
 
   const normalized = claimCode.trim().toUpperCase();
@@ -301,12 +325,18 @@ export async function markTunnelConnected(homeId: string): Promise<void> {
   const now = new Date();
   await getDb()
     .update(homeConnections)
-    .set({ lastSeenAt: now, connectedAt: sql`coalesce(${homeConnections.connectedAt}, ${now.toISOString()}::timestamptz)` })
+    .set({
+      lastSeenAt: now,
+      connectedAt: sql`coalesce(${homeConnections.connectedAt}, ${now.toISOString()}::timestamptz)`,
+    })
     .where(eq(homeConnections.homeId, homeId));
 }
 
 export async function markTunnelDisconnected(homeId: string): Promise<void> {
-  await getDb().update(homeConnections).set({ lastSeenAt: new Date() }).where(eq(homeConnections.homeId, homeId));
+  await getDb()
+    .update(homeConnections)
+    .set({ lastSeenAt: new Date() })
+    .where(eq(homeConnections.homeId, homeId));
 }
 
 /**
@@ -335,16 +365,23 @@ export async function saveDeviceSnapshot(homeId: string, devices: unknown[]): Pr
  * with a per-Home in-memory queue in `tunnelNamespace.ts` if it ever proves
  * otherwise, rather than adding that complexity speculatively.
  */
-export async function applyDeviceUpdate(homeId: string, device: { id: string } & Record<string, unknown>): Promise<unknown[]> {
+export async function applyDeviceUpdate(
+  homeId: string,
+  device: { id: string } & Record<string, unknown>,
+): Promise<unknown[]> {
   const [row] = await getDb()
     .select({ deviceSnapshot: homeConnections.deviceSnapshot })
     .from(homeConnections)
     .where(eq(homeConnections.homeId, homeId))
     .limit(1);
 
-  const existing = Array.isArray(row?.deviceSnapshot) ? (row.deviceSnapshot as Array<{ id: string }>) : [];
+  const existing = Array.isArray(row?.deviceSnapshot)
+    ? (row.deviceSnapshot as Array<{ id: string }>)
+    : [];
   const replaced = existing.some((entry) => entry.id === device.id);
-  const next = replaced ? existing.map((entry) => (entry.id === device.id ? device : entry)) : [...existing, device];
+  const next = replaced
+    ? existing.map((entry) => (entry.id === device.id ? device : entry))
+    : [...existing, device];
 
   // Upsert — see `saveDeviceSnapshot`'s comment; the same silent-no-op risk
   // applies here.
@@ -392,11 +429,18 @@ export async function getLiveDevices(homeId: string, userId: string): Promise<Li
   // round trip, not two, on an endpoint every app open and Home switch hits.
   const [[connectionRow], [homeRow]] = await Promise.all([
     getDb()
-      .select({ ...HOME_CONNECTION_DISPLAY_COLUMNS, hasSecret: sql<boolean>`${homeConnections.tunnelSecretHash} is not null` })
+      .select({
+        ...HOME_CONNECTION_DISPLAY_COLUMNS,
+        hasSecret: sql<boolean>`${homeConnections.tunnelSecretHash} is not null`,
+      })
       .from(homeConnections)
       .where(eq(homeConnections.homeId, homeId))
       .limit(1),
-    getDb().select({ name: homes.name, unitSystem: homes.unitSystem }).from(homes).where(eq(homes.id, homeId)).limit(1),
+    getDb()
+      .select({ name: homes.name, unitSystem: homes.unitSystem })
+      .from(homes)
+      .where(eq(homes.id, homeId))
+      .limit(1),
   ]);
   return {
     connected: isHomeConnected(homeId),

@@ -38,7 +38,9 @@ test('upsertDeviceMetadata creates, then replaces, one entity’s overlay', asyn
     assert.equal(created.isFavorite, true);
 
     // PUT semantics: an omitted field resets rather than being left alone.
-    const replaced = await upsertDeviceMetadata(home.id, owner, 'light.kitchen', { customName: 'Ceiling light' });
+    const replaced = await upsertDeviceMetadata(home.id, owner, 'light.kitchen', {
+      customName: 'Ceiling light',
+    });
     assert.equal(replaced.id, created.id, 'same (home, entity) row is updated, not duplicated');
     assert.equal(replaced.customName, 'Ceiling light');
     assert.equal(replaced.room, null);
@@ -58,7 +60,10 @@ test('a non-member cannot read or write a Home’s device metadata', async () =>
   const { home } = await createHome(owner);
   try {
     await assert.rejects(() => listDeviceMetadata(home.id, outsider), NotFoundError);
-    await assert.rejects(() => upsertDeviceMetadata(home.id, outsider, 'light.kitchen', {}), NotFoundError);
+    await assert.rejects(
+      () => upsertDeviceMetadata(home.id, outsider, 'light.kitchen', {}),
+      NotFoundError,
+    );
   } finally {
     await getDb().delete(homes).where(eq(homes.id, home.id));
   }

@@ -7,7 +7,10 @@ import { assertActiveMember } from './homes.service';
 export type HomeDeviceMetadataRow = typeof homeDeviceMetadata.$inferSelect;
 
 /** This Home's device-metadata overlay. Any active member. */
-export async function listDeviceMetadata(homeId: string, userId: string): Promise<HomeDeviceMetadataRow[]> {
+export async function listDeviceMetadata(
+  homeId: string,
+  userId: string,
+): Promise<HomeDeviceMetadataRow[]> {
   await assertActiveMember(homeId, userId);
   return getDb().select().from(homeDeviceMetadata).where(eq(homeDeviceMetadata.homeId, homeId));
 }
@@ -29,7 +32,7 @@ export async function upsertDeviceMetadata(
   homeId: string,
   userId: string,
   entityId: string,
-  input: DeviceMetadataInput
+  input: DeviceMetadataInput,
 ): Promise<HomeDeviceMetadataRow> {
   await assertActiveMember(homeId, userId);
 

@@ -15,7 +15,10 @@
     "web": "bun run --cwd packages/frontend web",
     "android": "bun run --cwd packages/frontend android",
     "ios": "bun run --cwd packages/frontend ios",
-    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck && bun run --cwd packages/backend typecheck"
+    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck && bun run --cwd packages/backend typecheck",
+    "lint": "biome check . && bun run --cwd packages/frontend lint",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "trustedDependencies": [
     "unrs-resolver"
@@ -28,5 +31,8 @@
     "@oxy.so/protocol": "1.2.2",
     "@oxy.so/services": "11.1.0",
     "@oxy.so/bloom": "6.2.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15"
   }
 }

@@ -28,7 +28,9 @@ type WilloLocalStatus = { stage: string; claimCode?: string; deviceModel?: strin
 
 /** "Willo Green" for a detected Home Assistant Green, "Willo Yellow" for a Yellow, and so on — falls back to a plain "Willo device" for anything self-hosted/unbranded/not yet reported. */
 function willoDeviceName(deviceModel: string | null | undefined, t: TFunction): string {
-  return deviceModel ? t('onboarding.deviceName', { model: deviceModel }) : t('onboarding.genericDevice');
+  return deviceModel
+    ? t('onboarding.deviceName', { model: deviceModel })
+    : t('onboarding.genericDevice');
 }
 
 function CreateHomeStep() {
@@ -55,8 +57,12 @@ function CreateHomeStep() {
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <ThemedLottie animation={LOTTIE_ANIMATIONS.createHome} className="w-[160px]" />
-          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">{t('onboarding.setUpTitle')}</Label>
-          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('onboarding.setUpSubtitle')}</Label>
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">
+            {t('onboarding.setUpTitle')}
+          </Label>
+          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+            {t('onboarding.setUpSubtitle')}
+          </Label>
           <TextInput
             accessibilityLabel={t('onboarding.homeName')}
             value={name}
@@ -74,7 +80,9 @@ function CreateHomeStep() {
             onPress={onSubmit}
             className={`mt-5 items-center rounded-full bg-primary-subtle px-8 py-4 ${submitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
           >
-            <Label className="text-[14px] font-medium text-primary-text">{submitting ? t('onboarding.creating') : t('onboarding.create')}</Label>
+            <Label className="text-[14px] font-medium text-primary-text">
+              {submitting ? t('onboarding.creating') : t('onboarding.create')}
+            </Label>
           </Pressable>
         </View>
       </ContentWidth>
@@ -146,12 +154,16 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
         await claimDevice(claimCode);
       } catch (error) {
         console.error('Failed to claim a device:', error);
-        notify(error instanceof ClaimDeviceError && error.reason === 'invalid-code' ? t('onboarding.invalidCode') : t('onboarding.claimFailed'));
+        notify(
+          error instanceof ClaimDeviceError && error.reason === 'invalid-code'
+            ? t('onboarding.invalidCode')
+            : t('onboarding.claimFailed'),
+        );
       } finally {
         setSubmitting(false);
       }
     },
-    [claimDevice, notify, t]
+    [claimDevice, notify, t],
   );
 
   const onScanned = useCallback(
@@ -162,7 +174,7 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
       setScannerOpen(false);
       submit(result.data);
     },
-    [submit]
+    [submit],
   );
 
   const onScanPress = useCallback(async () => {
@@ -179,7 +191,11 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
   if (scannerOpen) {
     return (
       <View className="min-h-0 min-w-0 flex-1">
-        <CameraView style={{ flex: 1 }} barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={onScanned} />
+        <CameraView
+          style={{ flex: 1 }}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={onScanned}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('onboarding.cancelScanning')}
@@ -197,32 +213,55 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <ThemedLottie animation={LOTTIE_ANIMATIONS.connectHomeAssistant} className="w-[160px]" />
-          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">{t('onboarding.connectTitle')}</Label>
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">
+            {t('onboarding.connectTitle')}
+          </Label>
 
           {mode === 'detecting' && (
             <>
-              <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('onboarding.detecting')}</Label>
+              <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+                {t('onboarding.detecting')}
+              </Label>
               <ActivityIndicator className="mt-6" color={themeColors.primary} />
             </>
           )}
 
           {mode === 'found' && detectedCode && (
             <>
-              <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('onboarding.found', { device: willoDeviceName(detectedModel, t) })}</Label>
+              <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+                {t('onboarding.found', { device: willoDeviceName(detectedModel, t) })}
+              </Label>
               <View className="mt-6 min-h-[76px] min-w-[220px] items-center justify-center rounded-2xl bg-card px-8 py-5">
-                <Label selectable className="text-center text-[32px] font-medium" style={{ letterSpacing: 6 }}>{detectedCode}</Label>
+                <Label
+                  selectable
+                  className="text-center text-[32px] font-medium"
+                  style={{ letterSpacing: 6 }}
+                >
+                  {detectedCode}
+                </Label>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('onboarding.connectThis', { device: willoDeviceName(detectedModel, t) })}
+                accessibilityLabel={t('onboarding.connectThis', {
+                  device: willoDeviceName(detectedModel, t),
+                })}
                 disabled={submitting}
                 onPress={() => submit(detectedCode)}
                 className={`mt-5 items-center rounded-full bg-primary-subtle px-8 py-4 ${submitting ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
               >
-                <Label className="text-[14px] font-medium text-primary-text">{submitting ? t('onboarding.connecting') : t('onboarding.connect')}</Label>
+                <Label className="text-[14px] font-medium text-primary-text">
+                  {submitting ? t('onboarding.connecting') : t('onboarding.connect')}
+                </Label>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('onboarding.enterManually')} onPress={() => setMode('manual')} className="mt-4 cursor-pointer">
-                <Label className="text-[12px] text-muted-foreground">{t('onboarding.notTheRightOne')}</Label>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('onboarding.enterManually')}
+                onPress={() => setMode('manual')}
+                className="mt-4 cursor-pointer"
+              >
+                <Label className="text-[12px] text-muted-foreground">
+                  {t('onboarding.notTheRightOne')}
+                </Label>
               </Pressable>
             </>
           )}
@@ -230,16 +269,21 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
           {mode === 'manual' && (
             <>
               <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
-                {Platform.OS === 'web'
-                  ? t('onboarding.enterCodeWeb')
-                  : t('onboarding.scanOrEnter')}
+                {Platform.OS === 'web' ? t('onboarding.enterCodeWeb') : t('onboarding.scanOrEnter')}
               </Label>
               {/* Scanning is a native-only affordance — a desktop/web browser
                   has no reliable, universally-available camera-scan UX the
                   way a phone does, so web goes straight to typing the code. */}
               {Platform.OS !== 'web' && (
-                <Pressable accessibilityRole="button" accessibilityLabel={t('onboarding.scanQr')} onPress={onScanPress} className="mt-6 cursor-pointer items-center rounded-full bg-primary-subtle px-8 py-4">
-                  <Label className="text-[14px] font-medium text-primary-text">{t('onboarding.scanQr')}</Label>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t('onboarding.scanQr')}
+                  onPress={onScanPress}
+                  className="mt-6 cursor-pointer items-center rounded-full bg-primary-subtle px-8 py-4"
+                >
+                  <Label className="text-[14px] font-medium text-primary-text">
+                    {t('onboarding.scanQr')}
+                  </Label>
                 </Pressable>
               )}
               <TextInput
@@ -260,13 +304,22 @@ function ClaimDeviceStep({ onUseManualPairing }: { onUseManualPairing: () => voi
                 onPress={() => submit(code)}
                 className={`mt-4 items-center rounded-full bg-primary-subtle px-8 py-4 ${submitting || code.trim().length === 0 ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
               >
-                <Label className="text-[14px] font-medium text-primary-text">{submitting ? t('onboarding.connecting') : t('onboarding.connect')}</Label>
+                <Label className="text-[14px] font-medium text-primary-text">
+                  {submitting ? t('onboarding.connecting') : t('onboarding.connect')}
+                </Label>
               </Pressable>
             </>
           )}
 
-          <Pressable accessibilityRole="button" accessibilityLabel={t('onboarding.manualPairingLabel')} onPress={onUseManualPairing} className="mt-8 cursor-pointer">
-            <Label className="text-[12px] text-muted-foreground">{t('onboarding.manualPairing')}</Label>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('onboarding.manualPairingLabel')}
+            onPress={onUseManualPairing}
+            className="mt-8 cursor-pointer"
+          >
+            <Label className="text-[12px] text-muted-foreground">
+              {t('onboarding.manualPairing')}
+            </Label>
           </Pressable>
         </View>
       </ContentWidth>
@@ -315,9 +368,9 @@ function PairingStep({ onBack }: { onBack: () => void }) {
   // code unconditionally on every mount used to silently invalidate
   // whatever code the person might be mid-typing into Home Assistant, with
   // no warning at all.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on mount only, by design (see above)
   useEffect(() => {
     if (!pairing || expired) generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // The live countdown — ticks only while a non-expired code is showing, so
@@ -334,11 +387,21 @@ function PairingStep({ onBack }: { onBack: () => void }) {
       <ContentWidth maxWidth={420} padding={false}>
         <View className="items-center">
           <ThemedLottie animation={LOTTIE_ANIMATIONS.connectHomeAssistant} className="w-[160px]" />
-          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">{t('onboarding.connectTitle')}</Label>
-          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">{t('onboarding.pairingInstructions')}</Label>
+          <Label className="mt-8 text-center text-[23px] font-medium leading-[29px]">
+            {t('onboarding.connectTitle')}
+          </Label>
+          <Label className="mt-2 text-center text-[14px] leading-[20px] text-muted-foreground">
+            {t('onboarding.pairingInstructions')}
+          </Label>
           <View className="mt-6 min-h-[76px] min-w-[220px] items-center justify-center rounded-2xl bg-card px-8 py-5">
             {pairing ? (
-              <Label selectable className="text-center text-[32px] font-medium" style={{ letterSpacing: 6 }}>{pairing.code}</Label>
+              <Label
+                selectable
+                className="text-center text-[32px] font-medium"
+                style={{ letterSpacing: 6 }}
+              >
+                {pairing.code}
+              </Label>
             ) : (
               <ActivityIndicator color={themeColors.primary} />
             )}
@@ -348,7 +411,9 @@ function PairingStep({ onBack }: { onBack: () => void }) {
               className={`mt-3 text-center text-[12px] ${expired ? '' : 'text-muted-foreground'}`}
               style={expired ? { color: themeColors.error } : undefined}
             >
-              {expired ? t('onboarding.codeExpired') : t('onboarding.expiresIn', { time: formatCountdown(expiresAtMs! - now) })}
+              {expired
+                ? t('onboarding.codeExpired')
+                : t('onboarding.expiresIn', { time: formatCountdown(expiresAtMs! - now) })}
             </Label>
           )}
           <Pressable
@@ -358,13 +423,20 @@ function PairingStep({ onBack }: { onBack: () => void }) {
             onPress={generate}
             className={`mt-5 items-center rounded-full bg-primary-subtle px-6 py-3 ${loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
           >
-            <Label className="text-[13px] font-medium text-primary-text">{t('onboarding.newCode')}</Label>
+            <Label className="text-[13px] font-medium text-primary-text">
+              {t('onboarding.newCode')}
+            </Label>
           </Pressable>
           <View className="mt-8 flex-row items-center gap-2">
             <ActivityIndicator size="small" color={themeColors.textSecondary} />
             <Label className="text-[12px] text-muted-foreground">{t('onboarding.waiting')}</Label>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('onboarding.backLabel')} onPress={onBack} className="mt-6 cursor-pointer">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('onboarding.backLabel')}
+            onPress={onBack}
+            className="mt-6 cursor-pointer"
+          >
             <Label className="text-[12px] text-muted-foreground">{t('onboarding.back')}</Label>
           </Pressable>
         </View>
@@ -393,7 +465,11 @@ export function HomeSetupFlow({ header }: { header?: React.ReactNode }) {
     <View className="min-h-0 min-w-0 flex-1">
       {header}
       {setupStage === 'needs-pairing' ? (
-        manual ? <PairingStep onBack={() => setManual(false)} /> : <ClaimDeviceStep onUseManualPairing={() => setManual(true)} />
+        manual ? (
+          <PairingStep onBack={() => setManual(false)} />
+        ) : (
+          <ClaimDeviceStep onUseManualPairing={() => setManual(true)} />
+        )
       ) : (
         <CreateHomeStep />
       )}
@@ -427,11 +503,15 @@ export function HomeSetupPrompt({ onNavigate }: { onNavigate: Navigate }) {
           </Label>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={pairing ? t('onboarding.continueSetup') : t('onboarding.getStarted')}
+            accessibilityLabel={
+              pairing ? t('onboarding.continueSetup') : t('onboarding.getStarted')
+            }
             onPress={() => onNavigate('onboarding')}
             className="mt-6 items-center rounded-full bg-primary-subtle px-8 py-4"
           >
-            <Label className="text-[14px] font-medium text-primary-text">{pairing ? t('onboarding.continueSetup') : t('onboarding.getStarted')}</Label>
+            <Label className="text-[14px] font-medium text-primary-text">
+              {pairing ? t('onboarding.continueSetup') : t('onboarding.getStarted')}
+            </Label>
           </Pressable>
         </View>
       </ContentWidth>

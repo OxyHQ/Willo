@@ -20,10 +20,7 @@ export type Entity = {
   attributes: EntityAttributes;
 };
 
-export type SetTemperature = (
-  temperature: number | string,
-  entityId: string
-) => void;
+export type SetTemperature = (temperature: number | string, entityId: string) => void;
 
 export type ProviderControls = {
   setTemperature: SetTemperature;

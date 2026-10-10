@@ -35,7 +35,12 @@ export function selectRelevantSensors(devices: Device[]): Device[] {
   const byClassAndRoom = new Map<string, Map<string, Device[]>>();
   for (const device of devices) {
     const measurement = getCapability(device, 'measurement');
-    if (device.domain !== 'sensor' || measurement?.value == null || measurement.deviceClass === null) continue;
+    if (
+      device.domain !== 'sensor' ||
+      measurement?.value == null ||
+      measurement.deviceClass === null
+    )
+      continue;
     if (!RELEVANT_SENSOR_CLASSES.includes(measurement.deviceClass)) continue;
     let rooms = byClassAndRoom.get(measurement.deviceClass);
     if (!rooms) {
@@ -47,14 +52,15 @@ export function selectRelevantSensors(devices: Device[]): Device[] {
     if (roomSensors) roomSensors.push(device);
     else rooms.set(room, [device]);
   }
-  return RELEVANT_SENSOR_CLASSES.flatMap(deviceClass => {
+  return RELEVANT_SENSOR_CLASSES.flatMap((deviceClass) => {
     const rooms = [...(byClassAndRoom.get(deviceClass)?.values() ?? [])];
     // By name within a room, then rooms against each other by their own first
     // sensor — so the same set of sensors always comes out in the same order,
     // whatever order Home Assistant happened to report them in.
-    for (const roomSensors of rooms) roomSensors.sort((first, second) => first.name.localeCompare(second.name));
+    for (const roomSensors of rooms)
+      roomSensors.sort((first, second) => first.name.localeCompare(second.name));
     rooms.sort((first, second) => (first[0]?.name ?? '').localeCompare(second[0]?.name ?? ''));
-    const longestRoom = Math.max(0, ...rooms.map(roomSensors => roomSensors.length));
+    const longestRoom = Math.max(0, ...rooms.map((roomSensors) => roomSensors.length));
     const interleaved: Device[] = [];
     for (let round = 0; round < longestRoom; round++) {
       for (const roomSensors of rooms) {

@@ -9,7 +9,13 @@ import { eq } from 'drizzle-orm';
 import { closePostgres, connectPostgres, getDb } from '../../db/postgres';
 import { homeMembers, homes } from '../../db/schema';
 import { createHome, getMembership } from '../homes.service';
-import { acceptInvite, declineInvite, inviteMember, leaveHome, removeMember } from '../homeMembers.service';
+import {
+  acceptInvite,
+  declineInvite,
+  inviteMember,
+  leaveHome,
+  removeMember,
+} from '../homeMembers.service';
 import { ForbiddenError, NotFoundError } from '../../errors';
 
 before(async () => {
@@ -56,7 +62,11 @@ test('invite -> decline leaves the invitee out, and re-inviting reactivates the 
     assert.equal(declined.status, 'removed');
 
     const reinvited = await inviteMember(home.id, owner, invitee);
-    assert.equal(reinvited.id, invite.id, 'reactivates the same row rather than inserting a duplicate');
+    assert.equal(
+      reinvited.id,
+      invite.id,
+      'reactivates the same row rather than inserting a duplicate',
+    );
     assert.equal(reinvited.status, 'invited');
   } finally {
     await deleteHomeIfExists(home.id);
@@ -121,9 +131,13 @@ test('an owner may leave when another active owner remains', async () => {
   try {
     // Promote ownerTwo to an active owner directly (no promote-to-owner
     // endpoint in this pass — inserted here to exercise the multi-owner rule).
-    await getDb()
-      .insert(homeMembers)
-      .values({ homeId: home.id, memberUserId: ownerTwo, role: 'owner', status: 'active', joinedAt: new Date() });
+    await getDb().insert(homeMembers).values({
+      homeId: home.id,
+      memberUserId: ownerTwo,
+      role: 'owner',
+      status: 'active',
+      joinedAt: new Date(),
+    });
 
     const result = await leaveHome(home.id, ownerOne);
     assert.equal(result.dissolved, false);

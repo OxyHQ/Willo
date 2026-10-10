@@ -10,7 +10,8 @@
  */
 export const CARD_ROW_HEIGHT = 80;
 
-export const cardHeight = (rows: number, gap: number): number => CARD_ROW_HEIGHT * rows + gap * (rows - 1);
+export const cardHeight = (rows: number, gap: number): number =>
+  CARD_ROW_HEIGHT * rows + gap * (rows - 1);
 
 /** The smallest whole number of rows that fits `contentHeight` — for a card whose own content decides how tall it is, like the sensor readings list. */
 export const cardRowsFor = (contentHeight: number, gap: number): number => {

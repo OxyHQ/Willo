@@ -6,7 +6,12 @@ import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '.
  * after every route — Express 5 forwards a rejected async handler here
  * automatically, so route handlers never need their own try/catch for these.
  */
-export function errorHandler(error: unknown, _req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler(
+  error: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+): void {
   if (error instanceof BadRequestError) {
     res.status(400).json({ error: 'BadRequest', message: error.message });
     return;

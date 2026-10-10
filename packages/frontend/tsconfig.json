@@ -2,14 +2,8 @@
   "extends": "@oxy.so/app-preset/tsconfig/frontend.json",
   "compilerOptions": {
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "nativewind-env.d.ts"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"]
 }

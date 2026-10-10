@@ -75,9 +75,7 @@ export const Degree = styled((props: DegreeProps) => (
       `}
     >
       <DegreeSymbol zoom={props.zoom}>⚬</DegreeSymbol>
-      <Decimal zoom={props.zoom}>
-        .{String(props.children).split('.')[1] || 0}
-      </Decimal>
+      <Decimal zoom={props.zoom}>.{String(props.children).split('.')[1] || 0}</Decimal>
     </View>
   </View>
 ))`

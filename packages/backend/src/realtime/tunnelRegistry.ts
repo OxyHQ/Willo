@@ -45,12 +45,23 @@ export function getTunnelSocket(homeId: string): Socket | undefined {
 }
 
 /** `call_service` is fire-and-forget, matching the existing app's own HA command pattern (`providers/home-assistant.ts`'s `callService` — no result branch handled). No "not connected" error to surface: a browser sees the resulting (lack of) state change the same way it always has. */
-export function sendCommand(homeId: string, message: { domain: string; service: string; entityId: string; serviceData: Record<string, unknown> }): void {
+export function sendCommand(
+  homeId: string,
+  message: {
+    domain: string;
+    service: string;
+    entityId: string;
+    serviceData: Record<string, unknown>;
+  },
+): void {
   getTunnelSocket(homeId)?.emit('call_service', message);
 }
 
 const CAMERA_SNAPSHOT_TIMEOUT_MS = 10_000;
-const pendingCameraRequests = new Map<string, { resolve: (image: Buffer) => void; reject: (error: Error) => void }>();
+const pendingCameraRequests = new Map<
+  string,
+  { resolve: (image: Buffer) => void; reject: (error: Error) => void }
+>();
 
 /** Request/response is the one exception to this file's otherwise fire-and-forget shape — a camera card is asking a direct question and needs a direct answer, not a future state_changed event. */
 export function requestCameraSnapshot(homeId: string, entityId: string): Promise<Buffer> {

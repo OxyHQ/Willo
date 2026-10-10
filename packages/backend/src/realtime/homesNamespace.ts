@@ -35,7 +35,13 @@ async function isActiveMember(homeId: string, userId: string): Promise<boolean> 
   const [row] = await getDb()
     .select({ id: homeMembers.id })
     .from(homeMembers)
-    .where(and(eq(homeMembers.homeId, homeId), eq(homeMembers.memberUserId, userId), eq(homeMembers.status, 'active')))
+    .where(
+      and(
+        eq(homeMembers.homeId, homeId),
+        eq(homeMembers.memberUserId, userId),
+        eq(homeMembers.status, 'active'),
+      ),
+    )
     .limit(1);
   return Boolean(row);
 }
@@ -56,26 +62,29 @@ export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
       return;
     }
 
-    socket.on('home:join', (payload: { homeId?: string }, ack?: (result: { ok: boolean }) => void) => {
-      const homeId = payload?.homeId;
-      if (!homeId) {
-        ack?.({ ok: false });
-        return;
-      }
-      isActiveMember(homeId, userId)
-        .then((allowed) => {
-          if (!allowed) {
-            ack?.({ ok: false });
-            return;
-          }
-          socket.join(`home:${homeId}`);
-          ack?.({ ok: true });
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to check Home membership for socket join:', error);
+    socket.on(
+      'home:join',
+      (payload: { homeId?: string }, ack?: (result: { ok: boolean }) => void) => {
+        const homeId = payload?.homeId;
+        if (!homeId) {
           ack?.({ ok: false });
-        });
-    });
+          return;
+        }
+        isActiveMember(homeId, userId)
+          .then((allowed) => {
+            if (!allowed) {
+              ack?.({ ok: false });
+              return;
+            }
+            socket.join(`home:${homeId}`);
+            ack?.({ ok: true });
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to check Home membership for socket join:', error);
+            ack?.({ ok: false });
+          });
+      },
+    );
 
     socket.on('home:leave', (payload: { homeId?: string }) => {
       if (payload?.homeId) socket.leave(`home:${payload.homeId}`);
