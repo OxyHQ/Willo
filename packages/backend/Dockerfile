@@ -18,10 +18,9 @@
 #
 # Runtime configuration comes from the environment. ECS injects DATABASE_URL
 # — which the service cannot boot without, see src/config/index.ts, which
-# refuses to load without it — and, once Oxy issues Willo an application
-# credential, OXY_SERVICE_API_KEY / OXY_SERVICE_API_SECRET (ecosystem-activity
-# telemetry; the service runs fine without them — see src/ecosystemActivity.ts)
-# from SSM `/oxy/willo/*`. Non-secret config (PORT, OXY_API_URL, CORS_ORIGINS)
+# refuses to load without it — from SSM `/oxy/willo/*`. Ecosystem-activity
+# telemetry needs no variable: on ECS it attests the task role (oxy ADR 0026;
+# see src/ecosystemActivity.ts). Non-secret config (PORT, OXY_API_URL, CORS_ORIGINS)
 # is set as plain task-definition env. SSM is the only copy of each secret;
 # nothing in .github/workflows writes one (oxy-infra runbook 46).
 

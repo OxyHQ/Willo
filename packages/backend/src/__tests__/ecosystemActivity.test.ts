@@ -1,16 +1,15 @@
 /**
- * `ecosystemActivity`'s credential gate and lifecycle. Mirrors the standing
- * test every sibling backend (CrowdSource, Nilo, tnp, …) carries for this
- * same module: the ONLY thing that turns publishing on is both
- * `OXY_SERVICE_API_KEY` and `OXY_SERVICE_API_SECRET` being present and
- * non-blank — there is no separate enable flag that could fall out of sync
- * with it.
+ * `ecosystemActivity`'s workload-identity gate and lifecycle. The ONLY thing
+ * that turns publishing on is `canAttestWorkloadIdentity()` — i.e. running on
+ * ECS. No enable flag and no key pair is consulted, because gating on
+ * `OXY_SERVICE_API_KEY` is exactly what kept Willo off the ecosystem dashboard.
  *
  * Uses `bun:test`'s `mock.module` rather than this repo's usual `node:test` +
  * `node:assert` (see the `services/__tests__` suites) because those run
  * against a real Postgres and need no module mocking at all; this module
- * needs `@oxy.so/core/server`'s `createEcosystemTraffic` replaced so no test
- * here ever opens a real connection to Oxy.
+ * needs `@oxy.so/core/server`'s `createEcosystemTraffic` and
+ * `canAttestWorkloadIdentity` replaced so no test here ever opens a real
+ * connection to Oxy.
  */
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import * as realOxyServer from '@oxy.so/core/server';
@@ -28,8 +27,10 @@ const publisher = {
   stop: mock(async () => {}),
 };
 const createEcosystemTraffic = mock((_options: unknown) => publisher);
+let canAttest = false;
+const canAttestWorkloadIdentity = mock(() => canAttest);
 
-// `ecosystemActivity` calls `createEcosystemTraffic` lazily inside
+// `ecosystemActivity` calls both functions lazily inside
 // `startEcosystemActivity`, not at module load, so patching the registry
 // here — after the static imports above have already resolved — still takes
 // effect for every call the tests below make. Spread the real module rather
@@ -39,22 +40,23 @@ const createEcosystemTraffic = mock((_options: unknown) => publisher);
 mock.module('@oxy.so/core/server', () => ({
   ...realOxyServer,
   createEcosystemTraffic,
+  canAttestWorkloadIdentity,
 }));
 
 const ORIGINAL_KEY = process.env.OXY_SERVICE_API_KEY;
 const ORIGINAL_SECRET = process.env.OXY_SERVICE_API_SECRET;
 
-function setCredentials(key: string | undefined, secret: string | undefined): void {
-  if (key === undefined) delete process.env.OXY_SERVICE_API_KEY;
-  else process.env.OXY_SERVICE_API_KEY = key;
-  if (secret === undefined) delete process.env.OXY_SERVICE_API_SECRET;
-  else process.env.OXY_SERVICE_API_SECRET = secret;
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
 }
 
 describe('ecosystem activity lifecycle', () => {
   beforeEach(() => {
-    setCredentials('test-key', 'test-secret');
+    canAttest = true;
     createEcosystemTraffic.mockClear();
+    createEcosystemTraffic.mockImplementation((_options: unknown) => publisher);
+    canAttestWorkloadIdentity.mockClear();
     publisher.observeHttp.mockClear();
     publisher.installFetch.mockClear();
     publisher.observeSocket.mockClear();
@@ -63,32 +65,56 @@ describe('ecosystem activity lifecycle', () => {
 
   afterEach(async () => {
     await stopEcosystemActivity();
-    setCredentials(ORIGINAL_KEY, ORIGINAL_SECRET);
+    restoreEnv('OXY_SERVICE_API_KEY', ORIGINAL_KEY);
+    restoreEnv('OXY_SERVICE_API_SECRET', ORIGINAL_SECRET);
   });
 
-  it('does not start when the API key is missing', () => {
-    setCredentials(undefined, 'test-secret');
+  it('does not start without a workload identity to attest, even with a key pair present', () => {
+    canAttest = false;
+    process.env.OXY_SERVICE_API_KEY = 'test-key';
+    process.env.OXY_SERVICE_API_SECRET = 'test-secret';
+
     startEcosystemActivity(() => true);
+    expect(canAttestWorkloadIdentity).toHaveBeenCalled();
     expect(createEcosystemTraffic).not.toHaveBeenCalled();
+    expect(publisher.installFetch).not.toHaveBeenCalled();
 
     const next = mock(() => {});
     ecosystemActivityMiddleware({} as never, {} as never, next);
     expect(next).toHaveBeenCalledTimes(1);
+    expect(publisher.observeHttp).not.toHaveBeenCalled();
 
     observeEcosystemSocket({} as never);
     expect(publisher.observeSocket).not.toHaveBeenCalled();
   });
 
-  it('does not start when the API secret is missing', () => {
-    setCredentials('test-key', undefined);
+  it('starts on a workload identity with no key pair and no enable flag set', () => {
+    delete process.env.OXY_SERVICE_API_KEY;
+    delete process.env.OXY_SERVICE_API_SECRET;
+
     startEcosystemActivity(() => true);
-    expect(createEcosystemTraffic).not.toHaveBeenCalled();
+    expect(createEcosystemTraffic).toHaveBeenCalledTimes(1);
+    expect(publisher.installFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a blank credential the same as an absent one', () => {
-    setCredentials('   ', 'test-secret');
-    startEcosystemActivity(() => true);
-    expect(createEcosystemTraffic).not.toHaveBeenCalled();
+  it('keeps serving without a publisher when the publisher cannot be constructed', () => {
+    createEcosystemTraffic.mockImplementation(() => {
+      throw new Error('Ecosystem activity requires a known infrastructure region or explicit location');
+    });
+    const consoleError = console.error;
+    const errorLog = mock((..._args: unknown[]) => {});
+    console.error = errorLog;
+    try {
+      expect(() => startEcosystemActivity(() => true)).not.toThrow();
+    } finally {
+      console.error = consoleError;
+    }
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(publisher.installFetch).not.toHaveBeenCalled();
+
+    const next = mock(() => {});
+    ecosystemActivityMiddleware({} as never, {} as never, next);
+    expect(next).toHaveBeenCalledTimes(1);
   });
 
   it('starts once, wires the middleware and socket observer, and stops cleanly', async () => {
