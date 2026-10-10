@@ -35,7 +35,7 @@
 #
 # Environment (set by the workflow):
 #   CLUSTER, APP                  from the workflow's `env:` block
-#   TASK_DEFINITION               the service's live task definition ARN
+#   TASK_DEFINITION               the revision this deploy registered for its image
 #   CONTAINER_NAME                the container to override within it
 #   NETWORK_CONFIGURATION         the service's awsvpc config, as compact JSON
 set -euo pipefail
