@@ -1,16 +1,35 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react';
 import { useAuth, useOxy } from '@oxy.so/services';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState } from './home-reducer';
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
 import { createDemoProvider } from '../providers/demo-home';
-import type { Device, DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
+import type {
+  Device,
+  DeviceCommand,
+  HomeActivityEvent,
+  SmartHomeProvider,
+} from '../providers/types';
 import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
 
 const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
 
-export type SheetOption = { label: string; description?: string; selected?: boolean; onPress: () => void };
+export type SheetOption = {
+  label: string;
+  description?: string;
+  selected?: boolean;
+  onPress: () => void;
+};
 export type Sheet =
   | { kind: 'menu'; title: string; description?: string; options: SheetOption[] }
   | { kind: 'realDevice'; title: string; device: Device }
@@ -118,7 +137,11 @@ type OverlayState = {
 /** Why claiming a device failed, so the screen can say it in the person's language instead of showing a raw message. */
 export class ClaimDeviceError extends Error {
   constructor(readonly reason: 'invalid-code' | 'failed') {
-    super(reason === 'invalid-code' ? 'The claim code is invalid or has expired.' : 'Claiming the device failed.');
+    super(
+      reason === 'invalid-code'
+        ? 'The claim code is invalid or has expired.'
+        : 'Claiming the device failed.',
+    );
   }
 }
 
@@ -148,7 +171,12 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(''), 2700);
   }, []);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const { t } = useTranslation();
   const { oxyServices, currentLanguage } = useOxy();
@@ -178,9 +206,10 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // Seeded from the SAME locale Oxy resolved for the UI language (the
   // account's when signed in, the device's otherwise) — never re-derived from
   // `Intl`, which would answer with the machine's region and disagree with it.
-  const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() => unitSystemForLocale(currentLanguage));
+  const [unitSystem, setUnitSystemState] = useState<UnitSystem>(() =>
+    unitSystemForLocale(currentLanguage),
+  );
   const [pairingCode, setPairingCode] = useState<{ code: string; expiresAt: string } | null>(null);
-
 
   // Demo mode replaces the real Home's name too — it's meant to look like a
   // complete, fully-set-up example home, not the real (possibly nameless)
@@ -231,7 +260,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         setSetupStage('needs-pairing');
       }
     },
-    [getAccessToken, notify, t]
+    [getAccessToken, notify, t],
   );
 
   /** Closes the current Home's connection and clears everything read from it. */
@@ -252,7 +281,9 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const setDemoMode = useCallback(
     (value: boolean) => {
       setDemoModeState(value);
-      storage.setItemAsync('demoMode', value ? 'true' : 'false').catch((error: unknown) => console.error('Failed to save demo mode:', error));
+      storage
+        .setItemAsync('demoMode', value ? 'true' : 'false')
+        .catch((error: unknown) => console.error('Failed to save demo mode:', error));
       // Always start demo mode from a clean, predictable catalog rather than
       // wherever a previous demo session's toggling/dragging happened to
       // leave it.
@@ -267,7 +298,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         else setSetupStage('needs-home');
       }
     },
-    [dispatch, leaveCurrentHome, connectHome, homeId]
+    [dispatch, leaveCurrentHome, connectHome, homeId],
   );
 
   /**
@@ -307,17 +338,25 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       leaveCurrentHome();
       setSetupStage('resolving');
       setHomeId(id);
-      storage.setItemAsync('homeId', id).catch((error: unknown) => console.error(`Failed to remember Home ${id} on this device:`, error));
+      storage
+        .setItemAsync('homeId', id)
+        .catch((error: unknown) =>
+          console.error(`Failed to remember Home ${id} on this device:`, error),
+        );
       connectHome(id);
     },
-    [homeId, leaveCurrentHome, connectHome]
+    [homeId, leaveCurrentHome, connectHome],
   );
 
   const startNewHome = useCallback(() => {
     leaveCurrentHome();
     setHomeId(null);
     setSetupStage('needs-home');
-    storage.deleteItemAsync('homeId').catch((error: unknown) => console.error('Failed to forget the current Home on this device:', error));
+    storage
+      .deleteItemAsync('homeId')
+      .catch((error: unknown) =>
+        console.error('Failed to forget the current Home on this device:', error),
+      );
   }, [leaveCurrentHome]);
 
   useEffect(() => {
@@ -349,11 +388,18 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch(`${WILLO_API_URL}/homes/me`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`GET /homes/me answered ${response.status}`);
-        const myHomes = ((await response.json()) as { home: HomeSummary }[]).map(({ home }) => ({ id: home.id, name: home.name }));
+        const myHomes = ((await response.json()) as { home: HomeSummary }[]).map(({ home }) => ({
+          id: home.id,
+          name: home.name,
+        }));
         setHomes(myHomes);
-        activeHomeId = myHomes.find((home) => home.id === storedHomeId)?.id ?? myHomes[0]?.id ?? null;
+        activeHomeId =
+          myHomes.find((home) => home.id === storedHomeId)?.id ?? myHomes[0]?.id ?? null;
       } catch (error) {
-        console.error(`Failed to load Homes; falling back to this device's stored Home (${storedHomeId ?? 'none'}):`, error);
+        console.error(
+          `Failed to load Homes; falling back to this device's stored Home (${storedHomeId ?? 'none'}):`,
+          error,
+        );
       }
       if (!activeHomeId) {
         if (!demo) setSetupStage('needs-home');
@@ -384,7 +430,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       setRawHomeName(home.name);
       await connectHome(home.id);
     },
-    [getAuthHeaders, connectHome, unitSystem]
+    [getAuthHeaders, connectHome, unitSystem],
   );
 
   const setUnitSystem = useCallback(
@@ -405,7 +451,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           notify(t('errors.unitsNotSaved'));
         });
     },
-    [unitSystem, homeId, getAuthHeaders, notify, t]
+    [unitSystem, homeId, getAuthHeaders, notify, t],
   );
 
   const requestPairingCode = useCallback(async () => {
@@ -433,13 +479,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify({ claimCode }),
       });
-      if (!response.ok) throw new ClaimDeviceError(response.status === 404 ? 'invalid-code' : 'failed');
+      if (!response.ok)
+        throw new ClaimDeviceError(response.status === 404 ? 'invalid-code' : 'failed');
       // Same reasoning as `requestPairingCode` above — the device now has a
       // fresh secret waiting for it; a stale local `paired` read must not
       // race ahead of the tunnel's own real `onPaired`/`onConnectionChange`.
       pairedRef.current = false;
     },
-    [homeId, getAuthHeaders]
+    [homeId, getAuthHeaders],
   );
 
   const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
@@ -451,29 +498,60 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     return (await response.json()) as HomeActivityEvent[];
   }, [homeId, getAuthHeaders]);
 
-  const sendCommand = useCallback((id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command), []);
+  const sendCommand = useCallback(
+    (id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command),
+    [],
+  );
 
   // Four contexts, not one, because these four change at completely different
   // rates and a single value made every consumer re-render at the fastest of
   // them: a Home Assistant push (several a second) or a 2.7s toast re-rendered
   // every tile on screen. Each consumer now subscribes only to what it reads.
   const actions = useMemo(
-    () => ({ dispatch, setSheet, notify, setDemoMode, setUnitSystem, switchHome, startNewHome, createHome, requestPairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders }),
-    [dispatch, setSheet, notify, setDemoMode, setUnitSystem, switchHome, startNewHome, createHome, requestPairingCode, claimDevice, fetchEvents, sendCommand, getAuthHeaders]
+    () => ({
+      dispatch,
+      setSheet,
+      notify,
+      setDemoMode,
+      setUnitSystem,
+      switchHome,
+      startNewHome,
+      createHome,
+      requestPairingCode,
+      claimDevice,
+      fetchEvents,
+      sendCommand,
+      getAuthHeaders,
+    }),
+    [
+      dispatch,
+      setSheet,
+      notify,
+      setDemoMode,
+      setUnitSystem,
+      switchHome,
+      startNewHome,
+      createHome,
+      requestPairingCode,
+      claimDevice,
+      fetchEvents,
+      sendCommand,
+      getAuthHeaders,
+    ],
   );
   const data = useMemo(
     () => ({ state, setupStage, tunnelConnected, homeName, demoMode, homes, homeId, pairingCode }),
-    [state, setupStage, tunnelConnected, homeName, demoMode, homes, homeId, pairingCode]
+    [state, setupStage, tunnelConnected, homeName, demoMode, homes, homeId, pairingCode],
   );
   const overlay = useMemo(() => ({ sheet, toast }), [sheet, toast]);
   return (
     <HomeActionsContext.Provider value={actions}>
       <UnitSystemContext.Provider value={unitSystem}>
-      <HomeContext.Provider value={data}>
-        <DevicesContext.Provider value={devices}>
-          <OverlayContext.Provider value={overlay}>{children}</OverlayContext.Provider>
-        </DevicesContext.Provider>
-      </HomeContext.Provider>
+        <HomeContext.Provider value={data}>
+          <DevicesContext.Provider value={devices}>
+            <OverlayContext.Provider value={overlay}>{children}</OverlayContext.Provider>
+          </DevicesContext.Provider>
+        </HomeContext.Provider>
       </UnitSystemContext.Provider>
     </HomeActionsContext.Provider>
   );

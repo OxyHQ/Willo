@@ -22,7 +22,7 @@ if (!url) {
   throw new Error(
     'DATABASE_URL is required by drizzle-kit. Start a local Postgres with:\n' +
       '  bun run db:up\n' +
-      'then set DATABASE_URL in packages/backend/.env.'
+      'then set DATABASE_URL in packages/backend/.env.',
   );
 }
 

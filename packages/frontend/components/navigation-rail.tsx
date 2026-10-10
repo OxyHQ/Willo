@@ -19,26 +19,34 @@ export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNav
   const { colors } = useTheme();
   const { t } = useTranslation();
 
-  const activeTab = tabs.find(tab => isNavigationActive(screen, tab.screen));
+  const activeTab = tabs.find((tab) => isNavigationActive(screen, tab.screen));
 
   // `icon`/`activeIcon`: the same two-node convention Bloom's `TabBarItem`
   // uses (see `bottom-nav.tsx`) — Willo pre-colors both states itself since
   // `Icon` takes `color`/`filled` directly rather than a `fill` Bloom could
   // tint on its behalf.
-  const items: RailItem[] = tabs.map(tab => ({
+  const items: RailItem[] = tabs.map((tab) => ({
     id: tab.screen,
     label: t(tab.titleKey),
-    icon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.textSecondary}/>,
-    activeIcon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.primary} filled/>,
+    icon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.textSecondary} />,
+    activeIcon: <Icon name={tab.icon} size={ICON_SIZE} color={colors.primary} filled />,
   }));
 
   // `onSelect` reports a plain `id`; looked up against `tabs` rather than cast
   // back to `ScreenId`, since every id Rail can report originates from this
   // same list.
   const handleSelect = (id: string) => {
-    const tab = tabs.find(t => t.screen === id);
+    const tab = tabs.find((t) => t.screen === id);
     if (tab) onNavigate(tab.screen);
   };
 
-  return <Rail testID="navigation-rail" items={items} activeId={activeTab?.screen} onSelect={handleSelect} width={navigationWidth}/>;
+  return (
+    <Rail
+      testID="navigation-rail"
+      items={items}
+      activeId={activeTab?.screen}
+      onSelect={handleSelect}
+      width={navigationWidth}
+    />
+  );
 }

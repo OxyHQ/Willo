@@ -9,13 +9,15 @@ import { SCREEN_ROUTES } from '../packages/frontend/data/screen-routes.ts';
 const theme = readFileSync(new URL('../packages/ui/theme/home-ui.css', import.meta.url), 'utf8');
 const globalCss = readFileSync(new URL('../packages/frontend/global.css', import.meta.url), 'utf8');
 const bloomTheme = readFileSync(
-  createRequire(new URL('../packages/frontend/package.json', import.meta.url)).resolve('@oxy.so/bloom/design-tokens/theme.css'),
+  createRequire(new URL('../packages/frontend/package.json', import.meta.url)).resolve(
+    '@oxy.so/bloom/design-tokens/theme.css',
+  ),
   'utf8',
 );
 
 test('every icon palette color has the same Tailwind theme value', () => {
   for (const [name, value] of Object.entries(colors)) {
-    const token = name.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
+    const token = name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
     assert.ok(theme.includes(`--color-home-${token}: ${value};`), `Missing or mismatched ${token}`);
   }
 });
@@ -24,7 +26,8 @@ test('every tile tone resolves to a registered color utility', () => {
   for (const tone of Object.values(tones)) {
     for (const className of [tone.tile, tone.text]) {
       const token = className.replace(/^(bg|text)-/, '');
-      const isRegistered = theme.includes(`--color-${token}:`) || bloomTheme.includes(`--color-${token}:`);
+      const isRegistered =
+        theme.includes(`--color-${token}:`) || bloomTheme.includes(`--color-${token}:`);
       assert.ok(isRegistered, `Unregistered utility ${className}`);
     }
   }
@@ -38,7 +41,7 @@ test('the frontend loads the UI theme and scans the responsive layout source', (
 });
 
 test('all twelve screens have distinct route destinations', () => {
-  assert.deepEqual(Object.keys(SCREEN_ROUTES).sort(), SCREENS.map(screen => screen.id).sort());
+  assert.deepEqual(Object.keys(SCREEN_ROUTES).sort(), SCREENS.map((screen) => screen.id).sort());
   assert.equal(new Set(Object.values(SCREEN_ROUTES)).size, SCREENS.length);
 });
 

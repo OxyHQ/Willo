@@ -10,7 +10,11 @@ const IMPERIAL_REGIONS = ['US', 'LR', 'MM'];
  * the person lives, so it gets metric like everywhere else.
  */
 export function unitSystemForLocale(locale: string): UnitSystem {
-  const region = locale.split('-').slice(1).find(part => /^[A-Za-z]{2}$/.test(part))?.toUpperCase();
+  const region = locale
+    .split('-')
+    .slice(1)
+    .find((part) => /^[A-Za-z]{2}$/.test(part))
+    ?.toUpperCase();
   return region !== undefined && IMPERIAL_REGIONS.includes(region) ? 'imperial' : 'metric';
 }
 
@@ -22,16 +26,24 @@ export type TemperatureUnit = '°C' | '°F';
  * degrees in Fahrenheit. Returns the number and its unit separately so a
  * large display (the thermostat) can style or drop the unit on its own.
  */
-export function convertTemperature(value: number, fromUnit: TemperatureUnit, system: UnitSystem): { value: number; unit: TemperatureUnit } {
+export function convertTemperature(
+  value: number,
+  fromUnit: TemperatureUnit,
+  system: UnitSystem,
+): { value: number; unit: TemperatureUnit } {
   const unit: TemperatureUnit = system === 'imperial' ? '°F' : '°C';
   // A reading already in the Home's unit is shown exactly as reported — only a
   // converted value is rounded, so a sensor's own precision survives.
   if (fromUnit === unit) return { value, unit };
-  const converted = unit === '°F' ? value * 9 / 5 + 32 : (value - 32) * 5 / 9;
+  const converted = unit === '°F' ? (value * 9) / 5 + 32 : ((value - 32) * 5) / 9;
   return { value: unit === '°F' ? Math.round(converted) : Math.round(converted * 10) / 10, unit };
 }
 
-export function formatTemperature(value: number, fromUnit: TemperatureUnit, system: UnitSystem): string {
+export function formatTemperature(
+  value: number,
+  fromUnit: TemperatureUnit,
+  system: UnitSystem,
+): string {
   const temperature = convertTemperature(value, fromUnit, system);
   return `${temperature.value}${temperature.unit}`;
 }

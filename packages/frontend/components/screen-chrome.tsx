@@ -38,11 +38,17 @@ const SCREEN_TITLES: Partial<Record<ScreenId, ParseKeys>> = {
  */
 export function ScreenHeader({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
   const { t } = useTranslation();
-  if (screen === 'assistant') return <AssistantHeader onNavigate={onNavigate}/>;
-  if (screen === 'emergency') return <EmergencyHeader onNavigate={onNavigate}/>;
-  if (screen === 'composer') return <ComposerHeader onNavigate={onNavigate}/>;
+  if (screen === 'assistant') return <AssistantHeader onNavigate={onNavigate} />;
+  if (screen === 'emergency') return <EmergencyHeader onNavigate={onNavigate} />;
+  if (screen === 'composer') return <ComposerHeader onNavigate={onNavigate} />;
   const titleKey = SCREEN_TITLES[screen];
-  return <AppHeader title={titleKey && t(titleKey)} onNavigate={onNavigate} actions={<HeaderActions screen={screen}/>}/>;
+  return (
+    <AppHeader
+      title={titleKey && t(titleKey)}
+      onNavigate={onNavigate}
+      actions={<HeaderActions screen={screen} />}
+    />
+  );
 }
 
 /**
@@ -52,21 +58,38 @@ export function ScreenHeader({ screen, onNavigate }: { screen: ScreenId; onNavig
  * while the timeline is on.
  */
 function HeaderActions({ screen }: { screen: ScreenId }) {
-  if (screen === 'timeline') return <TimelineFilterAction/>;
-  if (screen === 'favorites') return <NotificationsAction/>;
+  if (screen === 'timeline') return <TimelineFilterAction />;
+  if (screen === 'favorites') return <NotificationsAction />;
   return null;
 }
 
 function TimelineFilterAction() {
   const { openFilter } = useTimelineFilter();
   const { t } = useTranslation();
-  return <Pressable accessibilityRole="button" onPress={openFilter} className="px-2 py-3"><Label className="text-[12px] text-info-text">{t('header.filter')}</Label></Pressable>;
+  return (
+    <Pressable accessibilityRole="button" onPress={openFilter} className="px-2 py-3">
+      <Label className="text-[12px] text-info-text">{t('header.filter')}</Label>
+    </Pressable>
+  );
 }
 
 function NotificationsAction() {
   const { setSheet } = useHomeActions();
   const { t } = useTranslation();
-  return <IconButton size={19} icon="bell" label={t('settings.notifications')} onPress={() => setSheet({ kind: 'message', title: t('settings.notifications'), description: t('header.noNotifications') })}/>;
+  return (
+    <IconButton
+      size={19}
+      icon="bell"
+      label={t('settings.notifications')}
+      onPress={() =>
+        setSheet({
+          kind: 'message',
+          title: t('settings.notifications'),
+          description: t('header.noNotifications'),
+        })
+      }
+    />
+  );
 }
 
 /**
@@ -85,7 +108,15 @@ function NotificationsAction() {
  * to the provider AND to everything under it, which is the very thing this
  * avoids.
  */
-export function ScreenChrome({ screen, onNavigate, children }: { screen: ScreenId; onNavigate: Navigate; children: React.ReactNode }) {
+export function ScreenChrome({
+  screen,
+  onNavigate,
+  children,
+}: {
+  screen: ScreenId;
+  onNavigate: Navigate;
+  children: React.ReactNode;
+}) {
   return (
     <ComposerProvider active={screen === 'composer'} onNavigate={onNavigate}>
       <TimelineFilterProvider active={screen === 'timeline'}>{children}</TimelineFilterProvider>

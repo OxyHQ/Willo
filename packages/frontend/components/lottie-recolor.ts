@@ -18,7 +18,11 @@ function isNumberArray(value: unknown): value is number[] {
 export function lottieColorToHex(channels: readonly number[]): string {
   return `#${channels
     .slice(0, 3)
-    .map((channel) => Math.round(channel * 255).toString(16).padStart(2, '0'))
+    .map((channel) =>
+      Math.round(channel * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
     .join('')}`;
 }
 
@@ -50,7 +54,9 @@ function recolorAnimatable(property: unknown, recolorValue: (value: unknown) => 
     if (!isKeyframed) {
       return recolorValue(value);
     }
-    return mapShared(value, (keyframe) => updateKey(updateKey(keyframe, 's', recolorValue), 'e', recolorValue));
+    return mapShared(value, (keyframe) =>
+      updateKey(updateKey(keyframe, 's', recolorValue), 'e', recolorValue),
+    );
   });
 }
 
@@ -70,7 +76,9 @@ function recolorGradientStops(stops: unknown, stopCount: number, palette: Lottie
   let recolored: number[] | undefined;
   for (let stop = 0; stop < stopCount; stop++) {
     const channelsStart = stop * 4 + 1;
-    const replacement = palette.get(lottieColorToHex(stops.slice(channelsStart, channelsStart + 3)));
+    const replacement = palette.get(
+      lottieColorToHex(stops.slice(channelsStart, channelsStart + 3)),
+    );
     if (replacement) {
       recolored ??= [...stops];
       recolored.splice(channelsStart, 3, ...replacement);
@@ -85,10 +93,14 @@ function recolorShape(shape: unknown, palette: LottiePalette): unknown {
   }
   switch (shape.ty) {
     case 'gr':
-      return updateKey(shape, 'it', (items) => mapShared(items, (item) => recolorShape(item, palette)));
+      return updateKey(shape, 'it', (items) =>
+        mapShared(items, (item) => recolorShape(item, palette)),
+      );
     case 'fl':
     case 'st':
-      return updateKey(shape, 'c', (color) => recolorAnimatable(color, (value) => recolorColor(value, palette)));
+      return updateKey(shape, 'c', (color) =>
+        recolorAnimatable(color, (value) => recolorColor(value, palette)),
+      );
     case 'gf':
     case 'gs':
       return updateKey(shape, 'g', (gradient) => {
@@ -96,7 +108,9 @@ function recolorShape(shape: unknown, palette: LottiePalette): unknown {
           return gradient;
         }
         const stopCount = gradient.p;
-        return updateKey(gradient, 'k', (stops) => recolorAnimatable(stops, (value) => recolorGradientStops(value, stopCount, palette)));
+        return updateKey(gradient, 'k', (stops) =>
+          recolorAnimatable(stops, (value) => recolorGradientStops(value, stopCount, palette)),
+        );
       });
     default:
       return shape;
@@ -104,7 +118,11 @@ function recolorShape(shape: unknown, palette: LottiePalette): unknown {
 }
 
 function recolorLayers(layers: unknown, palette: LottiePalette): unknown {
-  return mapShared(layers, (layer) => updateKey(layer, 'shapes', (shapes) => mapShared(shapes, (shape) => recolorShape(shape, palette))));
+  return mapShared(layers, (layer) =>
+    updateKey(layer, 'shapes', (shapes) =>
+      mapShared(shapes, (shape) => recolorShape(shape, palette)),
+    ),
+  );
 }
 
 /**
@@ -122,7 +140,9 @@ export function recolorLottie(animation: AnimationObject, palette: LottiePalette
     return animation;
   }
   const layers = recolorLayers(animation.layers, palette);
-  const assets = mapShared(animation.assets, (asset) => updateKey(asset, 'layers', (assetLayers) => recolorLayers(assetLayers, palette)));
+  const assets = mapShared(animation.assets, (asset) =>
+    updateKey(asset, 'layers', (assetLayers) => recolorLayers(assetLayers, palette)),
+  );
   if (layers === animation.layers && assets === animation.assets) {
     return animation;
   }

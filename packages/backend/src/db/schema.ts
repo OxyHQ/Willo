@@ -46,7 +46,9 @@ export const homes = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [check('homes_unit_system_check', sql`${t.unitSystem} in (${sql.raw(inList(UNIT_SYSTEMS))})`)]
+  (t) => [
+    check('homes_unit_system_check', sql`${t.unitSystem} in (${sql.raw(inList(UNIT_SYSTEMS))})`),
+  ],
 );
 
 /**
@@ -109,8 +111,11 @@ export const homeMembers = pgTable(
     // "What can this user reach" — drives GET /homes/me.
     index('home_members_member_user_id_status_idx').on(t.memberUserId, t.status),
     check('home_members_role_check', sql`${t.role} in (${sql.raw(inList(HOME_MEMBER_ROLES))})`),
-    check('home_members_status_check', sql`${t.status} in (${sql.raw(inList(HOME_MEMBER_STATUSES))})`),
-  ]
+    check(
+      'home_members_status_check',
+      sql`${t.status} in (${sql.raw(inList(HOME_MEMBER_STATUSES))})`,
+    ),
+  ],
 );
 
 /**
@@ -138,7 +143,7 @@ export const homeDeviceMetadata = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [unique('home_device_metadata_home_id_entity_id_key').on(t.homeId, t.entityId)]
+  (t) => [unique('home_device_metadata_home_id_entity_id_key').on(t.homeId, t.entityId)],
 );
 
 /**
@@ -199,9 +204,9 @@ export const homeConnections = pgTable(
     unique('home_connections_home_id_key').on(t.homeId),
     check(
       'home_connections_provider_check',
-      sql`${t.provider} in (${sql.raw(inList(HOME_CONNECTION_PROVIDERS))})`
+      sql`${t.provider} in (${sql.raw(inList(HOME_CONNECTION_PROVIDERS))})`,
     ),
-  ]
+  ],
 );
 
 /**
@@ -259,8 +264,11 @@ export const homeEvents = pgTable(
   (t) => [
     // "This Home's most recent activity first" — the only query `/activity` makes.
     index('home_events_home_id_occurred_at_idx').on(t.homeId, t.occurredAt),
-    check('home_events_event_type_check', sql`${t.eventType} in (${sql.raw(inList(HOME_EVENT_TYPES))})`),
-  ]
+    check(
+      'home_events_event_type_check',
+      sql`${t.eventType} in (${sql.raw(inList(HOME_EVENT_TYPES))})`,
+    ),
+  ],
 );
 
 /**
@@ -319,6 +327,9 @@ export const deviceClaims = pgTable(
   },
   (t) => [
     unique('device_claims_claim_code_key').on(t.claimCode),
-    check('device_claims_status_check', sql`${t.status} in (${sql.raw(inList(DEVICE_CLAIM_STATUSES))})`),
-  ]
+    check(
+      'device_claims_status_check',
+      sql`${t.status} in (${sql.raw(inList(DEVICE_CLAIM_STATUSES))})`,
+    ),
+  ],
 );

@@ -103,7 +103,9 @@ test('applyDeviceUpdate creates, then replaces, one device in the cached snapsho
     assert.equal(afterCreate.length, 2, 'the existing entity is replaced, not duplicated');
 
     const { devices } = await getLiveDevices(home.id, owner);
-    const kitchen = (devices as Array<{ id: string; on: boolean }>).find((device) => device.id === 'light.kitchen');
+    const kitchen = (devices as Array<{ id: string; on: boolean }>).find(
+      (device) => device.id === 'light.kitchen',
+    );
     assert.equal(kitchen?.on, false);
   } finally {
     await getDb().delete(homes).where(eq(homes.id, home.id));

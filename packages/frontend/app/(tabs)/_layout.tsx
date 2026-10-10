@@ -36,7 +36,12 @@ function NativeTabsLayout() {
   const { progress, selectTab, registerCommitter } = useTabPager();
 
   const triggers = useMemo(
-    () => tabs.map(tab => ({ type: 'internal' as const, name: routeNameForTab(tab.screen), href: SCREEN_ROUTES[tab.screen] })),
+    () =>
+      tabs.map((tab) => ({
+        type: 'internal' as const,
+        name: routeNameForTab(tab.screen),
+        href: SCREEN_ROUTES[tab.screen],
+      })),
     [],
   );
   const { state, descriptors, navigation, NavigationContent } = useTabsWithTriggers({
@@ -51,10 +56,13 @@ function NativeTabsLayout() {
    * stacks a history entry per swipe nor unmounts the tab being left. A
    * `router.navigate(href)` would reach the same screen and lose both.
    */
-  const commit = useCallback((pageIndex: number) => {
-    const tab = tabs[pageIndex];
-    if (tab) navigation.navigate(routeNameForTab(tab.screen));
-  }, [navigation]);
+  const commit = useCallback(
+    (pageIndex: number) => {
+      const tab = tabs[pageIndex];
+      if (tab) navigation.navigate(routeNameForTab(tab.screen));
+    },
+    [navigation],
+  );
 
   // Registering with the provider above is synchronising with something
   // outside React — the bar renders over routes this navigator does not own,

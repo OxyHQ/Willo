@@ -41,7 +41,11 @@ const PANEL_FRAMED_FROM = BREAKPOINTS.rail;
  * Hermes that graph overflowed the JS stack before the first paint). Routes own
  * their screen the way Mention's do.
  */
-export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
+export function ScreenSurface({
+  screen,
+  renderContent,
+  renderSetupPrompt,
+}: {
   screen: ScreenId;
   renderContent: () => React.ReactNode;
   /** Shown instead of the screen when this Home isn't set up yet. Only the screens that have something to say about setup pass one; the rest get a spinner. */
@@ -70,7 +74,8 @@ export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
       return;
     }
     if (demoMode) return;
-    if (screen !== 'home' && screen !== 'onboarding' && screen !== 'settings') router.replace('/onboarding');
+    if (screen !== 'home' && screen !== 'onboarding' && screen !== 'settings')
+      router.replace('/onboarding');
   }, [isAuthResolved, isAuthenticated, setupStage, demoMode, screen, router]);
   // The compact header floats directly over scrolling content, so a hard
   // edge would cut that content off with a visible line as it passes. A
@@ -108,12 +113,16 @@ export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
   // the home screen's own inline prompt (which doesn't redirect at all).
   // Demo mode skips all of this — the route's own content already renders
   // correctly with no real Home.
-  const spinner = <View className="min-h-0 min-w-0 flex-1 items-center justify-center"><ActivityIndicator color={colors.primary}/></View>;
+  const spinner = (
+    <View className="min-h-0 min-w-0 flex-1 items-center justify-center">
+      <ActivityIndicator color={colors.primary} />
+    </View>
+  );
   const awaitingSetup = !demoMode && setupStage !== 'ready' && setupStage !== 'resolving';
   if (!isAuthResolved) {
     content = spinner;
   } else if (!isAuthenticated) {
-    content = <SignInPrompt/>;
+    content = <SignInPrompt />;
   } else if (awaitingSetup && renderSetupPrompt) {
     content = renderSetupPrompt();
   } else if (awaitingSetup && screen !== 'onboarding' && screen !== 'settings') {
@@ -126,7 +135,14 @@ export function ScreenSurface({ screen, renderContent, renderSetupPrompt }: {
           header is a sticky sibling above it, so the panel starts at the
           header's height, and the sticky frame must pin exactly there or it
           snaps on the first scroll. The bottom matches `shell:pb-2`. */}
-      <ContentPanel framedFrom={PANEL_FRAMED_FROM} overlayInset={{ top: shellHeader.overlaysContent ? 0 : shellHeader.height, bottom: 8 }} maskColor={colors.background} surfaceClassName="bg-card" contentClassName="min-h-0 min-w-0 flex-1" contentStyle={{ paddingBottom: panelBottomInset }}>
+      <ContentPanel
+        framedFrom={PANEL_FRAMED_FROM}
+        overlayInset={{ top: shellHeader.overlaysContent ? 0 : shellHeader.height, bottom: 8 }}
+        maskColor={colors.background}
+        surfaceClassName="bg-card"
+        contentClassName="min-h-0 min-w-0 flex-1"
+        contentStyle={{ paddingBottom: panelBottomInset }}
+      >
         {content}
       </ContentPanel>
     </View>

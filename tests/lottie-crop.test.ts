@@ -5,9 +5,17 @@ import { cropLottie } from '../packages/frontend/components/lottie-crop.ts';
 
 function exportedAnimation(): AnimationObject {
   return {
-    v: '5.6.6', fr: 60, ip: 0, op: 84, w: 360, h: 360,
+    v: '5.6.6',
+    fr: 60,
+    ip: 0,
+    op: 84,
+    w: 360,
+    h: 360,
     assets: [{ id: 'comp_0', layers: [] }],
-    layers: [{ ind: 1, ty: 4, ks: {}, shapes: [] }, { ind: 2, ty: 3, ks: {} }],
+    layers: [
+      { ind: 1, ty: 4, ks: {}, shapes: [] },
+      { ind: 2, ty: 3, ks: {} },
+    ],
   };
 }
 

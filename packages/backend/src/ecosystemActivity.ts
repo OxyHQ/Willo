@@ -28,7 +28,9 @@ let activity: ReturnType<typeof createEcosystemTraffic> | undefined;
 export function startEcosystemActivity(ready: () => boolean): void {
   if (activity) return;
   if (!canAttestWorkloadIdentity()) {
-    console.warn('Ecosystem activity is disabled for willo: not running on ECS (no workload identity to attest)');
+    console.warn(
+      'Ecosystem activity is disabled for willo: not running on ECS (no workload identity to attest)',
+    );
     return;
   }
   // Willo is a single-task service, so a telemetry misconfiguration (an
@@ -50,7 +52,9 @@ export const ecosystemActivityMiddleware: RequestHandler = (request, response, n
 };
 
 /** Called from the `/homes` Socket.IO namespace's `connection` handler. */
-export function observeEcosystemSocket(socket: Parameters<ReturnType<typeof createEcosystemTraffic>['observeSocket']>[0]): void {
+export function observeEcosystemSocket(
+  socket: Parameters<ReturnType<typeof createEcosystemTraffic>['observeSocket']>[0],
+): void {
   activity?.observeSocket(socket);
 }
 

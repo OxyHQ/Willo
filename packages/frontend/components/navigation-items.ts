@@ -27,8 +27,14 @@ export const routeNameForTab = (screen: ScreenId): string => (screen === 'home' 
 // still exist — visiting one directly highlights the tab it's closest to
 // instead of leaving the rail looking like nothing is selected.
 export function isNavigationActive(screen: ScreenId, target: ScreenId) {
-  return screen === target
-    || (target === 'home' && (screen === 'assistant' || screen === 'emergency' || screen === 'favorites' || screen === 'favorites-assistant'))
-    || (target === 'automations' && (screen === 'composer' || screen === 'routines'))
-    || (target === 'activity' && screen === 'timeline');
+  return (
+    screen === target ||
+    (target === 'home' &&
+      (screen === 'assistant' ||
+        screen === 'emergency' ||
+        screen === 'favorites' ||
+        screen === 'favorites-assistant')) ||
+    (target === 'automations' && (screen === 'composer' || screen === 'routines')) ||
+    (target === 'activity' && screen === 'timeline')
+  );
 }

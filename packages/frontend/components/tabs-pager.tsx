@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import PagerView, { type PageScrollStateChangedNativeEvent, type PagerViewOnPageSelectedEvent } from 'react-native-pager-view';
+import PagerView, {
+  type PageScrollStateChangedNativeEvent,
+  type PagerViewOnPageSelectedEvent,
+} from 'react-native-pager-view';
 import Animated, { useEvent, useHandler, type SharedValue } from 'react-native-reanimated';
 import { Screen } from 'react-native-screens';
 import { routeNameForTab, tabs } from './navigation-items';
@@ -19,12 +22,19 @@ type PagerScrollProp = React.ComponentProps<typeof PagerView>['onPageScroll'];
  * A plain JS callback here would put a bridge crossing on every frame of every
  * swipe — the exact cost this pager exists to avoid.
  */
-function usePageScrollHandler(handler: (event: PageScrollEvent) => void, deps: unknown[]): PagerScrollProp {
+function usePageScrollHandler(
+  handler: (event: PageScrollEvent) => void,
+  deps: unknown[],
+): PagerScrollProp {
   const { doDependenciesDiffer } = useHandler({ onPageScroll: handler }, deps);
-  const processed = useEvent<PageScrollEvent>(event => {
-    'worklet';
-    handler(event);
-  }, ['onPageScroll'], doDependenciesDiffer);
+  const processed = useEvent<PageScrollEvent>(
+    (event) => {
+      'worklet';
+      handler(event);
+    },
+    ['onPageScroll'],
+    doDependenciesDiffer,
+  );
   // Reanimated hands back an `EventHandlerProcessed`, which is what gets
   // attached to the native view; `PagerView` types the prop as the codegen
   // `DirectEventHandler` React would have given it. The two describe the same
@@ -48,25 +58,36 @@ type PagerDescriptors = Record<string, { render: () => React.ReactNode }>;
  * to Bloom's `TabBar` as `activeProgress`, so the highlight tracks the swipe
  * rather than jumping once the page lands.
  */
-export function TabsPager({ state, descriptors, progress, onCommit }: {
+export function TabsPager({
+  state,
+  descriptors,
+  progress,
+  onCommit,
+}: {
   state: { index: number; routes: PagerRoute[] };
   descriptors: PagerDescriptors;
   progress: SharedValue<number>;
   onCommit: (pageIndex: number) => void;
 }) {
   const pager = useRef<PagerView>(null);
-  const routeByName = useMemo(() => new Map(state.routes.map(route => [route.name, route])), [state.routes]);
+  const routeByName = useMemo(
+    () => new Map(state.routes.map((route) => [route.name, route])),
+    [state.routes],
+  );
   const focusedName = state.routes[state.index]?.name;
-  const focusedPage = Math.max(0, tabs.findIndex(tab => routeNameForTab(tab.screen) === focusedName));
+  const focusedPage = Math.max(
+    0,
+    tabs.findIndex((tab) => routeNameForTab(tab.screen) === focusedName),
+  );
   // Which pages have ever been shown. A page is only built once the reader has
   // actually been there or is one swipe away from it, so the first paint is
   // one screen rather than five.
   const [loaded, setLoaded] = useState<Set<number>>(() => new Set([focusedPage]));
   const admit = useCallback((pages: number[]) => {
-    setLoaded(previous => {
-      if (pages.every(page => previous.has(page))) return previous;
+    setLoaded((previous) => {
+      if (pages.every((page) => previous.has(page))) return previous;
       const next = new Set(previous);
-      pages.forEach(page => next.add(page));
+      pages.forEach((page) => next.add(page));
       return next;
     });
   }, []);
@@ -77,24 +98,33 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
   // A finger on the pager admits the neighbours before they are needed, so a
   // swipe never drags a page that is still `null`. Waiting for the page to
   // land would fill it in only after the finger let go.
-  const onPageScrollStateChanged = useCallback((event: PageScrollStateChangedNativeEvent) => {
-    if (event.nativeEvent.pageScrollState !== 'dragging') return;
-    const page = currentPage.current;
-    admit([page - 1, page + 1].filter(index => index >= 0 && index < tabs.length));
-  }, [admit]);
+  const onPageScrollStateChanged = useCallback(
+    (event: PageScrollStateChangedNativeEvent) => {
+      if (event.nativeEvent.pageScrollState !== 'dragging') return;
+      const page = currentPage.current;
+      admit([page - 1, page + 1].filter((index) => index >= 0 && index < tabs.length));
+    },
+    [admit],
+  );
 
-  const onPageScroll = usePageScrollHandler(event => {
-    'worklet';
-    progress.value = event.position + event.offset;
-  }, [progress]);
+  const onPageScroll = usePageScrollHandler(
+    (event) => {
+      'worklet';
+      progress.value = event.position + event.offset;
+    },
+    [progress],
+  );
 
-  const onPageSelected = useCallback((event: PagerViewOnPageSelectedEvent) => {
-    const next = event.nativeEvent.position;
-    if (next === currentPage.current) return;
-    currentPage.current = next;
-    admit([next, next - 1, next + 1].filter(page => page >= 0 && page < tabs.length));
-    onCommit(next);
-  }, [admit, onCommit]);
+  const onPageSelected = useCallback(
+    (event: PagerViewOnPageSelectedEvent) => {
+      const next = event.nativeEvent.position;
+      if (next === currentPage.current) return;
+      currentPage.current = next;
+      admit([next, next - 1, next + 1].filter((page) => page >= 0 && page < tabs.length));
+      onCommit(next);
+    },
+    [admit, onCommit],
+  );
 
   // A tap on the bar moves the route, and the pager follows it — in an effect,
   // because telling a native view to change page is not something a render may
@@ -105,19 +135,29 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
   useEffect(() => {
     if (focusedPage === currentPage.current) return;
     currentPage.current = focusedPage;
-    admit([focusedPage, focusedPage - 1, focusedPage + 1].filter(index => index >= 0 && index < tabs.length));
+    admit(
+      [focusedPage, focusedPage - 1, focusedPage + 1].filter(
+        (index) => index >= 0 && index < tabs.length,
+      ),
+    );
     pager.current?.setPageWithoutAnimation(focusedPage);
   }, [focusedPage, admit]);
 
   return (
-    <AnimatedPagerView ref={pager} style={styles.pager} initialPage={focusedPage}
+    <AnimatedPagerView
+      ref={pager}
+      style={styles.pager}
+      initialPage={focusedPage}
       // One page either side is exactly what `admit` keeps built; more would
       // ask the platform to hold screens alive with nothing to show.
       offscreenPageLimit={1}
       // No rubber band at the ends: an overdrag off the first or last tab is a
       // horizontal gesture the pager eats and then does nothing with.
       overdrag={false}
-      onPageScroll={onPageScroll} onPageSelected={onPageSelected} onPageScrollStateChanged={onPageScrollStateChanged}>
+      onPageScroll={onPageScroll}
+      onPageSelected={onPageSelected}
+      onPageScrollStateChanged={onPageScrollStateChanged}
+    >
       {tabs.map((tab, index) => {
         const route = routeByName.get(routeNameForTab(tab.screen));
         const descriptor = route ? descriptors[route.key] : undefined;
@@ -128,7 +168,13 @@ export function TabsPager({ state, descriptors, progress, onCommit }: {
             {descriptor && loaded.has(index) ? (
               // 2 drives the focused page, 1 keeps its neighbours laid out and
               // painted so they are real under the finger, 0 parks the rest.
-              <Screen enabled activityState={index === focusedPage ? 2 : Math.abs(index - focusedPage) <= 1 ? 1 : 0} style={styles.screen}>
+              <Screen
+                enabled
+                activityState={
+                  index === focusedPage ? 2 : Math.abs(index - focusedPage) <= 1 ? 1 : 0
+                }
+                style={styles.screen}
+              >
                 {descriptor.render()}
               </Screen>
             ) : null}

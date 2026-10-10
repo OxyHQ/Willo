@@ -19,7 +19,11 @@ interface ThemedLottieProps {
  * render, native and web alike: without it, a parent re-rendering on each
  * keystroke would re-serialise the animation each time.
  */
-export const ThemedLottie = memo(function ThemedLottie({ animation, className, shouldLoop = true }: ThemedLottieProps) {
+export const ThemedLottie = memo(function ThemedLottie({
+  animation,
+  className,
+  shouldLoop = true,
+}: ThemedLottieProps) {
   const { colors } = useTheme();
 
   const source = useMemo(() => {
@@ -27,7 +31,9 @@ export const ThemedLottie = memo(function ThemedLottie({ animation, className, s
     for (const [sourceHex, role] of Object.entries(animation.colorRoles)) {
       const rgb = parseRgb(colors[role]);
       if (!rgb) {
-        console.warn(`ThemedLottie: could not parse Bloom colour "${role}" (${colors[role]}); keeping ${sourceHex}.`);
+        console.warn(
+          `ThemedLottie: could not parse Bloom colour "${role}" (${colors[role]}); keeping ${sourceHex}.`,
+        );
         continue;
       }
       palette.set(sourceHex, [rgb.r / 255, rgb.g / 255, rgb.b / 255]);

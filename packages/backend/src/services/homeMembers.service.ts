@@ -17,7 +17,11 @@ function emitMembershipChanged(homeId: string): void {
 }
 
 /** Invite a member by Oxy user id (owner only). Reactivates a previously-removed row rather than erroring on the unique (homeId, memberUserId) pair. */
-export async function inviteMember(homeId: string, inviterUserId: string, targetUserId: string): Promise<HomeMemberRow> {
+export async function inviteMember(
+  homeId: string,
+  inviterUserId: string,
+  targetUserId: string,
+): Promise<HomeMemberRow> {
   await assertActiveOwner(homeId, inviterUserId);
   if (targetUserId === inviterUserId) {
     throw new BadRequestError('You are already a member of this Home.');
@@ -30,7 +34,13 @@ export async function inviteMember(homeId: string, inviterUserId: string, target
   if (!existing) {
     [result] = await db
       .insert(homeMembers)
-      .values({ homeId, memberUserId: targetUserId, role: 'member', status: 'invited', invitedByUserId: inviterUserId })
+      .values({
+        homeId,
+        memberUserId: targetUserId,
+        role: 'member',
+        status: 'invited',
+        invitedByUserId: inviterUserId,
+      })
       .returning();
   } else if (existing.status === 'removed') {
     [result] = await db
@@ -40,7 +50,9 @@ export async function inviteMember(homeId: string, inviterUserId: string, target
       .returning();
   } else {
     throw new ConflictError(
-      existing.status === 'active' ? 'This person is already a member of this Home.' : 'This person already has a pending invite.'
+      existing.status === 'active'
+        ? 'This person is already a member of this Home.'
+        : 'This person already has a pending invite.',
     );
   }
 
@@ -50,7 +62,11 @@ export async function inviteMember(homeId: string, inviterUserId: string, target
 }
 
 /** Accept a pending invite. Invitee only. */
-export async function acceptInvite(homeId: string, memberId: string, userId: string): Promise<HomeMemberRow> {
+export async function acceptInvite(
+  homeId: string,
+  memberId: string,
+  userId: string,
+): Promise<HomeMemberRow> {
   const [updated] = await getDb()
     .update(homeMembers)
     .set({ status: 'active', joinedAt: new Date() })
@@ -59,8 +75,8 @@ export async function acceptInvite(homeId: string, memberId: string, userId: str
         eq(homeMembers.id, memberId),
         eq(homeMembers.homeId, homeId),
         eq(homeMembers.memberUserId, userId),
-        eq(homeMembers.status, 'invited')
-      )
+        eq(homeMembers.status, 'invited'),
+      ),
     )
     .returning();
   if (!updated) throw new NotFoundError('No pending invite found for you on this Home.');
@@ -69,7 +85,11 @@ export async function acceptInvite(homeId: string, memberId: string, userId: str
 }
 
 /** Decline a pending invite. Invitee only. The row is retained as `removed`, same as a later `leaveHome`/`removeMember` — see `home_members` schema doc for why. */
-export async function declineInvite(homeId: string, memberId: string, userId: string): Promise<HomeMemberRow> {
+export async function declineInvite(
+  homeId: string,
+  memberId: string,
+  userId: string,
+): Promise<HomeMemberRow> {
   const [updated] = await getDb()
     .update(homeMembers)
     .set({ status: 'removed' })
@@ -78,8 +98,8 @@ export async function declineInvite(homeId: string, memberId: string, userId: st
         eq(homeMembers.id, memberId),
         eq(homeMembers.homeId, homeId),
         eq(homeMembers.memberUserId, userId),
-        eq(homeMembers.status, 'invited')
-      )
+        eq(homeMembers.status, 'invited'),
+      ),
     )
     .returning();
   if (!updated) throw new NotFoundError('No pending invite found for you on this Home.');
@@ -88,11 +108,20 @@ export async function declineInvite(homeId: string, memberId: string, userId: st
 }
 
 /** Remove a member. Owner only, and never on oneself — an owner leaves via `leaveHome`, which alone enforces the sole-owner rule. */
-export async function removeMember(homeId: string, actingUserId: string, targetMemberId: string): Promise<HomeMemberRow> {
+export async function removeMember(
+  homeId: string,
+  actingUserId: string,
+  targetMemberId: string,
+): Promise<HomeMemberRow> {
   await assertActiveOwner(homeId, actingUserId);
 
-  const [target] = await getDb().select().from(homeMembers).where(eq(homeMembers.id, targetMemberId)).limit(1);
-  if (!target || target.homeId !== homeId) throw new NotFoundError('Member not found on this Home.');
+  const [target] = await getDb()
+    .select()
+    .from(homeMembers)
+    .where(eq(homeMembers.id, targetMemberId))
+    .limit(1);
+  if (!target || target.homeId !== homeId)
+    throw new NotFoundError('Member not found on this Home.');
   if (target.memberUserId === actingUserId) {
     throw new BadRequestError('Use "leave" to remove yourself from a Home, not this endpoint.');
   }
@@ -132,7 +161,7 @@ export async function leaveHome(homeId: string, userId: string): Promise<{ disso
       const otherActiveMembers = await countOtherActiveMembers(homeId, userId);
       if (otherActiveMembers > 0) {
         throw new ForbiddenError(
-          'You are the only owner of this Home and other members still belong to it. Remove them or add another owner before leaving.'
+          'You are the only owner of this Home and other members still belong to it. Remove them or add another owner before leaving.',
         );
       }
       // Sole owner, sole member: dissolve the Home. ON DELETE CASCADE on
@@ -144,7 +173,10 @@ export async function leaveHome(homeId: string, userId: string): Promise<{ disso
     }
   }
 
-  await getDb().update(homeMembers).set({ status: 'removed' }).where(eq(homeMembers.id, membership.id));
+  await getDb()
+    .update(homeMembers)
+    .set({ status: 'removed' })
+    .where(eq(homeMembers.id, membership.id));
   emitMembershipChanged(homeId);
   return { dissolved: false };
 }

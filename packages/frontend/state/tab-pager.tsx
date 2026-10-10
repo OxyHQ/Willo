@@ -41,17 +41,23 @@ export function TabPagerProvider({ children }: { children: React.ReactNode }) {
     committer.current = next;
   }, []);
 
-  const selectTab = useCallback((index: number) => {
-    const tab = tabs[index];
-    if (!tab) return;
-    // The pager writes `progress` itself while a finger is on it; a TAP has no
-    // finger to follow, so the highlight is sprung there instead.
-    progress.value = withSpring(index, SETTLE_SPRING);
-    if (committer.current) committer.current(index);
-    else router.navigate(SCREEN_ROUTES[tab.screen]);
-  }, [progress, router]);
+  const selectTab = useCallback(
+    (index: number) => {
+      const tab = tabs[index];
+      if (!tab) return;
+      // The pager writes `progress` itself while a finger is on it; a TAP has no
+      // finger to follow, so the highlight is sprung there instead.
+      progress.value = withSpring(index, SETTLE_SPRING);
+      if (committer.current) committer.current(index);
+      else router.navigate(SCREEN_ROUTES[tab.screen]);
+    },
+    [progress, router],
+  );
 
-  const value = useMemo(() => ({ progress, selectTab, registerCommitter }), [progress, selectTab, registerCommitter]);
+  const value = useMemo(
+    () => ({ progress, selectTab, registerCommitter }),
+    [progress, selectTab, registerCommitter],
+  );
   return <TabPagerContext.Provider value={value}>{children}</TabPagerContext.Provider>;
 }
 

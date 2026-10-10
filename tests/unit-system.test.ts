@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { convertTemperature, formatTemperature, unitSystemForLocale } from '../packages/frontend/providers/unit-system.ts';
+import {
+  convertTemperature,
+  formatTemperature,
+  unitSystemForLocale,
+} from '../packages/frontend/providers/unit-system.ts';
 
 test('a device set to a US locale starts its Home in imperial', () => {
   assert.equal(unitSystemForLocale('en-US'), 'imperial');

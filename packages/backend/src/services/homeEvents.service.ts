@@ -54,7 +54,10 @@ export interface BinarySensorTransition {
  * changed, and logging that too would fabricate a spurious event for every
  * sensor on every reconnect.
  */
-export async function recordBinarySensorEvent(homeId: string, transition: BinarySensorTransition): Promise<void> {
+export async function recordBinarySensorEvent(
+  homeId: string,
+  transition: BinarySensorTransition,
+): Promise<void> {
   await getDb()
     .insert(homeEvents)
     .values({

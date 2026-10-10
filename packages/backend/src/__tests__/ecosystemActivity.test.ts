@@ -99,7 +99,9 @@ describe('ecosystem activity lifecycle', () => {
 
   it('keeps serving without a publisher when the publisher cannot be constructed', () => {
     createEcosystemTraffic.mockImplementation(() => {
-      throw new Error('Ecosystem activity requires a known infrastructure region or explicit location');
+      throw new Error(
+        'Ecosystem activity requires a known infrastructure region or explicit location',
+      );
     });
     const consoleError = console.error;
     const errorLog = mock((..._args: unknown[]) => {});
@@ -124,7 +126,10 @@ describe('ecosystem activity lifecycle', () => {
     expect(createEcosystemTraffic).toHaveBeenCalledTimes(1);
     expect(publisher.installFetch).toHaveBeenCalledTimes(1);
 
-    const options = createEcosystemTraffic.mock.calls[0]?.[0] as { service: string; ready(): boolean };
+    const options = createEcosystemTraffic.mock.calls[0]?.[0] as {
+      service: string;
+      ready(): boolean;
+    };
     expect(options.service).toBe('willo');
     expect(options.ready()).toBe(false);
     ready = true;

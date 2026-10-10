@@ -50,9 +50,11 @@ const OXY_DEBUG_SIGNING = `        debug {
         }`;
 
 module.exports = function withOxyDebugSigning(config) {
-  return withAppBuildGradle(config, config => {
+  return withAppBuildGradle(config, (config) => {
     if (config.modResults.language !== 'groovy') {
-      throw new Error(`[withOxyDebugSigning] Expected a Groovy app/build.gradle, got ${config.modResults.language}.`);
+      throw new Error(
+        `[withOxyDebugSigning] Expected a Groovy app/build.gradle, got ${config.modResults.language}.`,
+      );
     }
     if (config.modResults.contents.includes(STORE_FILE)) return config;
     if (!config.modResults.contents.includes(GENERATED_DEBUG_SIGNING)) {
@@ -61,7 +63,10 @@ module.exports = function withOxyDebugSigning(config) {
           'app/build.gradle. The Expo template changed — update this plugin instead of editing android/ by hand.',
       );
     }
-    config.modResults.contents = config.modResults.contents.replace(GENERATED_DEBUG_SIGNING, OXY_DEBUG_SIGNING);
+    config.modResults.contents = config.modResults.contents.replace(
+      GENERATED_DEBUG_SIGNING,
+      OXY_DEBUG_SIGNING,
+    );
     return config;
   });
 };

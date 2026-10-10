@@ -25,11 +25,21 @@ export function getLayoutMetrics(width: number, height: number, fontScale = 1) {
   const contentWidth = Math.max(0, Math.min(CONTENT_MAX, safeWidth - navigationWidth));
   const pageWidth = Math.max(0, contentWidth - 2 * gutter);
   const minimumCard = 196 * Math.min(Math.max(scale, 1), 1.65);
-  const columns = compact ? 2 : Math.max(1, Math.min(4, Math.floor((pageWidth + GRID_GAP) / (minimumCard + GRID_GAP))));
+  const columns = compact
+    ? 2
+    : Math.max(1, Math.min(4, Math.floor((pageWidth + GRID_GAP) / (minimumCard + GRID_GAP))));
   return {
-    width: safeWidth, height: safeHeight, fontScale: scale,
-    compact, expanded, navigationWidth, gutter, contentWidth, pageWidth,
-    columns, gap: compact ? 8 : GRID_GAP,
+    width: safeWidth,
+    height: safeHeight,
+    fontScale: scale,
+    compact,
+    expanded,
+    navigationWidth,
+    gutter,
+    contentWidth,
+    pageWidth,
+    columns,
+    gap: compact ? 8 : GRID_GAP,
     split: pageWidth >= 820 * Math.min(Math.max(scale, 1), 1.4),
   };
 }
@@ -43,7 +53,12 @@ export type MasonryItem = {
 };
 export type Placement = { id: string; x: number; y: number; width: number; height: number };
 /** Pure skyline layout. Stable item IDs mean cards are never reparented on resize. */
-export function packMasonry(items: readonly MasonryItem[], width: number, count: number, gap: number) {
+export function packMasonry(
+  items: readonly MasonryItem[],
+  width: number,
+  count: number,
+  gap: number,
+) {
   const columns = Math.max(1, Math.floor(Number.isFinite(count) ? count : 1));
   const safeWidth = Math.max(0, Number.isFinite(width) ? width : 0);
   const safeGap = Math.max(0, Math.min(Number.isFinite(gap) ? gap : 0, safeWidth / columns));
@@ -60,13 +75,22 @@ export function packMasonry(items: readonly MasonryItem[], width: number, count:
     let y = Infinity;
     for (let start = 0; start <= columns - span; start += 1) {
       const top = Math.max(...bottoms.slice(start, start + span));
-      if (top < y) { y = top; lane = start; }
+      if (top < y) {
+        y = top;
+        lane = start;
+      }
     }
     if (columns === 4 && item.lane !== undefined) {
       lane = Math.max(0, Math.min(columns - span, Math.floor(item.lane)));
       y = Math.max(...bottoms.slice(lane, lane + span));
     }
-    placements.push({ id: item.id, x: lane * (columnWidth + safeGap), y, width: columnWidth * span + safeGap * (span - 1), height: itemHeight });
+    placements.push({
+      id: item.id,
+      x: lane * (columnWidth + safeGap),
+      y,
+      width: columnWidth * span + safeGap * (span - 1),
+      height: itemHeight,
+    });
     for (let i = lane; i < lane + span; i += 1) bottoms[i] = y + itemHeight + safeGap;
   }
   return { placements, height: items.length ? Math.max(...bottoms) - safeGap : 0, columnWidth };

@@ -31,14 +31,17 @@ const DOMAIN_APPEARANCE: Record<string, { icon: IconName; tone: Tone }> = {
   dryer: { icon: 'dryer', tone: 'sky' },
   coffee: { icon: 'coffee', tone: 'peach' },
   kettle: { icon: 'kettle', tone: 'peach' },
-  'media_player': { icon: 'speaker', tone: 'blue' },
+  media_player: { icon: 'speaker', tone: 'blue' },
   tv: { icon: 'tv', tone: 'blue' },
   switch: { icon: 'plug', tone: 'blue' },
   doorbell: { icon: 'doorbell', tone: 'blue' },
   sensor: { icon: 'thermometer', tone: 'green' },
   binary_sensor: { icon: 'bell', tone: 'green' },
 };
-const FALLBACK_APPEARANCE = { icon: 'devices', tone: 'blue' } as const satisfies { icon: IconName; tone: Tone };
+const FALLBACK_APPEARANCE = { icon: 'devices', tone: 'blue' } as const satisfies {
+  icon: IconName;
+  tone: Tone;
+};
 
 /**
  * Every device on every screen, real or demo, drawn from its capabilities —
@@ -53,7 +56,15 @@ const FALLBACK_APPEARANCE = { icon: 'devices', tone: 'blue' } as const satisfies
  * object identity of a device nothing happened to, which is what lets the
  * memo actually bail out.
  */
-export const DeviceTile = React.memo(function DeviceTile({ device, height, grow = true }: { device: Device; height?: number; grow?: boolean }) {
+export const DeviceTile = React.memo(function DeviceTile({
+  device,
+  height,
+  grow = true,
+}: {
+  device: Device;
+  height?: number;
+  grow?: boolean;
+}) {
   const { setSheet, sendCommand } = useHomeActions();
   const unitSystem = useUnitSystem();
   const { t } = useTranslation();
@@ -71,37 +82,61 @@ export const DeviceTile = React.memo(function DeviceTile({ device, height, grow 
   const appearance = DOMAIN_APPEARANCE[device.domain] ?? FALLBACK_APPEARANCE;
   const active = isActive(device);
   const dragCommand = drag?.command;
-  const handlePress = useCallback(() => { if (command) sendCommand(device.id, command); }, [command, device.id, sendCommand]);
-  const handleLongPress = useCallback(() => setSheet({ kind: 'realDevice', title: device.name, device }), [device, setSheet]);
+  const handlePress = useCallback(() => {
+    if (command) sendCommand(device.id, command);
+  }, [command, device.id, sendCommand]);
+  const handleLongPress = useCallback(
+    () => setSheet({ kind: 'realDevice', title: device.name, device }),
+    [device, setSheet],
+  );
   // `Tile` animates the fill itself, on the UI thread, so React hears about a
   // drag only at the rate the device is actually commanded. That one callback
   // does both: the subtitle follows the same number the device is being sent,
   // and neither costs a render per frame.
   const handleBrightnessCommit = useMemo(
-    () => dragCommand && ((next: number) => { setPercent(next); sendCommand(device.id, dragCommand(next)); }),
+    () =>
+      dragCommand &&
+      ((next: number) => {
+        setPercent(next);
+        sendCommand(device.id, dragCommand(next));
+      }),
     [dragCommand, device.id, sendCommand, setPercent],
   );
-  return <Tile grow={grow} height={height} title={device.name}
-    subtitle={describeDevice(drag ? withDraggedPercent(device, percent) : device, t, (value, unit) => formatTemperature(value, unit, unitSystem))}
-    icon={appearance.icon} tone={active ? appearance.tone : 'neutral'} active={active}
-    /* The fill only paints while the device is actually on: an idle tile has
+  return (
+    <Tile
+      grow={grow}
+      height={height}
+      title={device.name}
+      subtitle={describeDevice(
+        drag ? withDraggedPercent(device, percent) : device,
+        t,
+        (value, unit) => formatTemperature(value, unit, unitSystem),
+      )}
+      icon={appearance.icon}
+      tone={active ? appearance.tone : 'neutral'}
+      active={active}
+      /* The fill only paints while the device is actually on: an idle tile has
        no tone of its own, so a fill there would show up in the fallback
        colour (a paused speaker reading 45% looked like a lit light). Dragging
        still works — `onBrightnessCommit` is what enables the gesture. */
-    brightness={drag && active ? percent : undefined}
-    onBrightnessCommit={handleBrightnessCommit}
-    onPress={handlePress}
-    onLongPress={handleLongPress}
-    accessibilityHint={drag ? t('tile.dragHint') : t('tile.holdHint')}/>;
+      brightness={drag && active ? percent : undefined}
+      onBrightnessCommit={handleBrightnessCommit}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      accessibilityHint={drag ? t('tile.dragHint') : t('tile.holdHint')}
+    />
+  );
 });
 
 /** The device as the drag has it right now, so the subtitle reads from the same number as the fill. */
 function withDraggedPercent(device: Device, percent: number): Device {
   return {
     ...device,
-    capabilities: device.capabilities.map(capability => {
-      if (capability.kind === 'brightness' || capability.kind === 'fanSpeed') return { ...capability, percent };
-      if (capability.kind === 'cover') return { ...capability, position: percent, open: percent > 0 };
+    capabilities: device.capabilities.map((capability) => {
+      if (capability.kind === 'brightness' || capability.kind === 'fanSpeed')
+        return { ...capability, percent };
+      if (capability.kind === 'cover')
+        return { ...capability, position: percent, open: percent > 0 };
       if (capability.kind === 'media') return { ...capability, volume: percent };
       if (capability.kind === 'onOff') return { ...capability, on: percent > 0 };
       return capability;

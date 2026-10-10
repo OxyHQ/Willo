@@ -118,7 +118,7 @@ class InnerClimateEntity extends React.Component<ClimateEntityProps, ClimateEnti
           <ThermostatView
             entity={this.props.data}
             onClose={() => this.setState({ expanded: false })}
-            setTemperature={temp =>
+            setTemperature={(temp) =>
               this.props.controls.setTemperature(temp, this.props.data.entity_id)
             }
           />
@@ -162,7 +162,7 @@ function InnerLightEntity({ style, data, controls }: LightEntityProps) {
         <LightSheet
           entity={data}
           onClose={() => sheetRef.current?.dismiss()}
-          onToggle={turnOn => controls.toggleLight(data.entity_id, turnOn)}
+          onToggle={(turnOn) => controls.toggleLight(data.entity_id, turnOn)}
         />
       </BottomSheet>
 
@@ -182,9 +182,7 @@ const LightEntity = styled(InnerLightEntity)`
   flex-direction: column;
   justify-content: flex-end;
   background-color: ${({ data }: LightEntityProps) =>
-    data.state === 'on'
-      ? Color(data.attributes.rgb_color ?? [0, 0, 0]).string()
-      : '#EBEBEB'};
+    data.state === 'on' ? Color(data.attributes.rgb_color ?? [0, 0, 0]).string() : '#EBEBEB'};
 `;
 
 type EntitiesViewProps = {
@@ -193,11 +191,7 @@ type EntitiesViewProps = {
   controls: ProviderControls;
 };
 
-export default function EntitiesView({
-  locationName,
-  entities,
-  controls,
-}: EntitiesViewProps) {
+export default function EntitiesView({ locationName, entities, controls }: EntitiesViewProps) {
   return (
     <>
       <Title>
@@ -226,20 +220,14 @@ export default function EntitiesView({
             </EmptyState>
           ) : (
             <Margin>
-              {entities.map(entity => {
+              {entities.map((entity) => {
                 switch (entity.entity_id.split('.')[0]) {
                   case 'climate':
                     return (
-                      <ClimateEntity
-                        key={entity.entity_id}
-                        data={entity}
-                        controls={controls}
-                      />
+                      <ClimateEntity key={entity.entity_id} data={entity} controls={controls} />
                     );
                   case 'light':
-                    return (
-                      <LightEntity key={entity.entity_id} data={entity} controls={controls} />
-                    );
+                    return <LightEntity key={entity.entity_id} data={entity} controls={controls} />;
                   default:
                     return null;
                 }

@@ -59,7 +59,9 @@ export async function connectPostgres(): Promise<Database> {
  */
 export function getDb(): Database {
   if (!db) {
-    throw new Error('PostgreSQL is not connected. Call connectPostgres() during startup before issuing queries.');
+    throw new Error(
+      'PostgreSQL is not connected. Call connectPostgres() during startup before issuing queries.',
+    );
   }
   return db;
 }

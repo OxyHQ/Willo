@@ -32,26 +32,63 @@ export const estimateSensorCardHeight = (rowCount: number) => 56 + 28 * rowCount
  * as siblings on the dashboard. Which sensors to pass, and in what order, is
  * `selectRelevantSensors`'s job, not this component's.
  */
-export function SensorReadingsCard({ title, sensors, hiddenCount = 0, onShowMore, height }: { title: string; sensors: Device[]; hiddenCount?: number; onShowMore?: () => void; /** Set on the dashboard, where the card stands a whole number of tile rows tall; left off where it sizes to its own content (the Devices screen). */ height?: number }) {
+export function SensorReadingsCard({
+  title,
+  sensors,
+  hiddenCount = 0,
+  onShowMore,
+  height,
+}: {
+  title: string;
+  sensors: Device[];
+  hiddenCount?: number;
+  onShowMore?: () => void /** Set on the dashboard, where the card stands a whole number of tile rows tall; left off where it sizes to its own content (the Devices screen). */;
+  height?: number;
+}) {
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const unitSystem = useUnitSystem();
-  return <View className="gap-3 rounded-[28px] bg-success-subtle p-4" style={height === undefined ? undefined : { height }}>
-    <View className="flex-row items-center gap-2">
-      <Icon name="thermometer" size={20} color={themeColors.success}/>
-      <Label className="min-w-0 flex-1 text-[14px] font-medium text-success-text">{title}</Label>
+  return (
+    <View
+      className="gap-3 rounded-[28px] bg-success-subtle p-4"
+      style={height === undefined ? undefined : { height }}
+    >
+      <View className="flex-row items-center gap-2">
+        <Icon name="thermometer" size={20} color={themeColors.success} />
+        <Label className="min-w-0 flex-1 text-[14px] font-medium text-success-text">{title}</Label>
+      </View>
+      {sensors.length === 0 && (
+        <Label className="text-[12px] text-success-text">{t('sensors.noneFound')}</Label>
+      )}
+      {sensors.map((sensor) => {
+        const measurement = getCapability(sensor, 'measurement');
+        return (
+          <View key={sensor.id} className="flex-row items-center justify-between gap-3">
+            <Label numberOfLines={1} className="min-w-0 flex-1 text-[12px] text-success-text">
+              {sensor.name}
+            </Label>
+            <Label
+              className="text-[12px] font-medium text-success-text"
+              style={{ fontVariant: ['tabular-nums'] }}
+            >
+              {formatReading(measurement?.value ?? null, measurement?.unit ?? null, unitSystem)}
+            </Label>
+          </View>
+        );
+      })}
+      {hiddenCount > 0 && onShowMore && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('sensors.showMore', { count: hiddenCount })}
+          onPress={onShowMore}
+          className="flex-row items-center justify-between active:opacity-70"
+        >
+          <Label className="text-[12px] font-medium text-success-text">
+            {t('sensors.more', { count: hiddenCount })}
+          </Label>
+          <Icon name="chevron" size={14} color={themeColors.success} />
+        </Pressable>
+      )}
     </View>
-    {sensors.length === 0 && <Label className="text-[12px] text-success-text">{t('sensors.noneFound')}</Label>}
-    {sensors.map(sensor => {
-      const measurement = getCapability(sensor, 'measurement');
-      return <View key={sensor.id} className="flex-row items-center justify-between gap-3">
-        <Label numberOfLines={1} className="min-w-0 flex-1 text-[12px] text-success-text">{sensor.name}</Label>
-        <Label className="text-[12px] font-medium text-success-text" style={{ fontVariant: ['tabular-nums'] }}>{formatReading(measurement?.value ?? null, measurement?.unit ?? null, unitSystem)}</Label>
-      </View>;
-    })}
-    {hiddenCount > 0 && onShowMore && <Pressable accessibilityRole="button" accessibilityLabel={t('sensors.showMore', { count: hiddenCount })} onPress={onShowMore} className="flex-row items-center justify-between active:opacity-70">
-      <Label className="text-[12px] font-medium text-success-text">{t('sensors.more', { count: hiddenCount })}</Label>
-      <Icon name="chevron" size={14} color={themeColors.success}/>
-    </Pressable>}
-  </View>;
+  );
 }

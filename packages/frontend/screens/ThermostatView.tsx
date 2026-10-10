@@ -252,7 +252,7 @@ export default class ThermostatView extends React.Component<
 
   static getDerivedStateFromProps(
     props: ThermostatViewProps,
-    state: ThermostatViewState
+    state: ThermostatViewState,
   ): ThermostatViewState | null {
     if (props.entity?.attributes.temperature === state.tempUserOverride) {
       return { ...state, tempUserOverride: null };
@@ -319,7 +319,7 @@ export default class ThermostatView extends React.Component<
                 max={25}
                 color={getPrimaryColor(temp)}
                 pose={pose}
-                onChange={value => {
+                onChange={(value) => {
                   // Dragging past the minimum reports 'off'; there's no
                   // dedicated "off" handling downstream (HA's
                   // set_temperature service takes a number), so treat it

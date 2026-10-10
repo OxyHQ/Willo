@@ -76,10 +76,7 @@ const LevelTrack = styled((props: LevelTrackProps) => {
           }
         }
       >
-        <Handle
-          animate={{ scale: props.pose === 'expanded' ? 1 : 0 }}
-          color={props.color}
-        />
+        <Handle animate={{ scale: props.pose === 'expanded' ? 1 : 0 }} color={props.color} />
       </Value>
       <ActionWrapper pointerEvents={props.pose === 'expanded' ? 'none' : 'auto'}>
         {props.children}
@@ -123,13 +120,13 @@ export default class Level extends React.Component<LevelProps, LevelState> {
 
   onPanResponderMove = (
     evt: { nativeEvent: { locationY: number } },
-    gestureState: PanResponderGestureState
+    gestureState: PanResponderGestureState,
   ) => {
     const { min, max } = this.props;
     const steps = max - min + 1;
     const offset = this.state.height - evt.nativeEvent.locationY;
     const value = Math.round(
-      Math.min(Math.max(offset / (this.state.height / steps), 0), steps) + (min - 1)
+      Math.min(Math.max(offset / (this.state.height / steps), 0), steps) + (min - 1),
     );
     this.props.onChange(value === min - 1 ? 'off' : value);
   };
@@ -144,7 +141,7 @@ export default class Level extends React.Component<LevelProps, LevelState> {
         config={buildConfig({ min, max })}
         {...this.panResponder.panHandlers}
         pointerEvents={pose !== 'collapsed' ? 'auto' : 'none'}
-        onLayout={evt => this.setState({ height: evt.nativeEvent.layout.height })}
+        onLayout={(evt) => this.setState({ height: evt.nativeEvent.layout.height })}
       >
         {children}
       </LevelTrack>

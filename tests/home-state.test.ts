@@ -7,13 +7,19 @@ test('upcoming cards can be dismissed only once', () => {
   assert.deepEqual(state.dismissedUpcoming, ['kettle']);
 });
 test('a saved automation is appended and duplicate ids are ignored', () => {
-  const action = { type: 'ADD_ROUTINE', routine: { id: 'one', title: 'Lights off', description: 'At sunrise', icon: 'light' } } as const;
+  const action = {
+    type: 'ADD_ROUTINE',
+    routine: { id: 'one', title: 'Lights off', description: 'At sunrise', icon: 'light' },
+  } as const;
   const state = homeReducer(initialHomeState, action);
   assert.equal(state.routines.length, 1);
   assert.equal(homeReducer(state, action).routines.length, 1);
 });
 test('empty routine titles are rejected', () => {
-  const action = { type: 'ADD_ROUTINE', routine: { id: 'empty', title: '  ', description: '', icon: 'light' } } as const;
+  const action = {
+    type: 'ADD_ROUTINE',
+    routine: { id: 'empty', title: '  ', description: '', icon: 'light' },
+  } as const;
   assert.equal(homeReducer(initialHomeState, action).routines.length, 0);
 });
 // Devices themselves live in a provider now (`providers/demo-home.ts`); what

@@ -9,7 +9,11 @@ import { eq } from 'drizzle-orm';
 import { closePostgres, connectPostgres, getDb } from '../../db/postgres';
 import { homes } from '../../db/schema';
 import { createHome } from '../homes.service';
-import { listEvents, recordBinarySensorEvent, type BinarySensorTransition } from '../homeEvents.service';
+import {
+  listEvents,
+  recordBinarySensorEvent,
+  type BinarySensorTransition,
+} from '../homeEvents.service';
 import { NotFoundError } from '../../errors';
 
 before(async () => {
@@ -51,7 +55,10 @@ test('a motion/occupancy transition is categorized as motion', async () => {
   const owner = newUserId('owner');
   const { home } = await createHome(owner);
   try {
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.hallway_motion', deviceClass: 'occupancy' }));
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.hallway_motion', deviceClass: 'occupancy' }),
+    );
     const [event] = await listEvents(home.id, owner);
     assert.equal(event?.eventType, 'motion');
   } finally {
@@ -63,7 +70,10 @@ test('a smoke/gas transition is categorized as safety', async () => {
   const owner = newUserId('owner');
   const { home } = await createHome(owner);
   try {
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.kitchen_smoke', deviceClass: 'smoke' }));
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.kitchen_smoke', deviceClass: 'smoke' }),
+    );
     const [event] = await listEvents(home.id, owner);
     assert.equal(event?.eventType, 'safety');
   } finally {
@@ -75,7 +85,10 @@ test('an unrecognized or missing device_class falls back to other', async () => 
   const owner = newUserId('owner');
   const { home } = await createHome(owner);
   try {
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.unknown', deviceClass: null }));
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.unknown', deviceClass: null }),
+    );
     const [event] = await listEvents(home.id, owner);
     assert.equal(event?.eventType, 'other');
     assert.equal(event?.deviceClass, null);
@@ -88,15 +101,24 @@ test('listEvents returns this Home’s events most-recent-first', async () => {
   const owner = newUserId('owner');
   const { home } = await createHome(owner);
   try {
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.a', active: true }));
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.b', active: false }));
-    await recordBinarySensorEvent(home.id, transition({ entityId: 'binary_sensor.c', active: true }));
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.a', active: true }),
+    );
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.b', active: false }),
+    );
+    await recordBinarySensorEvent(
+      home.id,
+      transition({ entityId: 'binary_sensor.c', active: true }),
+    );
 
     const events = await listEvents(home.id, owner);
     assert.equal(events.length, 3);
     assert.deepEqual(
-      events.map(event => event.entityId),
-      ['binary_sensor.c', 'binary_sensor.b', 'binary_sensor.a']
+      events.map((event) => event.entityId),
+      ['binary_sensor.c', 'binary_sensor.b', 'binary_sensor.a'],
     );
   } finally {
     await getDb().delete(homes).where(eq(homes.id, home.id));
@@ -125,8 +147,14 @@ test('events from one Home never leak into another Home’s activity history', a
 
     const eventsA = await listEvents(homeA.id, owner);
     const eventsB = await listEvents(homeB.id, owner);
-    assert.deepEqual(eventsA.map(event => event.entityId), ['binary_sensor.a']);
-    assert.deepEqual(eventsB.map(event => event.entityId), ['binary_sensor.b']);
+    assert.deepEqual(
+      eventsA.map((event) => event.entityId),
+      ['binary_sensor.a'],
+    );
+    assert.deepEqual(
+      eventsB.map((event) => event.entityId),
+      ['binary_sensor.b'],
+    );
   } finally {
     await getDb().delete(homes).where(eq(homes.id, homeA.id));
     await getDb().delete(homes).where(eq(homes.id, homeB.id));
