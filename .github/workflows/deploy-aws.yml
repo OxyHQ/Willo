@@ -57,46 +57,16 @@ jobs:
           role-to-assume: arn:aws:iam::237343248947:role/oxy-github-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      # The secrets are enumerated one at a time, on purpose.
-      #
-      # A workflow that walks every repository secret into a shell loop
-      # (`toJSON(secrets)`) is shaped exactly like an exfiltration payload, so
-      # GitHub creates the run with conclusion `action_required` and ZERO jobs
-      # until a human clicks "Approve and run" in the UI — and that approval
-      # cannot be automated. The list below is the secrets the `willo` task
-      # definition actually consumes. Adding a new one means adding it here,
-      # or it never reaches SSM.
-      - name: Sync GitHub secrets -> SSM (GitHub is the source of truth)
-        env:
-          # The Postgres connection string, and the one the service cannot
-          # boot without: `config.ts` refuses to load without it and
-          # `server.ts` opens the pool before listening. An unset or
-          # placeholder GitHub secret is SKIPPED by sync_secret below, so this
-          # can never overwrite a value provisioned directly in SSM.
-          APP_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # Ecosystem-activity telemetry (src/ecosystemActivity.ts). Both are
-          # expected to be UNSET until a separate process finishes
-          # registering an Oxy application for Willo and provisions these —
-          # sync_secret skips them meanwhile, and the service runs exactly as
-          # it does today (see ecosystemActivity.ts: absent credentials just
-          # print a warning, they never fail startup).
-          APP_OXY_SERVICE_API_KEY: ${{ secrets.OXY_SERVICE_API_KEY }}
-          APP_OXY_SERVICE_API_SECRET: ${{ secrets.OXY_SERVICE_API_SECRET }}
-        run: |
-          sync_secret() {
-            name="$1"; value="$2"; path="$3"
-            if [ -z "$value" ] || [ "$value" = "-" ]; then
-              echo "::warning::skip empty/placeholder secret $name; SSM unchanged"
-              return 0
-            fi
-            aws ssm put-parameter --name "$path" --value "$value" --type SecureString --overwrite >/dev/null
-            echo "synced -> $path"
-          }
-
-          sync_secret DATABASE_URL "$APP_DATABASE_URL" "/oxy/$APP/DATABASE_URL"
-          sync_secret OXY_SERVICE_API_KEY "$APP_OXY_SERVICE_API_KEY" "/oxy/$APP/OXY_SERVICE_API_KEY"
-          sync_secret OXY_SERVICE_API_SECRET "$APP_OXY_SERVICE_API_SECRET" "/oxy/$APP/OXY_SERVICE_API_SECRET"
-
+      # Runtime secrets are NOT in GitHub. SSM Parameter Store (/oxy/willo/*,
+      # SecureString) is their single source of truth: the task definition reads
+      # them at task start, and nothing in this workflow writes one. Setting or
+      # rotating a value is `aws ssm put-parameter --overwrite` by its owner
+      # (oxy-infra docs/runbooks/46-app-secrets-in-ssm.md), never a repo secret.
+      # A new one is written to SSM FIRST, then named in the task definition: a
+      # task naming a missing parameter fails at start. Until 2026-10-10 a step
+      # here copied GitHub repo secrets into SSM on every deploy.
+      # tests/deploy-workflow-secrets.test.ts fails if a workflow writes SSM or
+      # reads an app secret from GitHub again.
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
 
