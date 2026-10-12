@@ -6,7 +6,7 @@
   "scripts": {
     "start": "bun src/server.ts",
     "dev": "bun --watch src/server.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun check",
     "db:up": "docker compose -f docker-compose.postgres.yml up -d postgres",
     "db:down": "docker compose -f docker-compose.postgres.yml down",
     "db:generate": "drizzle-kit generate",
