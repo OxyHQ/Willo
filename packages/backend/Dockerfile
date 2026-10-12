@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 #
 # Willo backend image (@willo.sh/backend).
 #
@@ -23,9 +23,18 @@
 # see src/ecosystemActivity.ts). Non-secret config (PORT, OXY_API_URL, CORS_ORIGINS)
 # is set as plain task-definition env. SSM is the only copy of each secret;
 # nothing in .github/workflows writes one (oxy-infra runbook 46).
+#
+# Every base image, and the `syntax` frontend on line 1, is pinned by its
+# multi-arch index digest after the tag (`tag@sha256:...`). A tag is mutable:
+# a re-pushed `oven/bun:1.4.3-alpine` would change what this file builds
+# without changing one byte of it, and this file's bytes are what
+# .github/scripts/reviewed-images.json pins. The tag stays for readers and for
+# tests/bun-pin.test.ts; the digest is what the build uses. Bumping a base
+# image means a new tag AND its index digest
+# (`docker buildx imagetools inspect <image>:<tag>`), and a re-review.
 
 # ── Stage 1: build (install deps, type-gate the backend) ────────────────────
-FROM oven/bun:1.4.3-alpine AS builder
+FROM oven/bun:1.4.3-alpine@sha256:629e17411f1f129dbec3af78d5af9c9f2a937435c80349437206c6b0b7422373 AS builder
 WORKDIR /app
 
 # Workspace root files. This repo has no root tsconfig.json (only a
@@ -66,7 +75,7 @@ COPY packages/backend/src/ packages/backend/src/
 RUN cd packages/backend && bun run typecheck
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────
-FROM oven/bun:1.4.3-alpine AS runtime
+FROM oven/bun:1.4.3-alpine@sha256:629e17411f1f129dbec3af78d5af9c9f2a937435c80349437206c6b0b7422373 AS runtime
 WORKDIR /app
 
 # Drop privileges: run as a dedicated non-root user.

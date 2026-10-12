@@ -62,7 +62,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/OxyHQ/Willo
             io.oxy.source.tree=${{ steps.guard.outputs.source_tree }}
-            io.oxy.dockerfile.sha256=1dd056ad6fa46518be5e32fcb64cf83f9cb2d7d3702d0a43955a0db20d5a9f5b
+            io.oxy.dockerfile.sha256=3625fdf33bfb6882c4f49bb14be12382deafe425696c91dbd277bdae3bb1c934
           cache-from: type=gha,scope=willo-backend
           cache-to: type=gha,mode=max,scope=willo-backend
       - name: Verify authenticated ECR bytes
