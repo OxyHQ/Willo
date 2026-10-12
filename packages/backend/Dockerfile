@@ -25,7 +25,7 @@
 # nothing in .github/workflows writes one (oxy-infra runbook 46).
 
 # ── Stage 1: build (install deps, type-gate the backend) ────────────────────
-FROM oven/bun:1.3.14-alpine AS builder
+FROM oven/bun:1.4.3-alpine AS builder
 WORKDIR /app
 
 # Workspace root files. This repo has no root tsconfig.json (only a
@@ -66,7 +66,7 @@ COPY packages/backend/src/ packages/backend/src/
 RUN cd packages/backend && bun run typecheck
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────
-FROM oven/bun:1.3.14-alpine AS runtime
+FROM oven/bun:1.4.3-alpine AS runtime
 WORKDIR /app
 
 # Drop privileges: run as a dedicated non-root user.
