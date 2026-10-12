@@ -27,10 +27,10 @@
 # Every base image, and the `syntax` frontend on line 1, is pinned by its
 # multi-arch index digest after the tag (`tag@sha256:...`). A tag is mutable:
 # a re-pushed `oven/bun:1.4.3-alpine` would change what this file builds
-# without changing one byte of it, and this file's bytes are what
-# .github/scripts/reviewed-images.json pins. The tag stays for readers and for
-# tests/bun-pin.test.ts; the digest is what the build uses. Bumping a base
-# image means a new tag AND its index digest
+# without changing one byte of it, and this file's bytes, with .dockerignore,
+# are what .github/scripts/reviewed-images.json pins (reviewed-image.py). The
+# tag stays for readers and for tests/bun-pin.test.ts; the digest is what the
+# build uses. Bumping a base image means a new tag AND its index digest
 # (`docker buildx imagetools inspect <image>:<tag>`), and a re-review.
 
 # ── Stage 1: build (install deps, type-gate the backend) ────────────────────
