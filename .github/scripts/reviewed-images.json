@@ -3,13 +3,11 @@
   "recipes": [
     {
       "name": "willo",
-      "services": ["willo"],
       "ecrRepository": "oxy/willo",
       "dockerfile": "packages/backend/Dockerfile",
-      "dockerfileSha256": "3625fdf33bfb6882c4f49bb14be12382deafe425696c91dbd277bdae3bb1c934",
+      "context": ".",
       "target": null,
-      "tagSuffix": "",
-      "cacheScope": "willo-backend"
+      "buildInputsSha256": "8a8c2dcc21f1f23ae5d86dc69da544e51216d86af090cc7117163aac1c798a6f"
     }
   ]
 }

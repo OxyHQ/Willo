@@ -1,0 +1,37 @@
+# The production image's build inputs must be the reviewed ones.
+#
+# packages/backend/Dockerfile, its build context and target, and both
+# .dockerignore files BuildKit can apply are hashed and compared with the ONE
+# pin in .github/scripts/reviewed-images.json. deploy-aws.yml refuses to build
+# on a mismatch, so this check is what stops a merge from stranding main
+# undeployable: a Dockerfile or .dockerignore change fails here until the owner
+# reviews it and re-pins (`python3 .github/scripts/reviewed-image.py pin`).
+#
+# Its own workflow, with no path filter, because ui-checks.yml only runs for
+# some paths and this must report on EVERY pull request to be requirable.
+name: Reviewed image
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reviewed-image:
+    name: Reviewed image inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+      # The fixture tests run first so a green check means the gate can fail,
+      # not that it stopped looking.
+      - name: Prove the reviewed-image gate can fail
+        run: python3 -B -m unittest discover -s .github/scripts -p test_reviewed_image.py
+      - name: Verify the production image's build inputs are reviewed
+        run: python3 -B .github/scripts/reviewed-image.py check
