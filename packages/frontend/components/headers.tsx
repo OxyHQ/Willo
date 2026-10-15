@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import { assets } from '../data/assets';
 import { Pressable, View } from 'react-native';
 import { type Navigate } from '../data/screens';
@@ -8,6 +8,9 @@ import { Icon } from '@willo.sh/ui';
 import { Avatar, IconButton, Label } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
+import { useAuth, useOxy } from '@oxy.so/services';
+import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
+import { VoiceSession } from '@alia.onl/sdk/voice';
 export function useAccountMenu(onNavigate: Navigate) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
@@ -58,6 +61,24 @@ export function AppHeader({
   const { colors: themeColors } = useTheme();
   const { t } = useTranslation();
   const ask = t('header.ask', { home: homeName });
+  const { isAuthenticated } = useAuth();
+  const { openAccountDialog } = useOxy();
+  const aliaChatRef = useRef<AliaChatSheetRef>(null);
+  const aliaWelcomeSuggestions = useMemo(
+    () => [
+      { id: 'devices', text: t('header.aliaSuggestion.devices') },
+      { id: 'automations', text: t('header.aliaSuggestion.automations') },
+      { id: 'energy', text: t('header.aliaSuggestion.energy') },
+    ],
+    [t],
+  );
+  const handleAskAlia = () => {
+    if (isAuthenticated) {
+      aliaChatRef.current?.present();
+    } else {
+      openAccountDialog();
+    }
+  };
   // `card`/`background`: the same raised-surface-on-shell pairing as
   // `ContentPanel` — the pill reads as a raised surface, not a plain page
   // element. `card` is real white in light mode and a sensible raised dark
@@ -105,6 +126,12 @@ export function AppHeader({
           <View className="hidden flex-1 shell:flex" />
           {actions}
           <IconButton
+            icon="sparkle"
+            label={t('header.askAlia')}
+            onPress={handleAskAlia}
+            className="bg-card"
+          />
+          <IconButton
             icon="plus"
             label={t('composer.title')}
             onPress={() => onNavigate('composer')}
@@ -113,6 +140,17 @@ export function AppHeader({
           <Avatar onPress={account} source={assets.avatar} label={t('common.accountMenu')} />
         </View>
       </ContentWidth>
+      {isAuthenticated && (
+        <AliaChatSheet
+          ref={aliaChatRef}
+          voiceSession={VoiceSession}
+          clientContext={t('header.aliaClientContext', {
+            home: homeName,
+            screen: title ?? t('nav.home'),
+          })}
+          welcomeSuggestions={aliaWelcomeSuggestions}
+        />
+      )}
     </View>
   );
 }

@@ -20,6 +20,13 @@
     "ask": "Pregunta a {{home}}",
     "homeSettings": "Ajustes de la casa",
     "filter": "Filtrar",
+    "askAlia": "Preguntar a Alia",
+    "aliaClientContext": "La persona usa Willo, una aplicación de hogar inteligente que controla su propia casa de Home Assistant, llamada \"{{home}}\". Está en la pantalla \"{{screen}}\", donde puede controlar dispositivos, ver cámaras, revisar la actividad y gestionar automatizaciones.",
+    "aliaSuggestion": {
+      "devices": "¿Qué dispositivos están encendidos ahora?",
+      "automations": "Ayúdame a crear una automatización",
+      "energy": "¿Cómo puedo ahorrar energía en casa?"
+    },
     "noNotifications": "Esta demo de la interfaz no tiene notificaciones en directo."
   },
   "camera": {
