@@ -27,6 +27,13 @@
           "cameraPermission": "Willo uses the camera to scan the QR code shown on your Home Assistant device when connecting it."
         }
       ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Willo uses the microphone so you can talk to Alia.",
+          "speechRecognitionPermission": "Willo turns your speech into text so you can talk to Alia."
+        }
+      ],
       "./plugins/withOxyDebugSigning"
     ],
     "android": {

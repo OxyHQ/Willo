@@ -20,6 +20,13 @@
     "ask": "Ask {{home}}",
     "homeSettings": "Home settings",
     "filter": "Filter",
+    "askAlia": "Ask Alia",
+    "aliaClientContext": "The person is using Willo, a smart home app that controls their own Home Assistant home, named \"{{home}}\". They are on the \"{{screen}}\" screen, where they can control devices, view cameras, review activity and manage automations.",
+    "aliaSuggestion": {
+      "devices": "Which devices are on right now?",
+      "automations": "Help me create an automation",
+      "energy": "How can I save energy at home?"
+    },
     "noNotifications": "This UI demo has no live notifications."
   },
   "camera": {
