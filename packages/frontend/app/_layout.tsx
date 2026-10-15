@@ -6,6 +6,7 @@ import { Slot, Stack, usePathname } from 'expo-router';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { OverlayInertBoundary, PortalOutlet, PortalProvider } from '@oxy.so/bloom/portal';
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { OxyProvider } from '@oxy.so/services';
@@ -197,8 +198,17 @@ export default function RootLayout() {
           >
             <HomeProvider>
               <TabPagerProvider>
-                <AppShell />
-                <Overlays />
+                {/* Native `Portal`s (the Ask Alia sheet, Bloom dialogs) only
+                    render into the ONE outlet below, painted after the content
+                    it covers. The boundary wraps everything but the outlet so a
+                    modal surface hides the app from screen readers. */}
+                <PortalProvider>
+                  <OverlayInertBoundary>
+                    <AppShell />
+                    <Overlays />
+                  </OverlayInertBoundary>
+                  <PortalOutlet />
+                </PortalProvider>
               </TabPagerProvider>
             </HomeProvider>
           </OxyProvider>
