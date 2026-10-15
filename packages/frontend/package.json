@@ -11,7 +11,7 @@
     "lint": "expo lint ."
   },
   "dependencies": {
-    "@alia.onl/sdk": "^15.4.0",
+    "@alia.onl/sdk": "^15.6.0",
     "@emotion/native": "^11.11.0",
     "@emotion/react": "^11.14.0",
     "@expo/metro-runtime": "~57.0.15",
