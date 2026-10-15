@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import type React from 'react';
+import { useMemo, useState } from 'react';
 import { Image, type ImageSource } from 'expo-image';
 import { Platform, Pressable, Text, View, type TextProps, type TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -6,6 +7,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-nativ
 import { Icon, type IconName } from './icon';
 import { colors, tones, type Tone } from '../theme/tokens';
 import { useTheme, type ThemeColors } from '@oxy.so/bloom/theme';
+import type { BloomIconComponent } from '@oxy.so/bloom/icons';
 import { useHaptics } from '@oxy.so/bloom/hooks';
 const IS_WEB = Platform.OS === 'web';
 /** How often a drag is allowed to reach the real device. ~16 commands a second is smoother than the eye and a fraction of a 120 Hz drag's frames. */
@@ -55,6 +57,20 @@ export function Label({
     />
   );
 }
+/** A named glyph, or a Bloom icon component drawn at the same size and colour. */
+function IconGlyph({
+  icon,
+  size,
+  color,
+}: {
+  icon: IconName | BloomIconComponent;
+  size: number;
+  color: string;
+}) {
+  if (typeof icon === 'string') return <Icon name={icon} size={size} color={color} />;
+  const Glyph = icon;
+  return <Glyph width={size} height={size} fill={color} />;
+}
 export function IconButton({
   icon,
   onPress,
@@ -65,7 +81,8 @@ export function IconButton({
   disabled = false,
   shape = 'regular',
 }: {
-  icon: IconName;
+  /** A named glyph, or a Bloom icon component (it gets the size and the colour as `fill`). */
+  icon: IconName | BloomIconComponent;
   onPress: () => void;
   label: string;
   color?: string;
@@ -98,7 +115,7 @@ export function IconButton({
       hitSlop={4}
       className={`${dimensions} items-center justify-center rounded-full active:opacity-60 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${className}`}
     >
-      <Icon name={icon} size={size} color={color ?? themeColors.text} />
+      <IconGlyph icon={icon} size={size} color={color ?? themeColors.text} />
     </Pressable>
   );
 }

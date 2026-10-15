@@ -1,7 +1,8 @@
-import React, { useMemo, useRef } from 'react';
+import type React from 'react';
+import { useMemo, useRef } from 'react';
 import { assets } from '../data/assets';
 import { Pressable, View } from 'react-native';
-import { type Navigate } from '../data/screens';
+import type { Navigate } from '../data/screens';
 import { useHome, useHomeActions } from '../state/home-context';
 import { ContentWidth } from '../layout/page-layout';
 import { Icon } from '@willo.sh/ui';
@@ -10,6 +11,7 @@ import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { useAuth, useOxy } from '@oxy.so/services';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
+import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
 import { VoiceSession } from '@alia.onl/sdk/voice';
 export function useAccountMenu(onNavigate: Navigate) {
   const { homeName } = useHome();
@@ -126,7 +128,7 @@ export function AppHeader({
           <View className="hidden flex-1 shell:flex" />
           {actions}
           <IconButton
-            icon="sparkle"
+            icon={AliaAvatarIcon}
             label={t('header.askAlia')}
             onPress={handleAskAlia}
             className="bg-card"
