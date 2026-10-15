@@ -28,10 +28,12 @@
         }
       ],
       [
-        "expo-speech-recognition",
+        "react-native-audio-api",
         {
-          "microphonePermission": "Willo uses the microphone so you can talk to Alia.",
-          "speechRecognitionPermission": "Willo turns your speech into text so you can talk to Alia."
+          "iosMicrophonePermission": "Willo uses the microphone so you can talk to Alia.",
+          "iosBackgroundMode": false,
+          "androidForegroundService": false,
+          "androidPermissions": ["android.permission.RECORD_AUDIO"]
         }
       ],
       "./plugins/withOxyDebugSigning"
