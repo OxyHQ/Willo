@@ -12,9 +12,10 @@
  * them. A debug build signed with Expo's keystore cannot be installed next to
  * Oxy, Commons or Mention — Android rejects it with
  * `INSTALL_FAILED_DUPLICATE_PERMISSION` — and Commons would refuse it anyway.
- * The preset's own `withOxyAndroidRelease` already covers the release
- * buildType (`OXY_UPLOAD_*`); this is the same idea for the one a developer
- * installs on their phone.
+ * The release buildType is covered by `withOxyAndroidRelease` (`OXY_UPLOAD_*`),
+ * listed as its own entry in app.json because the `@oxy.so/app-preset` plugin
+ * does not apply it; this is the same idea for the build a developer installs
+ * on their phone.
  *
  * The credentials come from Gradle properties — `~/.gradle/gradle.properties`
  * or `-P` on the command line — so the keystore and its password never go near
