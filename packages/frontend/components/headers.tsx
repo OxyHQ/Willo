@@ -12,7 +12,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth, useOxy } from '@oxy.so/services';
 import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
 import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
-import { VoiceSession } from '@alia.onl/sdk/voice';
 export function useAccountMenu(onNavigate: Navigate) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
@@ -145,7 +144,6 @@ export function AppHeader({
       {isAuthenticated && (
         <AliaChatSheet
           ref={aliaChatRef}
-          voiceSession={VoiceSession}
           clientContext={t('header.aliaClientContext', {
             home: homeName,
             screen: title ?? t('nav.home'),
