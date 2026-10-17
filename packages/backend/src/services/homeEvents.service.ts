@@ -4,7 +4,7 @@
  * produce one.
  */
 
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
 import { homeEvents, type HOME_EVENT_TYPES } from '../db/schema';
 import { assertActiveMember } from './homes.service';
@@ -68,7 +68,11 @@ export async function recordBinarySensorEvent(
       eventType: categorizeDeviceClass(transition.deviceClass),
       deviceClass: transition.deviceClass,
       active: transition.active,
-      occurredAt: new Date(),
+      // The server's clock, to the microsecond: a JS Date stops at the
+      // millisecond, so transitions recorded in the same millisecond (a burst
+      // of sensors on reconnect) tied and the feed's order between them was
+      // whatever the plan returned.
+      occurredAt: sql`clock_timestamp()`,
     });
 }
 
