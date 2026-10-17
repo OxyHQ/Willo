@@ -1,5 +1,12 @@
 import React, { ReactNode } from 'react';
-import { PanResponder, PanResponderGestureState, View, ViewProps } from 'react-native';
+import {
+  type HostInstance,
+  PanResponder,
+  PanResponderGestureState,
+  type PanResponderInstance,
+  View,
+  ViewProps,
+} from 'react-native';
 import { MotiView } from 'moti';
 import styled from '@emotion/native';
 import { EXPANDED_BOX_SIZE, LARGE_BOX_SIZE } from '../constants';
@@ -57,7 +64,7 @@ const Handle = styled(MotiView)`
 `;
 
 type LevelTrackProps = ViewProps & {
-  innRef?: React.Ref<View>;
+  innRef?: React.Ref<HostInstance>;
   pose: Pose;
   value: number;
   color: string;
@@ -109,7 +116,7 @@ type LevelState = {
 };
 
 export default class Level extends React.Component<LevelProps, LevelState> {
-  panResponder = PanResponder.create({
+  panResponder: PanResponderInstance = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (evt, gestureState) => this.onPanResponderMove(evt, gestureState),
   });

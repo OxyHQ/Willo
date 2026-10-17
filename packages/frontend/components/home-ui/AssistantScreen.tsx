@@ -4,6 +4,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   Text,
   TextInput,
   View,
@@ -16,7 +17,7 @@ export function AssistantScreen({ onNavigate }: ScreenProps) {
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
   const [selectedClip, setSelectedClip] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   function handleSend() {
     const message = draft.trim();
     if (!message) return;

@@ -107,11 +107,7 @@ function AppShell() {
       {/* Now that content sits behind the status bar, the clock and icons have
           to read against whatever is under them — dark glyphs on Willo's light
           shell, light ones in dark mode. */}
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        translucent
-        backgroundColor="transparent"
-      />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <ScreenChrome screen={screen} onNavigate={onNavigate}>

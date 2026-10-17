@@ -206,7 +206,7 @@ const Cancel = styled((props: CancelProps) => (
     from={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    exitTransition={{ type: 'timing', duration: 100 }}
+    exitTransition={{ opacity: { type: 'timing', duration: 100 } }}
     {...props}
   >
     <Text
@@ -338,9 +338,7 @@ export default class ThermostatView extends React.Component<
                       animate={{ width: BOX_SIZE }}
                       exit={{ width: 0 }}
                       transition={{
-                        type: 'timing',
-                        duration: 5000,
-                        easing: Easing.linear,
+                        width: { type: 'timing', duration: 5000, easing: Easing.linear },
                       }}
                       onPoseCompleted={() => {
                         this.setState({ timeout: false });
