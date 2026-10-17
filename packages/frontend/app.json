@@ -2,7 +2,6 @@
   "expo": {
     "name": "Willo",
     "slug": "willo",
-    "privacy": "public",
     "scheme": "willo",
     "platforms": ["ios", "android", "web"],
     "version": "1.0.0",
@@ -45,6 +44,9 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       }
+    },
+    "web": {
+      "output": "single"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, type ScrollViewInstance, Text, View } from 'react-native';
 import { GARDEN_IMAGE } from './fixtures';
 import { CameraCard, Icon, IconButton } from './Primitives';
 import type { ScreenProps } from './types';
@@ -7,7 +7,7 @@ import type { ScreenProps } from './types';
 export function EmergencyScreen({ onNavigate }: ScreenProps) {
   const [isSilenced, setIsSilenced] = useState(true);
   const [cameraIndex, setCameraIndex] = useState(0);
-  const cameraRef = useRef<ScrollView>(null);
+  const cameraRef = useRef<ScrollViewInstance>(null);
   return (
     <ScrollView
       className="flex-1 bg-white"
