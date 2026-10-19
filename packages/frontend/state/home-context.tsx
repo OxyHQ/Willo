@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useAuth, useOxy } from '@oxy.so/services';
+import { useAuth, useOxy } from '@oxy.so/services/ui/client';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState } from './home-reducer';
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';

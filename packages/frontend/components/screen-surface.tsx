@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@oxy.so/services';
+import { useAuth } from '@oxy.so/services/ui/client';
 import { SignInPrompt } from './sign-in-prompt';
 import { useHome } from '../state/home-context';
 import { type ScreenId } from '../data/screens';
