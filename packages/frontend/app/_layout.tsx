@@ -9,7 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { OverlayInertBoundary, PortalOutlet, PortalProvider } from '@oxy.so/bloom/portal';
 import { BloomProvider } from '@oxy.so/bloom/provider';
 import { useTheme } from '@oxy.so/bloom/theme';
-import { OxyProvider } from '@oxy.so/services';
+import { OxyProvider } from '@oxy.so/services/ui/client';
 import { HomeProvider } from '../state/home-context';
 import { TabPagerProvider } from '../state/tab-pager';
 import { Overlays } from '../components/overlays';

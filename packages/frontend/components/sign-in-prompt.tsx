@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { OxySignInButton } from '@oxy.so/services';
+import { OxySignInButton } from '@oxy.so/services/ui/client';
 import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 import { ContentWidth } from '../layout/page-layout';
