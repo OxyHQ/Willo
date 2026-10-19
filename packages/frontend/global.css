@@ -56,6 +56,7 @@ body {
 @source "./layout/**/*.{js,jsx,ts,tsx}";
 @source "../ui/**/*.{js,jsx,ts,tsx}";
 @source "../../node_modules/@oxy.so/bloom/lib/**/*.{js,jsx}";
+@source "../../node_modules/@alia.onl/sdk/src/**/*.{ts,tsx}";
 
 /* Isolated reference palette; existing Bloom tokens and custom controls are unchanged. */
 @theme {
