@@ -1,5 +1,10 @@
 import express, { type Express } from 'express';
-import { OxyServer, createOxyAuthMiddleware, createOxyCors } from '@oxy.so/core/server';
+import {
+  OxyServer,
+  createOxyAuthMiddleware,
+  createOxyCors,
+  oxyTrustProxy,
+} from '@oxy.so/core/server';
 import { config } from './config';
 import homesRouter from './routes/homes.routes';
 import tunnelRouter from './routes/tunnel.routes';
@@ -13,6 +18,12 @@ import { ecosystemActivityMiddleware } from './ecosystemActivity';
  */
 export function createApp(oxy: OxyServer): Express {
   const app = express();
+
+  // Before any middleware: `req.ip` is the real client behind the ALB, and behind
+  // the Cloudflare proxy too (the ALB's entry is trusted only when it is a
+  // published Cloudflare address). Without it `req.ip` is the ALB itself, and a
+  // forged X-Forwarded-For is never believed either way.
+  app.set('trust proxy', oxyTrustProxy);
 
   // First, unconditionally: observes every inbound request whether or not
   // ecosystem-activity has actually started (see ecosystemActivity.ts — it
