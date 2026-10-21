@@ -22,7 +22,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      ["@oxy.so/app-preset", {}],
+      ["@oxy.so/app-preset", { "android": { "gifEnabled": false, "webpEnabled": false } }],
       [
         "expo-camera",
         {
