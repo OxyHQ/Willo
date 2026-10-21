@@ -109,21 +109,20 @@ async function run(): Promise<void> {
       assert.equal(admitted, before);
     }
 
-    // reuses a validated admit for the same bearer, and refuses a revocation
-    // once Oxy announces it (`oxy:user:invalidate` drops the cached validation)
+    // validates every request while no revocation feed from Oxy is live
+    // (@oxy.so/core >= 6.9: this client has no service token, so it never
+    // caches), and refuses a revoked session on the very next request
     {
       active = true;
-      oxy.invalidateSessionValidations({ sessionId: 'receiver-session' });
       const token = bearer();
       assert.equal((await request(token)).status, 200);
       const checks = validations;
       assert.equal((await request(token)).status, 200);
-      assert.equal(validations, checks);
+      assert.equal(validations, checks + 1);
       const before = admitted;
       active = false;
-      oxy.invalidateSessionValidations({ sessionId: 'receiver-session' });
       assert.equal((await request(token)).status, 401);
-      assert.equal(validations, checks + 1);
+      assert.equal(validations, checks + 2);
       assert.equal(admitted, before);
     }
     assert.equal(blockedNetwork, 0);
