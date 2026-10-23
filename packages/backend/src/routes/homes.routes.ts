@@ -246,6 +246,7 @@ router.get('/:id/devices/:entityId/camera', async (req: Request, res: Response) 
   const homeId = pathParam(req.params.id);
   await homesService.assertActiveMember(homeId, userId);
   const image = await requestCameraSnapshot(homeId, pathParam(req.params.entityId));
+  res.setHeader('Cache-Control', 'private, no-store');
   res.status(200).contentType('image/jpeg').send(image);
 });
 
