@@ -1,6 +1,7 @@
 import React, { useState, useSyncExternalStore } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
+import { useCameraSnapshot } from '../hooks/use-camera-snapshot';
 import { assets } from '../data/assets';
 import { useHomeActions } from '../state/home-context';
 import { getCapability, type Device } from '../providers/types';
@@ -8,9 +9,7 @@ import { Icon } from '@willo.sh/ui';
 import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';
 
-// Home Assistant's camera snapshot URL carries its own short-lived signed
-// token, so re-fetching it periodically (rather than opening a video
-// stream) is enough for a "live-ish" thumbnail.
+// Refresh the private Willo snapshot through its shared session transport.
 const SNAPSHOT_REFRESH_MS = 8000;
 
 /**
@@ -46,7 +45,7 @@ export function RealCameraCard({
   height?: number;
   width?: number;
 }) {
-  const { setSheet, getAuthHeaders } = useHomeActions();
+  const { setSheet } = useHomeActions();
   const { t } = useTranslation();
   const refreshKey = useSyncExternalStore(
     watchSnapshotTick,
@@ -54,10 +53,7 @@ export function RealCameraCard({
     () => tick,
   );
   const snapshotUrl = getCapability(camera, 'camera')?.snapshotUrl ?? null;
-  // The snapshot is Willo's OWN backend endpoint now (relayed over the
-  // tunnel), which is Oxy-authenticated — never a raw Home Assistant URL, so
-  // this needs the same bearer header every other backend call carries.
-  const uri = snapshotUrl ? `${snapshotUrl}?_=${refreshKey}` : undefined;
+  const uri = useCameraSnapshot(snapshotUrl, refreshKey);
   return (
     <View className="relative overflow-hidden rounded-[27px] bg-muted" style={{ height, width }}>
       <Pressable
@@ -67,11 +63,7 @@ export function RealCameraCard({
         className="absolute inset-0"
       >
         {uri ? (
-          <Image
-            source={{ uri, headers: getAuthHeaders() }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
+          <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         ) : (
           <View className="h-full w-full items-center justify-center bg-home-ink">
             <Icon name="camera-off" color="white" size={28} />

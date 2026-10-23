@@ -1,3 +1,4 @@
+import { createAwsWorkloadCredentialProvider } from '@oxy.so/core/server/aws';
 import express, { type Express } from 'express';
 import {
   OxyServer,
@@ -55,5 +56,8 @@ export function createApp(oxy: OxyServer): Express {
 
 /** Build the default `OxyServer` client this process uses for both HTTP auth and Socket.IO auth. */
 export function createOxyClient(): OxyServer {
-  return new OxyServer({ baseURL: config.oxyApiUrl });
+  return new OxyServer({
+    baseURL: config.oxyApiUrl,
+    workloadCredentials: createAwsWorkloadCredentialProvider(),
+  });
 }

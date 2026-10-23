@@ -1,3 +1,4 @@
+import type { OxyServices } from '@oxy.so/core';
 import { io, type Socket } from 'socket.io-client';
 import type { ApplianceState, Device, DeviceCommand, SmartHomeProvider } from './types';
 import type { UnitSystem } from './unit-system';
@@ -14,8 +15,8 @@ const replaceOrAppend = <T extends { id: string }>(list: T[], item: T): T[] => {
 type WilloTunnelCredentials = {
   apiBaseUrl: string;
   homeId: string;
-  /** Synchronous — `@oxy.so/services`' `oxyServices.getAccessToken()`, read fresh on every call rather than captured once. */
-  getAccessToken: () => string | null;
+  fetch: typeof globalThis.fetch;
+  session: OxyServices['http'];
   /** Not part of `SmartHomeProvider` (every screen that lists devices only needs `Device[]`) — an extra credential-bag field this ONE concrete provider reports through, the same shape `createHomeAssistantProvider`'s old `onRefreshToken` used. */
   onConnectionChange: (connected: boolean) => void;
   /** Same reasoning as `onConnectionChange` — the Home's own name, read off `GET .../devices/live`'s response. */
@@ -95,11 +96,6 @@ const APPLIANCE_SERVICES: Record<ApplianceState, string> = {
   finished: 'stop',
 };
 
-function authHeaders(getAccessToken: () => string | null): Record<string, string> {
-  const token = getAccessToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 /**
  * Rewrites a camera device's `snapshotUrl` to Willo's own backend endpoint.
  * The tunnel/integration side has no reason to know Willo's public API host,
@@ -134,7 +130,8 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
   const {
     apiBaseUrl,
     homeId,
-    getAccessToken,
+    fetch: fetchWillo,
+    session,
     onConnectionChange,
     onHomeName,
     onUnitSystem,
@@ -148,12 +145,18 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
   // opens a socket or reports state for the Home being left.
   let isDisconnected = false;
   const listeners = new Set<(devices: Device[]) => void>();
+  const epoch = session.getSessionEpoch();
+  const current = () => !isDisconnected && session.getSessionEpoch() === epoch;
+  const unsubscribeSession = session.addTokenChangeListener(() => {
+    if (session.getSessionEpoch() === epoch) return;
+    isDisconnected = true;
+    socket?.disconnect();
+    listeners.clear();
+  });
   const emit = () => listeners.forEach((listener) => listener(devices));
 
   async function connect(): Promise<Device[]> {
-    const liveResponse = await fetch(`${apiBaseUrl}/homes/${homeId}/devices/live`, {
-      headers: authHeaders(getAccessToken),
-    });
+    const liveResponse = await fetchWillo(`${apiBaseUrl}/homes/${homeId}/devices/live`, {});
     if (!liveResponse.ok) throw new Error('Could not reach Willo.');
     const live = (await liveResponse.json()) as {
       connected: boolean;
@@ -162,7 +165,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       homeName: string | null;
       unitSystem: UnitSystem;
     };
-    if (isDisconnected) return [];
+    if (!current()) return [];
     devices = withCameraUrls(live.devices, apiBaseUrl, homeId);
     onHomeName(live.homeName);
     onUnitSystem(live.unitSystem);
@@ -170,7 +173,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     onConnectionChange(live.connected);
 
     socket = io(`${apiBaseUrl}/homes`, {
-      auth: { token: getAccessToken() },
+      auth: (callback) => callback({ token: current() ? (session.getAccessToken() ?? '') : '' }),
       transports: ['websocket'],
     });
 
@@ -184,18 +187,21 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       socket?.on('connect', onConnect);
       socket?.on('connect_error', reject);
     });
-    if (isDisconnected || !socket) return [];
+    if (!current() || !socket) return [];
 
     socket.on('home:devices-snapshot', (snapshot: Device[]) => {
+      if (!current()) return;
       devices = withCameraUrls(snapshot, apiBaseUrl, homeId);
       emit();
     });
     socket.on('home:device-updated', (device: Device) => {
+      if (!current()) return;
       devices = replaceOrAppend(devices, withCameraUrls([device], apiBaseUrl, homeId)[0] ?? device);
       emit();
     });
-    socket.on('home:connection-status', (status: { connected: boolean }) =>
-      onConnectionChange(status.connected),
+    socket.on(
+      'home:connection-status',
+      (status: { connected: boolean }) => current() && onConnectionChange(status.connected),
     );
 
     return devices;
@@ -205,6 +211,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     connect,
     disconnect() {
       isDisconnected = true;
+      unsubscribeSession();
       socket?.removeAllListeners();
       socket?.disconnect();
       socket = null;
@@ -215,13 +222,18 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       return () => listeners.delete(onDevices);
     },
     sendCommand(id, command) {
+      if (!current()) return;
       const body = homeAssistantService(domainOf(id), command);
 
-      fetch(`${apiBaseUrl}/homes/${homeId}/devices/${id}/command`, {
+      fetchWillo(`${apiBaseUrl}/homes/${homeId}/devices/${id}/command`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders(getAccessToken) },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      }).catch((error: unknown) => console.error('Failed to send a device command:', error));
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Device command failed (${response.status})`);
+        })
+        .catch((error: unknown) => console.error('Failed to send a device command:', error));
     },
   };
 }

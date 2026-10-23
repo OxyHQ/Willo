@@ -12,6 +12,13 @@ let receiverOrigin = '';
 let active = true;
 let validations = 0;
 let admitted = 0;
+let disposeOxy: (() => void) | undefined;
+// Never consult developer or instance credentials in this loopback fixture.
+process.env.AWS_ACCESS_KEY_ID = 'ASIA_TEST';
+process.env.AWS_SECRET_ACCESS_KEY = 'fixture';
+process.env.AWS_SESSION_TOKEN = 'fixture';
+process.env.AWS_CREDENTIAL_EXPIRATION = new Date(Date.now() + 3_600_000).toISOString();
+process.env.AWS_REGION = 'us-east-1';
 
 function bearer(userId = 'receiver-owner', includeSession = true): string {
   const payload = {
@@ -81,6 +88,7 @@ async function run(): Promise<void> {
     process.env.DATABASE_URL = 'postgres://unused:unused@127.0.0.1:1/receiver_fixture_unused';
     const { createOxyClient } = await import('../../app.js');
     const oxy = createOxyClient();
+    disposeOxy = () => oxy.dispose();
     const middleware = createOxyAuthMiddleware(oxy);
     const app = express();
     app.get('/owned-fixture', middleware, (req, res) => {
@@ -131,6 +139,7 @@ async function run(): Promise<void> {
         '\n',
     );
   } finally {
+    disposeOxy?.();
     try {
       await close(receiver);
     } finally {
