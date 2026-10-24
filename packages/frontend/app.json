@@ -37,9 +37,7 @@
           "androidForegroundService": false,
           "androidPermissions": ["android.permission.RECORD_AUDIO"]
         }
-      ],
-      "./plugins/withOxyDebugSigning",
-      "@oxy.so/app-preset/plugin/withOxyAndroidRelease"
+      ]
     ],
     "android": {
       "package": "sh.willo.app",

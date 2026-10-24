@@ -11,5 +11,19 @@ bun install
 bun start
 ```
 
+### Android signing
+
+Willo declares the Oxy signature permissions, so `@oxy.so/services`' `withOxySharedPermissions`
+(applied by `['@oxy.so/app-preset', {}]`) signs every **release** build with the Oxy ecosystem key
+and fails the build without it. The key comes from Gradle properties, never the repo:
+`OXY_UPLOAD_STORE_FILE`, `OXY_UPLOAD_STORE_PASSWORD` (or `OXY_UPLOAD_STORE_PASSWORD_FILE`) and
+`OXY_UPLOAD_KEY_ALIAS` (`oxy`), in `~/.gradle/gradle.properties`, with `-P`, or as
+`ORG_GRADLE_PROJECT_<name>` environment variables.
+
+A **debug / dev-client** build keeps Expo's debug key, so it cannot be installed next to Oxy,
+Commons or Mention (`INSTALL_FAILED_DUPLICATE_PERMISSION`). To put a dev client on a phone that
+has Oxy apps, opt debug into the same key with `OXY_UPLOAD_SIGN_DEBUG=true` (for example
+`ORG_GRADLE_PROJECT_OXY_UPLOAD_SIGN_DEBUG=true`, or a line in `~/.gradle/gradle.properties`).
+
 `bun run lint` runs Biome (formatting and linting) plus the frontend's minimal Expo ESLint
 config; `bun run format` formats with Biome.
