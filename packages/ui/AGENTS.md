@@ -45,10 +45,10 @@ they are otherwise (no Bloom `Slider`, no Bloom color tokens).
 
 ## Relative imports only — no `@/` alias inside this package
 
-`@oxy.so/app-preset/babel` hardcodes `alias: { '@': './' }` resolved against
-the *consuming app's* root (`packages/frontend`), not the package that defines
-it — so from inside `@willo.sh/ui`, `@/` would silently resolve into
-`packages/frontend/`, not here, both for Metro at runtime and for `tsc` when
-frontend's compilation pulls this package in as raw source. Use plain relative
+`@/` comes from `packages/frontend/tsconfig.json`'s `paths` (`"@/*": ["./*"]`),
+which Metro reads for the whole bundle — so from inside `@willo.sh/ui`, `@/`
+would silently resolve into `packages/frontend/`, not here, both for Metro at
+runtime and for `tsc` when frontend's compilation pulls this package in as raw
+source. Use plain relative
 paths (`../theme/tokens`, `./icon`, etc.) instead. Do not reintroduce `@/`
 here.
