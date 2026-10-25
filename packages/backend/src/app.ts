@@ -1,3 +1,4 @@
+import { createAwsWorkloadCredentialProvider } from '@oxy.so/core/server/aws';
 import express, { type Express } from 'express';
 import {
   OxyServer,
@@ -27,7 +28,7 @@ export function createApp(oxy: OxyServer): Express {
 
   // First, unconditionally: observes every inbound request whether or not
   // ecosystem-activity has actually started (see ecosystemActivity.ts — it
-  // no-ops outside ECS, where there is no workload identity to attest), so
+  // uses the configured temporary AWS identity, including local SSO), so
   // there is nothing to plumb through `createApp` when it does.
   app.use(ecosystemActivityMiddleware);
   app.use(createOxyCors({ appOrigins: config.corsOrigins }));
@@ -55,5 +56,8 @@ export function createApp(oxy: OxyServer): Express {
 
 /** Build the default `OxyServer` client this process uses for both HTTP auth and Socket.IO auth. */
 export function createOxyClient(): OxyServer {
-  return new OxyServer({ baseURL: config.oxyApiUrl });
+  return new OxyServer({
+    baseURL: config.oxyApiUrl,
+    workloadCredentials: createAwsWorkloadCredentialProvider(),
+  });
 }

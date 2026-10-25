@@ -1,4 +1,5 @@
-import React, {
+import type React from 'react';
+import {
   createContext,
   useCallback,
   useContext,
@@ -7,7 +8,9 @@ import React, {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
+import type { LinkedHttpClient } from '@oxy.so/core';
 import { useAuth, useOxy } from '@oxy.so/services/ui/client';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState } from './home-reducer';
 import * as storage from '../storage';
@@ -124,8 +127,9 @@ type HomeActions = {
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
   fetchEvents: () => Promise<HomeActivityEvent[]>;
   sendCommand: (id: string, command: DeviceCommand) => void;
-  /** `{ Authorization: 'Bearer …' }`, or `{}` if no session token is available yet — for the rare direct fetch/`<Image>` load (camera snapshots) that needs to authenticate itself outside the provider. */
-  getAuthHeaders: () => Record<string, string>;
+  /** Snapshot bytes stay in this session's memory; image views receive no bearer. */
+  fetchSnapshot: (url: string, signal: AbortSignal) => Promise<Blob>;
+  sessionEpoch: number;
 };
 
 /** The transient UI the `Overlays` component draws on top of everything. */
@@ -162,6 +166,27 @@ const UnitSystemContext = createContext<UnitSystem | null>(null);
 const OverlayContext = createContext<OverlayState | null>(null);
 
 export function HomeProvider({ children }: { children: React.ReactNode }) {
+  const { oxyServices } = useOxy();
+  const subscribe = useCallback(
+    (listener: () => void) => oxyServices.http.addTokenChangeListener(listener),
+    [oxyServices],
+  );
+  const snapshot = useCallback(() => oxyServices.http.getSessionEpoch(), [oxyServices]);
+  const epoch = useSyncExternalStore(subscribe, snapshot, snapshot);
+  return (
+    <HomeSessionProvider key={epoch} sessionEpoch={epoch}>
+      {children}
+    </HomeSessionProvider>
+  );
+}
+
+function HomeSessionProvider({
+  children,
+  sessionEpoch,
+}: {
+  children: React.ReactNode;
+  sessionEpoch: number;
+}) {
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState('');
@@ -181,7 +206,26 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { oxyServices, currentLanguage } = useOxy();
   const { isAuthenticated, isAuthResolved } = useAuth();
-  const getAccessToken = useCallback(() => oxyServices.session.accessToken, [oxyServices]);
+  const linkedRef = useRef<LinkedHttpClient | null>(null);
+  const releasedRef = useRef(false);
+  const fetchWillo = useCallback<typeof fetch>(
+    (input, init) => {
+      if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch)
+        return Promise.reject(new Error('The Willo session changed'));
+      if (!WILLO_API_URL) return Promise.reject(new Error('Willo API URL is not configured'));
+      linkedRef.current ??= oxyServices.createLinkedClient({ baseURL: WILLO_API_URL });
+      return linkedRef.current.fetch(input, init);
+    },
+    [oxyServices, sessionEpoch],
+  );
+  useEffect(() => {
+    releasedRef.current = false;
+    return () => {
+      releasedRef.current = true;
+      linkedRef.current?.dispose();
+      linkedRef.current = null;
+    };
+  }, [oxyServices]);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [homes, setHomes] = useState<HomeSummary[]>([]);
@@ -217,19 +261,39 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
   // home name from before this app had any real Home Assistant data.
   const homeName = demoMode ? 'Spring Street' : (rawHomeName ?? t('homes.defaultName'));
 
-  const getAuthHeaders = useCallback((): Record<string, string> => {
-    const token = getAccessToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, [getAccessToken]);
+  const fetchSnapshot = useCallback(
+    async (url: string, signal: AbortSignal) => {
+      const response = await fetchWillo(url, { signal, headers: { 'Cache-Control': 'no-store' } });
+      if (!response.ok) throw new Error(`Camera snapshot failed (${response.status})`);
+      const blob = await response.blob();
+      if (
+        releasedRef.current ||
+        oxyServices.http.getSessionEpoch() !== sessionEpoch ||
+        signal.aborted
+      )
+        throw new Error('The camera session changed');
+      return blob;
+    },
+    [fetchWillo, oxyServices, sessionEpoch],
+  );
 
   const connectHome = useCallback(
     async (id: string) => {
+      if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch) return;
       connectingHomeIdRef.current = id;
       const isCurrent = () => connectingHomeIdRef.current === id;
       const provider = createWilloTunnelProvider({
         apiBaseUrl: WILLO_API_URL ?? '',
         homeId: id,
-        getAccessToken,
+        fetch: fetchWillo,
+        session: oxyServices.http,
+        getAccessToken: (target, options) => {
+          if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch)
+            return Promise.reject(new Error('The Willo session changed'));
+          if (!linkedRef.current)
+            return Promise.reject(new Error('The Willo transport is not connected'));
+          return linkedRef.current.getAccessToken(target, options);
+        },
         onConnectionChange: (connected) => {
           if (!isCurrent()) return;
           setTunnelConnected(connected);
@@ -260,7 +324,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
         setSetupStage('needs-pairing');
       }
     },
-    [getAccessToken, notify, t],
+    [fetchWillo, oxyServices, sessionEpoch, notify, t],
   );
 
   /** Closes the current Home's connection and clears everything read from it. */
@@ -277,6 +341,15 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     // code that types into the WRONG Home's tunnel.
     setPairingCode(null);
   }, []);
+
+  useEffect(
+    () => () => {
+      connectingHomeIdRef.current = null;
+      providerRef.current?.disconnect();
+      providerRef.current = null;
+    },
+    [],
+  );
 
   const setDemoMode = useCallback(
     (value: boolean) => {
@@ -378,6 +451,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       const demo = (await storage.getItemAsync('demoMode')) === 'true';
       if (demo) setDemoModeState(true);
       const storedHomeId = await storage.getItemAsync('homeId');
+      if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch) return;
       // The person's real Homes decide which one opens: the one this device
       // last used if they still belong to it, otherwise their first. That's
       // what lets a new device (or a reinstall) find an existing Home instead
@@ -386,12 +460,13 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // never push someone who has a Home into setup.
       let activeHomeId = storedHomeId;
       try {
-        const response = await fetch(`${WILLO_API_URL}/homes/me`, { headers: getAuthHeaders() });
+        const response = await fetchWillo(`${WILLO_API_URL}/homes/me`, {});
         if (!response.ok) throw new Error(`GET /homes/me answered ${response.status}`);
         const myHomes = ((await response.json()) as { home: HomeSummary }[]).map(({ home }) => ({
           id: home.id,
           name: home.name,
         }));
+        if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch) return;
         setHomes(myHomes);
         activeHomeId =
           myHomes.find((home) => home.id === storedHomeId)?.id ?? myHomes[0]?.id ?? null;
@@ -401,6 +476,7 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           error,
         );
       }
+      if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch) return;
       if (!activeHomeId) {
         if (!demo) setSetupStage('needs-home');
         return;
@@ -413,33 +489,35 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // remembered, not connected, until demo mode goes off.
       if (!demo) await connectHome(activeHomeId);
     })();
-  }, [isAuthResolved, isAuthenticated, connectHome, getAuthHeaders]);
+  }, [isAuthResolved, isAuthenticated, connectHome, fetchWillo, oxyServices, sessionEpoch]);
 
   const createHome = useCallback(
     async (name?: string) => {
-      const response = await fetch(`${WILLO_API_URL}/homes`, {
+      const response = await fetchWillo(`${WILLO_API_URL}/homes`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(name ? { name, unitSystem } : { unitSystem }),
       });
       if (!response.ok) throw new Error('Could not create your home.');
       const { home } = (await response.json()) as { home: HomeSummary };
+      if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch)
+        throw new Error('The Willo session changed');
       await storage.setItemAsync('homeId', home.id);
       setHomes((current) => [...current, { id: home.id, name: home.name }]);
       setHomeId(home.id);
       setRawHomeName(home.name);
       await connectHome(home.id);
     },
-    [getAuthHeaders, connectHome, unitSystem],
+    [fetchWillo, connectHome, unitSystem, oxyServices, sessionEpoch],
   );
 
   const setUnitSystem = useCallback(
     (value: UnitSystem) => {
       setUnitSystemState(value);
       if (!homeId) return;
-      fetch(`${WILLO_API_URL}/homes/${homeId}`, {
+      fetchWillo(`${WILLO_API_URL}/homes/${homeId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ unitSystem: value }),
       })
         .then((response) => {
@@ -451,14 +529,13 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
           notify(t('errors.unitsNotSaved'));
         });
     },
-    [unitSystem, homeId, getAuthHeaders, notify, t],
+    [unitSystem, homeId, fetchWillo, notify, t],
   );
 
   const requestPairingCode = useCallback(async () => {
     if (!homeId) throw new Error('Create a home before requesting a pairing code.');
-    const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/pairing-code`, {
+    const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/pairing-code`, {
       method: 'POST',
-      headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Could not generate a pairing code.');
     // Issuing a code nulls any existing secret server-side (`issuePairingCode`) —
@@ -469,14 +546,14 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
     const result = (await response.json()) as { code: string; expiresAt: string };
     setPairingCode(result);
     return result;
-  }, [homeId, getAuthHeaders]);
+  }, [homeId, fetchWillo]);
 
   const claimDevice = useCallback(
     async (claimCode: string) => {
       if (!homeId) throw new Error('Create a home before claiming a device.');
-      const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/claim-device`, {
+      const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/claim-device`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ claimCode }),
       });
       if (!response.ok)
@@ -486,17 +563,15 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       // race ahead of the tunnel's own real `onPaired`/`onConnectionChange`.
       pairedRef.current = false;
     },
-    [homeId, getAuthHeaders],
+    [homeId, fetchWillo],
   );
 
   const fetchEvents = useCallback(async (): Promise<HomeActivityEvent[]> => {
     if (!homeId) return [];
-    const response = await fetch(`${WILLO_API_URL}/homes/${homeId}/events`, {
-      headers: getAuthHeaders(),
-    });
+    const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/events`, {});
     if (!response.ok) throw new Error('Could not load activity.');
     return (await response.json()) as HomeActivityEvent[];
-  }, [homeId, getAuthHeaders]);
+  }, [homeId, fetchWillo]);
 
   const sendCommand = useCallback(
     (id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command),
@@ -521,7 +596,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       claimDevice,
       fetchEvents,
       sendCommand,
-      getAuthHeaders,
+      fetchSnapshot,
+      sessionEpoch,
     }),
     [
       dispatch,
@@ -536,7 +612,8 @@ export function HomeProvider({ children }: { children: React.ReactNode }) {
       claimDevice,
       fetchEvents,
       sendCommand,
-      getAuthHeaders,
+      fetchSnapshot,
+      sessionEpoch,
     ],
   );
   const data = useMemo(

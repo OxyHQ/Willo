@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import Slider from '@react-native-community/slider';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { BottomSheet, type BottomSheetRef } from '@oxy.so/bloom/bottom-sheet';
+import { useCameraSnapshot } from '../hooks/use-camera-snapshot';
 import { assets } from '../data/assets';
 import {
   type Sheet,
@@ -28,7 +29,7 @@ const DEVICE_APPEARANCE: Record<string, { icon: IconName; tone: 'yellow' | 'blue
 /** One host in the root layout, not one modal per retained router screen. */
 export function Overlays() {
   const { setupStage, tunnelConnected } = useHome();
-  const { setSheet, sendCommand, getAuthHeaders } = useHomeActions();
+  const { setSheet, sendCommand } = useHomeActions();
   const devices = useDevices();
   const { sheet, toast } = useOverlayState();
   const { colors: themeColors } = useTheme();
@@ -37,6 +38,7 @@ export function Overlays() {
   const sheetRef = useRef<BottomSheetRef>(null);
   // Retain content until Bloom finishes the dismissal animation.
   const [shown, setShown] = useState<Sheet>(null);
+  const snapshot = useCameraSnapshot(shown?.kind === 'camera' ? shown.snapshotUrl : null);
   // Re-resolve against the live list so on-off/brightness/speed track
   // real-world changes (another app, a physical switch) while the sheet
   // stays open.
@@ -60,7 +62,10 @@ export function Overlays() {
         ref={sheetRef}
         detached
         style={{ maxWidth: 640 }}
-        onDismiss={() => setSheet(null)}
+        onDismiss={() => {
+          setSheet(null);
+          setShown(null);
+        }}
       >
         {shown && (
           <>
@@ -113,7 +118,9 @@ export function Overlays() {
                   <Image
                     source={
                       shown.snapshotUrl
-                        ? { uri: shown.snapshotUrl, headers: getAuthHeaders() }
+                        ? snapshot
+                          ? { uri: snapshot }
+                          : undefined
                         : shown.garden
                           ? assets.garden
                           : assets.livingRoom
