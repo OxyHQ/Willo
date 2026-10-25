@@ -43,9 +43,18 @@ test('Willo uses shared refresh for its own REST and fresh socket credentials, t
   });
   const io = new Server(server);
   const homes = io.of('/homes');
+  let joined = 0;
+  let rejoined: (() => void) | undefined;
+  const reconnected = new Promise<void>((resolve) => {
+    rejoined = resolve;
+  });
   homes.on('connection', (socket) => {
     handshakes.push(socket.handshake.auth.token);
-    socket.on('home:join', (_input, callback) => callback({ ok: true }));
+    socket.on('home:join', (_input, callback) => {
+      socket.join('home-A');
+      callback({ ok: true });
+      if (++joined === 2) rejoined?.();
+    });
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
@@ -81,6 +90,23 @@ test('Willo uses shared refresh for its own REST and fresh socket credentials, t
     provider.sendCommand('light.fixture', { kind: 'setOnOff', on: true });
     await commandArrived;
     expect(received.at(-1)?.token).toBe(`Bearer ${token('A', 'socket-renewed')}`);
+    let updated: (() => void) | undefined;
+    const receivedUpdate = new Promise<void>((resolve) => {
+      updated = resolve;
+    });
+    const unsubscribe = provider.subscribe((devices) => {
+      if (devices.some((device) => device.id === 'light.after-reconnect')) updated?.();
+    });
+    for (const socket of homes.sockets.values()) socket.conn.close();
+    await reconnected;
+    homes.to('home-A').emit('home:device-updated', {
+      id: 'light.after-reconnect',
+      name: 'Reconnected light',
+      capabilities: [],
+    });
+    await receivedUpdate;
+    unsubscribe();
+    expect(joined).toBe(2);
     const disconnected = new Promise<void>((resolve) => {
       for (const socket of homes.sockets.values()) socket.once('disconnect', () => resolve());
     });

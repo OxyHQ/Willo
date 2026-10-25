@@ -195,10 +195,14 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     await new Promise<void>((resolve, reject) => {
       const connectingSocket = socket;
       if (!connectingSocket) return reject(new Error('The Home connection was closed'));
+      let settled = false;
       const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timeout);
         pendingHandshake.signal.removeEventListener('abort', onAbort);
-        connectingSocket.off('connect', onConnect);
+        // Every reconnect must rejoin the Home; only failure retires this handler.
+        if (error) connectingSocket.off('connect', onConnect);
         connectingSocket.off('connect_error', onError);
         if (error) {
           connectingSocket.disconnect();
