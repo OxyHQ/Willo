@@ -1,4 +1,4 @@
-import type { OxyServices } from '@oxy.so/core';
+import type { LinkedHttpClient, OxyServices } from '@oxy.so/core';
 import { io, type Socket } from 'socket.io-client';
 import type { ApplianceState, Device, DeviceCommand, SmartHomeProvider } from './types';
 import type { UnitSystem } from './unit-system';
@@ -17,6 +17,7 @@ type WilloTunnelCredentials = {
   homeId: string;
   fetch: typeof globalThis.fetch;
   session: OxyServices['http'];
+  getAccessToken: LinkedHttpClient['getAccessToken'];
   /** Not part of `SmartHomeProvider` (every screen that lists devices only needs `Device[]`) — an extra credential-bag field this ONE concrete provider reports through, the same shape `createHomeAssistantProvider`'s old `onRefreshToken` used. */
   onConnectionChange: (connected: boolean) => void;
   /** Same reasoning as `onConnectionChange` — the Home's own name, read off `GET .../devices/live`'s response. */
@@ -132,6 +133,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     homeId,
     fetch: fetchWillo,
     session,
+    getAccessToken,
     onConnectionChange,
     onHomeName,
     onUnitSystem,
@@ -145,11 +147,13 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
   // opens a socket or reports state for the Home being left.
   let isDisconnected = false;
   const listeners = new Set<(devices: Device[]) => void>();
+  const pendingHandshake = new AbortController();
   const epoch = session.getSessionEpoch();
   const current = () => !isDisconnected && session.getSessionEpoch() === epoch;
   const unsubscribeSession = session.addTokenChangeListener(() => {
     if (session.getSessionEpoch() === epoch) return;
     isDisconnected = true;
+    pendingHandshake.abort();
     socket?.disconnect();
     listeners.clear();
   });
@@ -173,7 +177,18 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     onConnectionChange(live.connected);
 
     socket = io(`${apiBaseUrl}/homes`, {
-      auth: (callback) => callback({ token: current() ? (session.getAccessToken() ?? '') : '' }),
+      auth: (callback) => {
+        if (!current()) return;
+        void getAccessToken(`${apiBaseUrl}/homes`, { signal: pendingHandshake.signal }).then(
+          (token) => {
+            if (current()) callback({ token });
+          },
+          () => {
+            // Let Socket.IO report authentication failure; never send a stale bearer.
+            if (current()) callback({});
+          },
+        );
+      },
       transports: ['websocket'],
     });
 
@@ -211,6 +226,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     connect,
     disconnect() {
       isDisconnected = true;
+      pendingHandshake.abort();
       unsubscribeSession();
       socket?.removeAllListeners();
       socket?.disconnect();

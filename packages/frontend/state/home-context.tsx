@@ -287,6 +287,13 @@ function HomeSessionProvider({
         homeId: id,
         fetch: fetchWillo,
         session: oxyServices.http,
+        getAccessToken: (target, options) => {
+          if (releasedRef.current || oxyServices.http.getSessionEpoch() !== sessionEpoch)
+            return Promise.reject(new Error('The Willo session changed'));
+          if (!linkedRef.current)
+            return Promise.reject(new Error('The Willo transport is not connected'));
+          return linkedRef.current.getAccessToken(target, options);
+        },
         onConnectionChange: (connected) => {
           if (!isCurrent()) return;
           setTunnelConnected(connected);

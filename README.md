@@ -33,7 +33,8 @@ config; `bun run format` formats with Biome.
 Willo's Oxy account calls use the shared linked transport for home management,
 commands and camera snapshots. The session epoch resets the current home on
 account changes; the product's `/homes` socket reads the current shared session
-at each handshake and disconnects when that context changes. Home membership is
+through the linked client at each handshake, refreshing an expired token before
+connecting. It disconnects and cancels pending handshakes when that context changes. Home membership is
 still checked by the backend. Home Assistant OAuth and device pairing remain
 separate protocols.
 
