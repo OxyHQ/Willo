@@ -193,14 +193,31 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     });
 
     await new Promise<void>((resolve, reject) => {
+      const connectingSocket = socket;
+      if (!connectingSocket) return reject(new Error('The Home connection was closed'));
+      const finish = (error?: Error) => {
+        clearTimeout(timeout);
+        pendingHandshake.signal.removeEventListener('abort', onAbort);
+        connectingSocket.off('connect', onConnect);
+        connectingSocket.off('connect_error', onError);
+        if (error) {
+          connectingSocket.disconnect();
+          reject(error);
+        } else resolve();
+      };
+      const onAbort = () => finish(new Error('The Home connection was cancelled'));
+      const onError = (error: Error) => finish(error);
       const onConnect = () => {
-        socket?.emit('home:join', { homeId }, (ack: { ok: boolean }) => {
-          if (ack?.ok) resolve();
-          else reject(new Error('Could not join this Home.'));
+        connectingSocket.emit('home:join', { homeId }, (ack: { ok: boolean }) => {
+          if (ack?.ok) finish();
+          else finish(new Error('Could not join this Home.'));
         });
       };
-      socket?.on('connect', onConnect);
-      socket?.on('connect_error', reject);
+      const timeout = setTimeout(() => finish(new Error('The Home connection timed out')), 10_000);
+      connectingSocket.on('connect', onConnect);
+      connectingSocket.on('connect_error', onError);
+      pendingHandshake.signal.addEventListener('abort', onAbort, { once: true });
+      if (pendingHandshake.signal.aborted) onAbort();
     });
     if (!current() || !socket) return [];
 

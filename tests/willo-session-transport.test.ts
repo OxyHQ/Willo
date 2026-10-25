@@ -98,3 +98,64 @@ test('Willo uses shared refresh for its own REST and fresh socket credentials, t
     await new Promise<void>((resolve) => io.close(() => resolve()));
   }
 });
+
+for (const cancellation of ['disconnect', 'account switch'] as const) {
+  test(`Willo settles a pending socket handshake on ${cancellation}`, async () => {
+    const server = createServer((_request, response) => {
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify({ connected: true, paired: true, devices: [] }));
+    });
+    const io = new Server(server);
+    io.of('/homes');
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (!address || typeof address === 'string') throw new Error('Missing server address');
+    const baseURL = `http://127.0.0.1:${address.port}`;
+    const oxy = new OxyServices({ baseURL });
+    oxy.session.setAccessToken(token('A'));
+    let entered: (() => void) | undefined;
+    let release: (() => void) | undefined;
+    const refreshing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const linked = oxy.createLinkedClient({ baseURL });
+    const provider = createWilloTunnelProvider({
+      apiBaseUrl: baseURL,
+      homeId: 'home-A',
+      fetch: linked.fetch,
+      session: oxy.http,
+      getAccessToken: async (target, options) => {
+        entered?.();
+        await held;
+        return linked.getAccessToken(target, options);
+      },
+      onConnectionChange: () => {},
+      onHomeName: () => {},
+      onUnitSystem: () => {},
+      onPaired: () => {},
+    });
+    try {
+      const pending = provider.connect();
+      const outcome = pending.then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      await refreshing;
+      if (cancellation === 'disconnect') provider.disconnect();
+      else oxy.session.setAccessToken(token('B'));
+      const error = await outcome;
+      expect(error).toBeInstanceOf(Error);
+      expect(error instanceof Error ? error.message : '').toContain('cancelled');
+      expect(io.of('/homes').sockets.size).toBe(0);
+    } finally {
+      release?.();
+      provider.disconnect();
+      linked.dispose();
+      oxy.dispose();
+      await new Promise<void>((resolve) => io.close(() => resolve()));
+    }
+  });
+}
