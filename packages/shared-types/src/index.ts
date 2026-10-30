@@ -58,6 +58,11 @@ export interface FrameDiagnostics {
 export interface Frame {
   id: string;
   homeId: string;
+  /**
+   * Who set the frame up: its Oxy device is in their account, so only they can
+   * sign it out when the frame is removed.
+   */
+  addedByUserId: string;
   name: string;
   /**
    * The room the frame stands in. Its door, air and temperature readings come

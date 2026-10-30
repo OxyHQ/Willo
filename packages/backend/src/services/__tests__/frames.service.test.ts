@@ -83,6 +83,7 @@ test('a frame registers in a Home and reads itself back, every setting filled in
 
     const own = await getOwnFrame(owner, session);
     assert.equal(own.id, registered.id);
+    assert.equal(own.addedByUserId, owner);
     assert.equal(own.room, 'Studio');
   });
 });

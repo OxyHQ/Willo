@@ -119,6 +119,7 @@ function toFrame(row: FrameRow): Frame {
   return {
     id: row.id,
     homeId: row.homeId,
+    addedByUserId: row.addedByUserId,
     name: row.name,
     room: row.room,
     settings: resolveFrameSettings(row.settings),
