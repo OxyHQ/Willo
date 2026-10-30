@@ -11,6 +11,8 @@ import { homes } from '../../db/schema';
 import { createHome } from '../homes.service';
 import { listDeviceMetadata, upsertDeviceMetadata } from '../homeDevices.service';
 import { NotFoundError } from '../../errors';
+import type { Namespace } from 'socket.io';
+import { setHomesNamespace } from '../../realtime/socketRegistry';
 
 before(async () => {
   await connectPostgres();
@@ -64,6 +66,29 @@ test('a non-member cannot read or write a Home’s device metadata', async () =>
       () => upsertDeviceMetadata(home.id, outsider, 'light.kitchen', {}),
       NotFoundError,
     );
+  } finally {
+    await getDb().delete(homes).where(eq(homes.id, home.id));
+  }
+});
+
+test('upsertDeviceMetadata announces the row as metadata, never as a live device', async () => {
+  // Clients fold whatever arrives on `home:device-updated` into their device
+  // list; a metadata row sent under that name replaced the device it described.
+  const emitted: { room: string; event: string }[] = [];
+  const recorder = {
+    to: (room: string) => ({
+      emit: (event: string) => {
+        emitted.push({ room, event });
+        return true;
+      },
+    }),
+  };
+  setHomesNamespace(recorder as unknown as Namespace);
+  const owner = newUserId('owner');
+  const { home } = await createHome(owner);
+  try {
+    await upsertDeviceMetadata(home.id, owner, 'light.kitchen', { customName: 'Kitchen' });
+    assert.deepEqual(emitted, [{ room: `home:${home.id}`, event: 'home:device-metadata-updated' }]);
   } finally {
     await getDb().delete(homes).where(eq(homes.id, home.id));
   }

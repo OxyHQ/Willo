@@ -52,6 +52,9 @@ export async function upsertDeviceMetadata(
     .returning();
   if (!row) throw new Error('Failed to upsert device metadata.');
 
-  emitToHome(homeId, 'home:device-updated', row);
+  // Its own event: `home:device-updated` carries a live Device from the tunnel,
+  // and a client folds whatever arrives on it into its device list, so a
+  // metadata row sent under that name replaced the real device it described.
+  emitToHome(homeId, 'home:device-metadata-updated', row);
   return row;
 }
