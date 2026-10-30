@@ -1,0 +1,25 @@
+# Frame by Willo's web build (frame.willo.sh, also what a Chromecast loads),
+# deployed as a Cloudflare Worker serving static assets — not Cloudflare
+# Pages, which always also serves <project>.pages.dev with no way to switch it
+# off. Same shape as packages/frontend/wrangler.toml.
+name = "willo-frame"
+compatibility_date = "2026-09-14"
+main = "worker.ts"
+
+# frame.willo.sh is the only name this deployment answers to.
+workers_dev = false
+preview_urls = false
+
+# `expo export --platform web` emits one index.html plus hashed assets (a
+# client-routed SPA), so the SPA fallback is what makes a deep link work on a
+# hard refresh; `run_worker_first` sends every request through worker.ts's
+# HTTP->HTTPS redirect first.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[[routes]]
+pattern = "frame.willo.sh"
+custom_domain = true

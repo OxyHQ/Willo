@@ -1,0 +1,44 @@
+{
+  "signIn": {
+    "title": "Scan to set up this frame",
+    "caption": "Point your phone's camera at the code, sign in with your Oxy account, and this frame shows your photos, your home and the news."
+  },
+  "chooseHome": {
+    "title": "Which home is this frame in?",
+    "none": "Your account has no Willo home yet. Create one in the Willo app, then come back.",
+    "unnamed": "Unnamed home"
+  },
+  "registering": "Setting up this frame…",
+  "noPhotos": "Choose photos for this frame in the Willo app.",
+  "offline": "Offline",
+  "cards": {
+    "openDoor": "Open",
+    "stuffyAir": "Stuffy air",
+    "ppm": "{{ppm}} ppm",
+    "nowPlaying": "Now playing",
+    "degrees": "{{degrees}}°"
+  },
+  "weather": {
+    "clear-night": "Clear",
+    "cloudy": "Cloudy",
+    "exceptional": "Unusual weather",
+    "fog": "Fog",
+    "hail": "Hail",
+    "lightning": "Thunderstorm",
+    "lightning-rainy": "Thunderstorm",
+    "partlycloudy": "Partly cloudy",
+    "pouring": "Heavy rain",
+    "rainy": "Rain",
+    "snowy": "Snow",
+    "snowy-rainy": "Sleet",
+    "sunny": "Sunny",
+    "windy": "Windy",
+    "windy-variant": "Windy",
+    "outside": "Outside"
+  },
+  "readings": {
+    "co2": "CO₂"
+  },
+  "defaultName": "Frame",
+  "loadFailed": "This frame could not reach Willo. It keeps trying."
+}

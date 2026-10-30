@@ -39,9 +39,12 @@ jobs:
       - name: Biome (format + lint)
         run: bunx biome ci .
       - name: ESLint (Expo rules Biome lacks)
-        run: bun run --cwd packages/frontend lint
+        run: bun run --cwd packages/frontend lint && bun run --cwd packages/frame lint
       - run: bun test ./tests
       - run: bun run typecheck
       - name: Export the real Expo web app
         working-directory: packages/frontend
+        run: bunx expo export --platform web
+      - name: Export the frame's web build
+        working-directory: packages/frame
         run: bunx expo export --platform web
