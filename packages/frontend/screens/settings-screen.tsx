@@ -168,6 +168,19 @@ export function SettingsScreen({ onNavigate }: ScreenProps) {
                   </Label>
                   <Icon name="chevron" size={15} color={themeColors.text} />
                 </Pressable>
+                {/* A demo Home has no frames: there is nothing behind it to register one with. */}
+                {demoMode ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('frames.title')}
+                    onPress={() => onNavigate('frames')}
+                    className="mt-3 flex-row items-center gap-3 rounded-[22px] bg-muted p-4 active:opacity-70"
+                  >
+                    <Icon name="tv" size={20} color={themeColors.text} />
+                    <Label className="flex-1 text-[13px]">{t('frames.title')}</Label>
+                    <Icon name="chevron" size={15} color={themeColors.text} />
+                  </Pressable>
+                )}
                 {section(t('settings.devicesGroupsRooms'), () => onNavigate('devices'))}
                 <CardStrip>
                   {mini(t('settings.miniHallwayThermostat'), 'thermometer', () =>

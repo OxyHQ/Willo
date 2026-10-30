@@ -14,6 +14,7 @@ export const SCREEN_ROUTES = {
   routines: '/routines',
   timeline: '/timeline',
   settings: '/settings',
+  frames: '/frames',
   'favorites-assistant': '/favorites-assistant',
 } as const satisfies Record<ScreenId, string>;
 

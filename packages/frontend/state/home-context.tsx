@@ -11,6 +11,8 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { LinkedHttpClient } from '@oxy.so/core';
+import type { Frame, UpdateFrameRequest } from '@willo.sh/shared-types';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth, useOxy } from '@oxy.so/services/ui/client';
 import { homeReducer, initialHomeState, type HomeAction, type HomeState } from './home-reducer';
 import * as storage from '../storage';
@@ -26,6 +28,9 @@ import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
 
 const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL;
+
+/** React Query key of a Home's frames; the tunnel's frame events invalidate it. */
+export const FRAMES_QUERY_KEY = 'willo-frames';
 
 export type SheetOption = {
   label: string;
@@ -126,6 +131,16 @@ type HomeActions = {
   claimDevice: (claimCode: string) => Promise<void>;
   /** This Home's real activity history (motion/door/safety sensor transitions), most recent first. Fetched fresh on every call — screens call this from their own mount effect rather than this context polling on their behalf. */
   fetchEvents: () => Promise<HomeActivityEvent[]>;
+  /** This Home's Frame by Willo screens. Read through {@link useFrames}, which keeps them current. */
+  fetchFrames: () => Promise<Frame[]>;
+  /** Rename, move or reconfigure a frame; it shows the change at once. Answers the frame as saved. */
+  updateFrame: (frameId: string, change: UpdateFrameRequest) => Promise<Frame>;
+  /**
+   * Remove a frame from the Home. When the signed-in person set it up, its
+   * Oxy device is signed out of their account too, so it shows its QR again;
+   * a frame someone else set up can only be signed out by them.
+   */
+  removeFrame: (frame: Frame) => Promise<{ deviceSignedOut: boolean }>;
   sendCommand: (id: string, command: DeviceCommand) => void;
   /** Snapshot bytes stay in this session's memory; image views receive no bearer. */
   fetchSnapshot: (url: string, signal: AbortSignal) => Promise<Blob>;
@@ -204,7 +219,8 @@ function HomeSessionProvider({
   );
 
   const { t } = useTranslation();
-  const { oxyServices, currentLanguage } = useOxy();
+  const { oxyServices, currentLanguage, user: oxyUser } = useOxy();
+  const queryClient = useQueryClient();
   const { isAuthenticated, isAuthResolved } = useAuth();
   const linkedRef = useRef<LinkedHttpClient | null>(null);
   const releasedRef = useRef(false);
@@ -308,6 +324,9 @@ function HomeSessionProvider({
         onPaired: (paired) => {
           if (isCurrent()) pairedRef.current = paired;
         },
+        onFramesChange: () => {
+          if (isCurrent()) void queryClient.invalidateQueries({ queryKey: [FRAMES_QUERY_KEY] });
+        },
       });
       // Held before `connect()` resolves, not after: leaving this Home while
       // it's still connecting has to be able to disconnect it.
@@ -324,7 +343,7 @@ function HomeSessionProvider({
         setSetupStage('needs-pairing');
       }
     },
-    [fetchWillo, oxyServices, sessionEpoch, notify, t],
+    [fetchWillo, oxyServices, sessionEpoch, notify, t, queryClient],
   );
 
   /** Closes the current Home's connection and clears everything read from it. */
@@ -573,6 +592,46 @@ function HomeSessionProvider({
     return (await response.json()) as HomeActivityEvent[];
   }, [homeId, fetchWillo]);
 
+  const fetchFrames = useCallback(async (): Promise<Frame[]> => {
+    if (!homeId) return [];
+    const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/frames`, {});
+    if (!response.ok) throw new Error(`GET /homes/${homeId}/frames answered ${response.status}`);
+    return (await response.json()) as Frame[];
+  }, [homeId, fetchWillo]);
+
+  const updateFrame = useCallback(
+    async (frameId: string, change: UpdateFrameRequest): Promise<Frame> => {
+      if (!homeId) throw new Error('No Home is selected.');
+      const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/frames/${frameId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(change),
+      });
+      if (!response.ok) {
+        throw new Error(`PATCH /homes/${homeId}/frames/${frameId} answered ${response.status}`);
+      }
+      return (await response.json()) as Frame;
+    },
+    [homeId, fetchWillo],
+  );
+
+  const removeFrame = useCallback(
+    async (frame: Frame): Promise<{ deviceSignedOut: boolean }> => {
+      if (!homeId) throw new Error('No Home is selected.');
+      const response = await fetchWillo(`${WILLO_API_URL}/homes/${homeId}/frames/${frame.id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`DELETE /homes/${homeId}/frames/${frame.id} answered ${response.status}`);
+      }
+      const { oxyDeviceId } = (await response.json()) as { oxyDeviceId: string | null };
+      if (!oxyDeviceId || frame.addedByUserId !== oxyUser?.id) return { deviceSignedOut: false };
+      await oxyServices.devices.remove(oxyDeviceId);
+      return { deviceSignedOut: true };
+    },
+    [homeId, fetchWillo, oxyServices, oxyUser],
+  );
+
   const sendCommand = useCallback(
     (id: string, command: DeviceCommand) => providerRef.current?.sendCommand(id, command),
     [],
@@ -595,6 +654,9 @@ function HomeSessionProvider({
       requestPairingCode,
       claimDevice,
       fetchEvents,
+      fetchFrames,
+      updateFrame,
+      removeFrame,
       sendCommand,
       fetchSnapshot,
       sessionEpoch,
@@ -611,6 +673,9 @@ function HomeSessionProvider({
       requestPairingCode,
       claimDevice,
       fetchEvents,
+      fetchFrames,
+      updateFrame,
+      removeFrame,
       sendCommand,
       fetchSnapshot,
       sessionEpoch,
@@ -672,4 +737,20 @@ export function useOverlayState(): OverlayState {
   const value = useContext(OverlayContext);
   if (!value) throw new Error('Wrap the UI in <HomeProvider>.');
   return value;
+}
+
+/**
+ * This Home's Frame by Willo screens, kept current: refetched when a frame
+ * registers, changes or goes (the tunnel's frame events), and every half
+ * minute while shown, since whether a frame is online is its last heartbeat.
+ */
+export function useFrames() {
+  const { homeId } = useHome();
+  const { fetchFrames, sessionEpoch } = useHomeActions();
+  return useQuery({
+    queryKey: [FRAMES_QUERY_KEY, sessionEpoch, homeId],
+    queryFn: fetchFrames,
+    enabled: Boolean(homeId),
+    refetchInterval: 30_000,
+  });
 }

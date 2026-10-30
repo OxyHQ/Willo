@@ -21,6 +21,7 @@ const SCREEN_TITLES: Partial<Record<ScreenId, ParseKeys>> = {
   automations: 'nav.automations',
   routines: 'nav.automations',
   settings: 'nav.settings',
+  frames: 'frames.title',
 };
 
 /**

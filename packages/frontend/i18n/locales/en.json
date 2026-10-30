@@ -465,5 +465,65 @@
   "errors": {
     "unreachable": "Could not reach Willo. Check your connection and try again.",
     "unitsNotSaved": "Could not save your units. Try again."
+  },
+  "frames": {
+    "title": "Frames",
+    "emptyTitle": "No frames yet",
+    "emptyDescription": "Open frame.willo.sh on a TV, a tablet or a Chromecast and scan its code with your phone. It shows up here once it joins this home.",
+    "loadFailed": "Couldn't load this home's frames.",
+    "online": "Online",
+    "offline": "Offline",
+    "noRoom": "No room",
+    "frame": "Frame",
+    "name": "Name",
+    "room": "Room",
+    "roomDescription": "Its door, air and temperature readings come from the devices in this room.",
+    "picture": "Picture",
+    "rotation": "Rotation",
+    "degrees": "{{degrees}}°",
+    "secondsPerPhoto": "Each photo",
+    "seconds": "{{seconds}} s",
+    "drift": "Slow zoom",
+    "driftDescription": "A resting photo moves in very slowly.",
+    "clock": "Clock",
+    "safeArea": "Edges kept clear",
+    "safeAreaDescription": "For a mat or a bezel that covers the edge of the screen.",
+    "safeAreaTop": "Top",
+    "safeAreaBottom": "Bottom",
+    "pixels": "{{pixels}} px",
+    "cards": {
+      "title": "Cards",
+      "show": "Show cards",
+      "gallery": "Gallery",
+      "door": "Open door",
+      "co2": "Stuffy air",
+      "music": "Now playing",
+      "weather": "Weather",
+      "news": "News"
+    },
+    "readings": {
+      "title": "Readings",
+      "indoorTemperature": "Inside",
+      "outdoorTemperature": "Outside",
+      "humidity": "Humidity",
+      "co2": "CO₂"
+    },
+    "news": {
+      "title": "News",
+      "languages": "Languages",
+      "followFrame": "Same as the frame",
+      "spanish": "Spanish",
+      "english": "English",
+      "spanishAndEnglish": "Spanish and English"
+    },
+    "fps": "{{fps}} fps",
+    "remove": "Remove frame",
+    "removeTitle": "Remove {{name}}?",
+    "removeDescription": "It stops showing this home and goes back to its sign-in code.",
+    "removeDescriptionOther": "It stops showing this home. Someone else set it up, so it stays signed in to their Oxy account until they sign it out.",
+    "removed": "Frame removed",
+    "removedKeptSignedIn": "Frame removed. It stays signed in to the account of whoever set it up.",
+    "saveFailed": "Couldn't save that change.",
+    "removeFailed": "Couldn't remove the frame."
   }
 }

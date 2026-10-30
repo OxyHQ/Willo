@@ -465,5 +465,65 @@
   "errors": {
     "unreachable": "No se ha podido conectar con Willo. Comprueba tu conexión e inténtalo de nuevo.",
     "unitsNotSaved": "No se han podido guardar tus unidades. Inténtalo de nuevo."
+  },
+  "frames": {
+    "title": "Marcos",
+    "emptyTitle": "Aún no hay marcos",
+    "emptyDescription": "Abre frame.willo.sh en una tele, una tablet o un Chromecast y escanea su código con el móvil. Aparece aquí en cuanto se une a esta casa.",
+    "loadFailed": "No se han podido cargar los marcos de esta casa.",
+    "online": "En línea",
+    "offline": "Sin conexión",
+    "noRoom": "Sin sala",
+    "frame": "Marco",
+    "name": "Nombre",
+    "room": "Sala",
+    "roomDescription": "Las lecturas de puerta, aire y temperatura salen de los aparatos de esta sala.",
+    "picture": "Imagen",
+    "rotation": "Giro",
+    "degrees": "{{degrees}}°",
+    "secondsPerPhoto": "Cada foto",
+    "seconds": "{{seconds}} s",
+    "drift": "Zoom lento",
+    "driftDescription": "La foto en reposo se acerca muy despacio.",
+    "clock": "Reloj",
+    "safeArea": "Bordes libres",
+    "safeAreaDescription": "Para un paspartú o un marco que tape el borde de la pantalla.",
+    "safeAreaTop": "Arriba",
+    "safeAreaBottom": "Abajo",
+    "pixels": "{{pixels}} px",
+    "cards": {
+      "title": "Tarjetas",
+      "show": "Mostrar tarjetas",
+      "gallery": "Galería",
+      "door": "Puerta abierta",
+      "co2": "Aire cargado",
+      "music": "Sonando ahora",
+      "weather": "El tiempo",
+      "news": "Noticias"
+    },
+    "readings": {
+      "title": "Lecturas",
+      "indoorTemperature": "Dentro",
+      "outdoorTemperature": "Fuera",
+      "humidity": "Humedad",
+      "co2": "CO₂"
+    },
+    "news": {
+      "title": "Noticias",
+      "languages": "Idiomas",
+      "followFrame": "El del marco",
+      "spanish": "Español",
+      "english": "Inglés",
+      "spanishAndEnglish": "Español e inglés"
+    },
+    "fps": "{{fps}} fps",
+    "remove": "Quitar marco",
+    "removeTitle": "¿Quitar {{name}}?",
+    "removeDescription": "Deja de mostrar esta casa y vuelve a su código para iniciar sesión.",
+    "removeDescriptionOther": "Deja de mostrar esta casa. Lo configuró otra persona, así que sigue con la sesión de su cuenta de Oxy hasta que esa persona la cierre.",
+    "removed": "Marco quitado",
+    "removedKeptSignedIn": "Marco quitado. Sigue con la sesión de la cuenta de quien lo configuró.",
+    "saveFailed": "No se ha podido guardar el cambio.",
+    "removeFailed": "No se ha podido quitar el marco."
   }
 }
