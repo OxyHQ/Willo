@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { useCameraSnapshot } from '../hooks/use-camera-snapshot';
 import { assets } from '../data/assets';
 import { useHomeActions } from '../state/home-context';
-import { getCapability, type Device } from '../providers/types';
+import { getCapability, type Device } from '@willo.sh/shared-types';
 import { Icon } from '@willo.sh/ui';
 import { Label } from '@willo.sh/ui';
 import { useTranslation } from 'react-i18next';

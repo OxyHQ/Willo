@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Icon, Label } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-import { getCapability, type Device } from '../providers/types';
+import { getCapability, type Device } from '@willo.sh/shared-types';
 import { formatTemperature, type UnitSystem } from '../providers/unit-system';
 import { useUnitSystem } from '../state/home-context';
 

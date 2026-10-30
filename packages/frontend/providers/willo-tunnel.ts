@@ -1,6 +1,7 @@
 import type { LinkedHttpClient, OxyServices } from '@oxy.so/core';
 import { io, type Socket } from 'socket.io-client';
-import type { ApplianceState, Device, DeviceCommand, SmartHomeProvider } from './types';
+import type { ApplianceState, Device } from '@willo.sh/shared-types';
+import type { DeviceCommand, SmartHomeProvider } from './types';
 import type { UnitSystem } from './unit-system';
 
 const domainOf = (entityId: string) => entityId.split('.')[0];

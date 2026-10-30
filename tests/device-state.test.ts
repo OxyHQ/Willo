@@ -5,7 +5,7 @@ import {
   isActive,
   primaryCommand,
 } from '../packages/frontend/providers/device-state.ts';
-import type { Device, DeviceCapability } from '../packages/frontend/providers/types.ts';
+import type { Device, DeviceCapability } from '@willo.sh/shared-types';
 
 // The real `t` resolves keys against the catalogue; here the key itself is the
 // answer, so a test says which string a device asks for, not how it's worded.

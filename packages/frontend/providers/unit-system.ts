@@ -1,3 +1,4 @@
+import type { TemperatureUnit } from '@willo.sh/shared-types';
 /** Mirrors the backend's `UNIT_SYSTEMS` (`schema.ts`), the Home's shared display units. */
 export type UnitSystem = 'metric' | 'imperial';
 
@@ -17,8 +18,6 @@ export function unitSystemForLocale(locale: string): UnitSystem {
     ?.toUpperCase();
   return region !== undefined && IMPERIAL_REGIONS.includes(region) ? 'imperial' : 'metric';
 }
-
-export type TemperatureUnit = '°C' | '°F';
 
 /**
  * A temperature reported in `fromUnit`, converted to the Home's unit system:

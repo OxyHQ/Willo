@@ -3,7 +3,8 @@ import type { TFunction } from 'i18next';
 import { assets } from '../data/assets';
 import * as storage from '../storage';
 import { DEMO_CATALOG } from './demo-catalog';
-import type { Device, DeviceCapability, DeviceCommand, SmartHomeProvider } from './types';
+import type { Device, DeviceCapability } from '@willo.sh/shared-types';
+import type { DeviceCommand, SmartHomeProvider } from './types';
 
 /**
  * The demo's own still images, keyed by the camera they belong to. They live
