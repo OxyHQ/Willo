@@ -18,6 +18,8 @@ import * as membersService from '../services/homeMembers.service';
 import * as devicesService from '../services/homeDevices.service';
 import * as tunnelService from '../services/homeTunnel.service';
 import * as eventsService from '../services/homeEvents.service';
+import * as framesService from '../services/frames.service';
+import { requiredOxySessionId } from '../middleware/oxySession';
 import {
   sendCommand as sendTunnelCommand,
   requestCameraSnapshot,
@@ -68,6 +70,30 @@ const upsertDeviceMetadataSchema = z.object({
 const claimDeviceSchema = z.object({
   claimCode: z.string().trim().min(1, 'claimCode is required'),
 });
+
+const registerFrameSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    room: z.string().trim().min(1).max(200).nullable().optional(),
+    oxyDeviceId: z.string().trim().min(1).max(200).nullable().optional(),
+    platform: z.string().trim().min(1).max(50).optional(),
+    appVersion: z.string().trim().min(1).max(50).optional(),
+  })
+  .strict();
+
+// `.strict()` and at least one field: the whole list of frame fields a member
+// may change. `settings` is merged into what was chosen before.
+const updateFrameSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).optional(),
+    room: z.string().trim().min(1).max(200).nullable().optional(),
+    settings: framesService.frameSettingsChangeSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (body) => body.name !== undefined || body.room !== undefined || body.settings !== undefined,
+    { message: 'Nothing to change.' },
+  );
 
 const sendCommandSchema = z.object({
   domain: z.string().trim().min(1, 'domain is required'),
@@ -248,6 +274,70 @@ router.get('/:id/devices/:entityId/camera', async (req: Request, res: Response) 
   const image = await requestCameraSnapshot(homeId, pathParam(req.params.entityId));
   res.setHeader('Cache-Control', 'private, no-store');
   res.status(200).contentType('image/jpeg').send(image);
+});
+
+/** GET /homes/:id/frames — this Home's frames. Any active member. */
+router.get('/:id/frames', async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const result = await framesService.listFrames(pathParam(req.params.id), userId);
+  res.status(200).json(result);
+});
+
+/**
+ * POST /homes/:id/frames — a frame joining this Home, called BY the frame with
+ * the session it signed in with. Any active member. Registering again from the
+ * same session returns the same frame.
+ */
+router.post(
+  '/:id/frames',
+  validateBody(registerFrameSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const body = req.body as z.infer<typeof registerFrameSchema>;
+    const frame = await framesService.registerFrame(
+      pathParam(req.params.id),
+      userId,
+      requiredOxySessionId(req),
+      {
+        name: body.name ?? 'Frame',
+        room: body.room ?? null,
+        oxyDeviceId: body.oxyDeviceId ?? null,
+        platform: body.platform ?? null,
+        appVersion: body.appVersion ?? null,
+      },
+    );
+    res.status(201).json(frame);
+  },
+);
+
+/** PATCH /homes/:id/frames/:frameId — rename, move or reconfigure a frame. Any active member. */
+router.patch(
+  '/:id/frames/:frameId',
+  validateBody(updateFrameSchema),
+  async (req: Request, res: Response) => {
+    const userId = getRequiredOxyUserId(req);
+    const frame = await framesService.updateFrame(
+      pathParam(req.params.id),
+      userId,
+      pathParam(req.params.frameId),
+      req.body as z.infer<typeof updateFrameSchema>,
+    );
+    res.status(200).json(frame);
+  },
+);
+
+/**
+ * DELETE /homes/:id/frames/:frameId — remove a frame. Any active member.
+ * Answers the Oxy device id it reported, for the app to sign that device out.
+ */
+router.delete('/:id/frames/:frameId', async (req: Request, res: Response) => {
+  const userId = getRequiredOxyUserId(req);
+  const result = await framesService.removeFrame(
+    pathParam(req.params.id),
+    userId,
+    pathParam(req.params.frameId),
+  );
+  res.status(200).json(result);
 });
 
 export default router;

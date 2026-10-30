@@ -9,6 +9,7 @@ import {
 import { config } from './config';
 import homesRouter from './routes/homes.routes';
 import tunnelRouter from './routes/tunnel.routes';
+import framesRouter from './routes/frames.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { ecosystemActivityMiddleware } from './ecosystemActivity';
 
@@ -42,6 +43,9 @@ export function createApp(oxy: OxyServer): Express {
   // (optional-then-require) rather than per-router, since this whole API has
   // no public route besides /health and /tunnel.
   app.use('/homes', createOxyAuthMiddleware(oxy), homesRouter);
+  // A Frame by Willo screen asking about itself, by the session it is signed
+  // in with (see `routes/frames.routes.ts`).
+  app.use('/frames', createOxyAuthMiddleware(oxy), framesRouter);
 
   // /tunnel has NO Oxy auth — its caller is a Home Assistant integration,
   // authenticated by a pairing code or tunnel secret instead (see

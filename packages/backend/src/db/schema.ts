@@ -1,7 +1,7 @@
 /**
  * Willo backend — Postgres schema.
  *
- * Six tables. This is a brand-new, small service: it does not
+ * Seven tables. This is a brand-new, small service: it does not
  * replicate OxyHQ/oxy's heavyweight schema-migration apparatus (no
  * deferred-foreign-key ledger — there is nothing here to defer — and no
  * generic table-scanning invariant-test suite). What IS kept, because it is
@@ -13,7 +13,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { boolean, check, index, jsonb, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { boolean, check, index, jsonb, pgTable, real, text, unique } from 'drizzle-orm/pg-core';
 import { createdAt, generatedId, inList, timestamptz, updatedAt } from '@oxy.so/db';
 
 /**
@@ -331,5 +331,52 @@ export const deviceClaims = pgTable(
       'device_claims_status_check',
       sql`${t.status} in (${sql.raw(inList(DEVICE_CLAIM_STATUSES))})`,
     ),
+  ],
+);
+
+/**
+ * `frames` — a Frame by Willo screen that joined a Home. The frame signs in to
+ * Oxy as the person who set it up (the device sign-in QR) and registers itself
+ * here; from then on it reads its settings and the Home's devices as that
+ * person, and people in the Home change its settings from the app.
+ *
+ * `oxy_session_id` IS the frame's identity: the session its requests carry,
+ * verified by Oxy on every call (`req.sessionId`), so a frame finds its own
+ * row without sending an id of its own. Signing the frame out (or removing the
+ * device in the person's Oxy account) ends that session; the frame then shows
+ * the QR again and a new sign-in registers a new row. `oxy_device_id` is what
+ * the frame reported about itself, kept only so the app can revoke the Oxy
+ * device when someone removes the frame; nothing trusts it.
+ *
+ * `settings` holds only what someone CHOSE, as a partial `FrameSettings`
+ * (`@willo.sh/shared-types`): `frames.service.ts` fills the rest with the
+ * current defaults on every read, so a default that changes reaches every
+ * frame that never chose otherwise.
+ */
+export const frames = pgTable(
+  'frames',
+  {
+    id: generatedId(),
+    homeId: text()
+      .notNull()
+      .references(() => homes.id, { onDelete: 'cascade' }),
+    /** Who set the frame up. Opaque Oxy id, no FK — same reasoning as `home_members.memberUserId`. */
+    addedByUserId: text().notNull(),
+    oxySessionId: text().notNull(),
+    oxyDeviceId: text(),
+    name: text().notNull(),
+    room: text(),
+    settings: jsonb().notNull().default({}),
+    platform: text(),
+    appVersion: text(),
+    fps: real(),
+    lastSeenAt: timestamptz(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique('frames_oxy_session_id_key').on(t.oxySessionId),
+    index('frames_home_id_idx').on(t.homeId),
+    check('frames_name_length_check', sql`char_length(${t.name}) between 1 and 100`),
   ],
 );

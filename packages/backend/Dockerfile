@@ -52,6 +52,7 @@ COPY package.json bun.lock bunfig.toml ./
 # installed and the typecheck gate below fails to resolve the extends target.
 COPY packages/backend/package.json packages/backend/
 COPY packages/frontend/package.json packages/frontend/
+COPY packages/shared-types/package.json packages/shared-types/
 COPY packages/ui/package.json packages/ui/
 
 # Install the full workspace, including dev tooling (typescript, @types/*).
@@ -68,6 +69,8 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # and a locally gitignored .env that must never reach a Docker layer.
 COPY packages/backend/tsconfig.json packages/backend/
 COPY packages/backend/src/ packages/backend/src/
+# The frame vocabularies the backend validates against (FRAME_CARDS, ...).
+COPY packages/shared-types/ packages/shared-types/
 
 # Type-safety gate: `tsc --noEmit` (packages/backend's own `typecheck`
 # script). Its output is discarded — the runtime stage below runs the TS
@@ -87,6 +90,7 @@ COPY --from=builder /app/package.json /app/bun.lock /app/bunfig.toml ./
 # production install to reconcile, even in the runtime image.
 COPY --from=builder /app/packages/backend/package.json packages/backend/
 COPY --from=builder /app/packages/frontend/package.json packages/frontend/
+COPY --from=builder /app/packages/shared-types/package.json packages/shared-types/
 COPY --from=builder /app/packages/ui/package.json packages/ui/
 
 # Production dependencies only. --ignore-scripts for the same reason as the
@@ -102,6 +106,7 @@ RUN bun install --frozen-lockfile --production --ignore-scripts
 # developer-time command this image never runs.
 COPY --from=builder /app/packages/backend/src/ packages/backend/src/
 COPY --from=builder /app/packages/backend/tsconfig.json packages/backend/
+COPY --from=builder /app/packages/shared-types/src/ packages/shared-types/src/
 COPY packages/backend/drizzle/ packages/backend/drizzle/
 
 ENV NODE_ENV=production
