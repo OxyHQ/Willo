@@ -35,6 +35,7 @@ export function isNavigationActive(screen: ScreenId, target: ScreenId) {
         screen === 'favorites' ||
         screen === 'favorites-assistant')) ||
     (target === 'automations' && (screen === 'composer' || screen === 'routines')) ||
-    (target === 'activity' && screen === 'timeline')
+    (target === 'activity' && screen === 'timeline') ||
+    (target === 'settings' && screen === 'frames')
   );
 }

@@ -40,7 +40,7 @@ test('the frontend loads the UI theme and scans the responsive layout source', (
   assert.ok(globalCss.includes('@source "../ui/**/*.{js,jsx,ts,tsx}";'));
 });
 
-test('all twelve screens have distinct route destinations', () => {
+test('every screen has its own route destination', () => {
   assert.deepEqual(Object.keys(SCREEN_ROUTES).sort(), SCREENS.map((screen) => screen.id).sort());
   assert.equal(new Set(Object.values(SCREEN_ROUTES)).size, SCREENS.length);
 });

@@ -31,6 +31,12 @@ type WilloTunnelCredentials = {
    * there's no live socket event for it the way `onConnectionChange` has.
    */
   onPaired: (paired: boolean) => void;
+  /**
+   * A Frame by Willo screen in this Home registered, changed or was removed
+   * (`home:frame-updated` / `home:frame-removed`). Says only THAT something
+   * changed: the frames screen refetches what it shows.
+   */
+  onFramesChange: () => void;
 };
 
 /**
@@ -138,6 +144,7 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
     onHomeName,
     onUnitSystem,
     onPaired,
+    onFramesChange,
   } = credentials;
 
   let devices: Device[] = [];
@@ -235,6 +242,8 @@ export function createWilloTunnelProvider(credentials: WilloTunnelCredentials): 
       devices = replaceOrAppend(devices, withCameraUrls([device], apiBaseUrl, homeId)[0] ?? device);
       emit();
     });
+    socket.on('home:frame-updated', () => current() && onFramesChange());
+    socket.on('home:frame-removed', () => current() && onFramesChange());
     socket.on(
       'home:connection-status',
       (status: { connected: boolean }) => current() && onConnectionChange(status.connected),

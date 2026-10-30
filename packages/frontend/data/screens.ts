@@ -84,6 +84,13 @@ export const SCREENS = [
     number: '11',
   },
   {
+    id: 'frames',
+    title: 'Frames',
+    subtitle: 'Frame by Willo screens in this home',
+    generation: 'modern',
+    number: '13',
+  },
+  {
     id: 'favorites-assistant',
     title: 'Favorites + assistant',
     subtitle: 'Broadcast & assistant shortcuts',
