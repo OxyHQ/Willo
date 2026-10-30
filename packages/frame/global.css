@@ -1,0 +1,16 @@
+@import "@oxy.so/app-preset/base.css";
+@import "@oxy.so/bloom/design-tokens/theme.css";
+
+/* A frame is a picture on a wall: the page never scrolls, never shows a
+   pointer, and is black before the first photo paints. */
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  cursor: none;
+  color-scheme: dark;
+}

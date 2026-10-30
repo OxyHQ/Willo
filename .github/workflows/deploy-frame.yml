@@ -1,0 +1,77 @@
+name: Deploy frame
+
+# Frame by Willo's web build to frame.willo.sh. Only when the frame, the
+# shapes it shares with the backend, or the dependencies change.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/frame/**'
+      - 'packages/shared-types/**'
+      - 'bun.lock'
+      - '.github/workflows/deploy-frame.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-willo-frame
+  cancel-in-progress: false
+
+env:
+  WRANGLER_VERSION: '4.130.0'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      # Expo SDK 58's CLI supports Node 22.13+ / 24.3+ only.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the web export
+        working-directory: packages/frame
+        run: bunx expo export --platform web
+        env:
+          EXPO_PUBLIC_OXY_API_URL: https://api.oxy.so
+          # Willo's public client id: a frame signs in as Willo, and
+          # https://frame.willo.sh is one of that client's web origins.
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://frame.willo.sh
+          EXPO_PUBLIC_WILLO_API_URL: https://api.willo.sh
+          EXPO_PUBLIC_CLARITY_API_URL: https://api.clarity.surf
+
+      # Through `bunx`, not `cloudflare/wrangler-action` (forbidden fleet-wide:
+      # it cannot find this workspace's lockfile and falls back to npm).
+      - name: Deploy to Cloudflare
+        working-directory: packages/frame
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: bunx "wrangler@$WRANGLER_VERSION" deploy
+
+      - name: Smoke test the deployed domain
+        run: |
+          set -euo pipefail
+          code="$(curl --silent --show-error --max-time 20 --retry 5 --retry-delay 5 \
+            --retry-all-errors --output /dev/null --write-out '%{http_code}' \
+            https://frame.willo.sh/)"
+          if [[ "$code" != "200" ]]; then
+            echo "::error::frame.willo.sh answered HTTP $code after deploy."
+            exit 1
+          fi
+          echo "frame.willo.sh is live."
