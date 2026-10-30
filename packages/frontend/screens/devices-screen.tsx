@@ -4,7 +4,7 @@ import { PageScroll, SectionGrid } from '../layout/page-layout';
 import { AddButton, SectionTitle } from '@willo.sh/ui';
 import { type ScreenProps } from '../data/screens';
 import { useDevices, useHomeActions } from '../state/home-context';
-import { type Device } from '../providers/types';
+import type { Device } from '@willo.sh/shared-types';
 import { RealCameraCard } from '../components/camera-card';
 import { SensorReadingsCard } from '../components/sensor-readings-card';
 import { DeviceTile } from '../components/device-tile';

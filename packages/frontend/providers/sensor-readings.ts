@@ -1,4 +1,4 @@
-import { getCapability, type Device } from './types';
+import { getCapability, type Device } from '@willo.sh/shared-types';
 
 /**
  * Home Assistant `device_class` values worth showing as an indoor reading,

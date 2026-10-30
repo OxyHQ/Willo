@@ -12,7 +12,7 @@ import {
   useHomeActions,
   useOverlayState,
 } from '../state/home-context';
-import { getCapability, type Device } from '../providers/types';
+import { getCapability, type Device } from '@willo.sh/shared-types';
 import { Icon, IconButton, Label, type IconName } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';

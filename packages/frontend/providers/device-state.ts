@@ -1,6 +1,7 @@
 import type { ParseKeys, TFunction } from 'i18next';
-import { getCapability, type Device, type DeviceCommand } from './types';
-import type { TemperatureUnit } from './unit-system';
+import { getCapability, type Device } from '@willo.sh/shared-types';
+import type { DeviceCommand } from './types';
+import type { TemperatureUnit } from '@willo.sh/shared-types';
 
 /**
  * What a device says and does, read from its capabilities alone — no React, so

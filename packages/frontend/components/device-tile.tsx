@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tile, useOptimisticValue, type IconName, type Tone } from '@willo.sh/ui';
-import { type Device } from '../providers/types';
+import type { Device } from '@willo.sh/shared-types';
 import { describeDevice, draggable, isActive, primaryCommand } from '../providers/device-state';
 import { formatTemperature } from '../providers/unit-system';
 import { useHomeActions, useUnitSystem } from '../state/home-context';

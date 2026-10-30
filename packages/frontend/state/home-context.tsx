@@ -18,12 +18,8 @@ import { homeReducer, initialHomeState, type HomeAction, type HomeState } from '
 import * as storage from '../storage';
 import { createWilloTunnelProvider } from '../providers/willo-tunnel';
 import { createDemoProvider } from '../providers/demo-home';
-import type {
-  Device,
-  DeviceCommand,
-  HomeActivityEvent,
-  SmartHomeProvider,
-} from '../providers/types';
+import type { Device } from '@willo.sh/shared-types';
+import type { DeviceCommand, HomeActivityEvent, SmartHomeProvider } from '../providers/types';
 import { unitSystemForLocale, type UnitSystem } from '../providers/unit-system';
 import { useTranslation } from 'react-i18next';
 

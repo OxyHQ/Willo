@@ -1,5 +1,5 @@
 import type { ParseKeys } from 'i18next';
-import type { DeviceCapability } from './types';
+import type { DeviceCapability } from '@willo.sh/shared-types';
 
 /**
  * The demo home, as the same `Device[]` a real Home Assistant would report —

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { RealCameraCard } from '../components/camera-card';
 import { DeviceTile } from '../components/device-tile';
-import { type Device } from '../providers/types';
+import type { Device } from '@willo.sh/shared-types';
 import { Icon, type IconName } from '@willo.sh/ui';
 import { Label, SectionTitle, Tile } from '@willo.sh/ui';
 import { DashboardGrid, type DashboardCard } from '../layout/dashboard-grid';

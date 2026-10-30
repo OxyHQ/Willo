@@ -7,7 +7,7 @@ import { IconButton, Label } from '@willo.sh/ui';
 import { parseRgb, useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { convertTemperature, formatTemperature } from '../providers/unit-system';
-import { getCapability, type Device } from '../providers/types';
+import { getCapability, type Device } from '@willo.sh/shared-types';
 
 /** What the +/- buttons will go to, in the thermostat's own unit. */
 const MINIMUM_TARGET = 5;

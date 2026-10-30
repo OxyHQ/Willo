@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { selectRelevantSensors } from '../packages/frontend/providers/sensor-readings.ts';
-import type { Device } from '../packages/frontend/providers/types.ts';
+import type { Device } from '@willo.sh/shared-types';
 
 const sensor = (
   name: string,

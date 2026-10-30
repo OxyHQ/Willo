@@ -12,7 +12,7 @@ import { cameraRows, cardHeight, cardRowsFor } from '../layout/card-sizes';
 import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import type { ScreenProps } from '../data/screens';
 import { useDevices, useHomeActions, useUnitSystem } from '../state/home-context';
-import { type Device } from '../providers/types';
+import type { Device } from '@willo.sh/shared-types';
 import { SENSOR_CARD_LIMIT, selectRelevantSensors } from '../providers/sensor-readings';
 import { formatTemperature } from '../providers/unit-system';
 import { useTheme } from '@oxy.so/bloom/theme';
