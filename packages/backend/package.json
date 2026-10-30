@@ -21,7 +21,8 @@
     "postgres": "3.4.9",
     "socket.io": "^4.8.3",
     "zod": "^4.6.7",
-    "@aws-sdk/credential-providers": "^3.972.84"
+    "@aws-sdk/credential-providers": "^3.972.84",
+    "@willo.sh/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

@@ -8,6 +8,7 @@
   "workspaces": [
     "packages/backend",
     "packages/frontend",
+    "packages/shared-types",
     "packages/ui"
   ],
   "scripts": {
@@ -15,7 +16,7 @@
     "web": "bun run --cwd packages/frontend web",
     "android": "bun run --cwd packages/frontend android",
     "ios": "bun run --cwd packages/frontend ios",
-    "typecheck": "bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck && bun run --cwd packages/backend typecheck",
+    "typecheck": "bun run --cwd packages/shared-types typecheck && bun run --cwd packages/ui typecheck && bun run --cwd packages/frontend typecheck && bun run --cwd packages/backend typecheck",
     "lint": "biome check . && bun run --cwd packages/frontend lint",
     "check:bun-pin": "bun test ./tests/bun-pin.test.ts",
     "lint:fix": "biome check --write .",
