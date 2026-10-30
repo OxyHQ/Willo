@@ -116,7 +116,9 @@ export function FramesScreen(_props: ScreenProps) {
                 title={frame.name}
                 description={[
                   frame.room ?? t('frames.noRoom'),
-                  isFrameOnline(frame, frames.dataUpdatedAt) ? t('frames.online') : t('frames.offline'),
+                  isFrameOnline(frame, frames.dataUpdatedAt)
+                    ? t('frames.online')
+                    : t('frames.offline'),
                 ].join(' · ')}
                 accessibilityState={{ selected: frame.id === selected?.id }}
                 onPress={() => setSelectedId(frame.id)}
