@@ -3,7 +3,7 @@ import '../global.css';
 import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from '../i18n';
 
 import { Slot, Stack, usePathname } from 'expo-router';
-import { Platform, StatusBar, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OverlayInertBoundary, PortalOutlet, PortalProvider } from '@oxy.so/bloom/portal';
@@ -68,7 +68,7 @@ function AppShell() {
   const onNavigate = useScreenNavigate(screen);
   const insets = useSafeAreaInsets();
   const { compact } = useResponsiveLayout();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const hasTabs = !noTabScreens.includes(screen);
 
   // The one header the app has. Its height is measured here and published to
@@ -104,10 +104,6 @@ function AppShell() {
       className="min-h-0 min-w-0 flex-1 bg-background"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      {/* Now that content sits behind the status bar, the clock and icons have
-          to read against whatever is under them — dark glyphs on Willo's light
-          shell, light ones in dark mode. */}
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View className="min-h-0 min-w-0 flex-1 flex-row">
         {!compact && <NavigationRail screen={screen} onNavigate={onNavigate} />}
         <ScreenChrome screen={screen} onNavigate={onNavigate}>
