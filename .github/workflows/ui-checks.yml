@@ -48,3 +48,12 @@ jobs:
       - name: Export the frame's web build
         working-directory: packages/frame
         run: bunx expo export --platform web
+        env:
+          # The frame's config refuses to build without Willo's public client
+          # id (it has no fallback identity); the same values deploy-frame.yml
+          # builds with.
+          EXPO_PUBLIC_OXY_API_URL: https://api.oxy.so
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
+          EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI: https://frame.willo.sh
+          EXPO_PUBLIC_WILLO_API_URL: https://api.willo.sh
+          EXPO_PUBLIC_CLARITY_API_URL: https://api.clarity.surf
