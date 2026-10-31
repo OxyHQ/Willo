@@ -1,34 +1,10 @@
-import React, { createContext, useContext } from 'react';
-import { Platform, ScrollView, View, type ScrollViewProps } from 'react-native';
+import React, { useRef, type ComponentRef } from 'react';
+import { ScrollView, View, type ScrollViewProps } from 'react-native';
 import { CONTENT_MAX } from './metrics';
-import { useBottomEdgeInset } from '@oxy.so/bloom/layout';
+import { ScreenScrollView, useScreen } from '@oxy.so/bloom/screen';
+import { useScrollRestoration } from '@oxy.so/bloom/scroll';
 import { useResponsiveLayout } from './use-responsive-layout';
 
-const IS_WEB = Platform.OS === 'web';
-
-/**
- * Where the app shell's one header is, as the screens below it need to know.
- *
- * The header is mounted once in the shell, never inside a screen. Above the
- * `shell:` width it is a real sibling above the panel and takes its own space,
- * so a screen needs no inset but the panel's overlays must start below it.
- * Below that width it is pinned OVER the panel, so it is the other way round:
- * the screen reserves its height and content passes underneath.
- */
-type ShellHeader = { height: number; overlaysContent: boolean };
-const ShellHeaderContext = createContext<ShellHeader>({ height: 0, overlaysContent: false });
-export function ShellHeaderProvider({
-  value,
-  children,
-}: {
-  value: ShellHeader;
-  children: React.ReactNode;
-}) {
-  return <ShellHeaderContext.Provider value={value}>{children}</ShellHeaderContext.Provider>;
-}
-export function useShellHeader(): ShellHeader {
-  return useContext(ShellHeaderContext);
-}
 /** The gutter as classes, so a resize restyles rather than re-renders. The numbers match `getLayoutMetrics`, which still reports them for the bleed margins that have to be real numbers. */
 const GUTTER_CLASS = 'px-4 shell:px-6';
 export function ContentWidth({
@@ -49,14 +25,7 @@ export function ContentWidth({
     </View>
   );
 }
-/**
- * WEB uses a real document-scroll model (the window is the scroller — see
- * `app/_layout.tsx`/`global.css`), so a nested `ScrollView` here would open a
- * SECOND, contained scroll region instead of letting the page grow — exactly
- * the "scroll happens inside a box" shape that was explicitly rejected in
- * favor of one real page scroll. It's a plain `View` on web. NATIVE has no
- * document-scroll equivalent, so it keeps a real `ScrollView`.
- */
+/** Bloom binds this content to the route's native viewport or web document. */
 export function PageScroll({
   children,
   maxWidth = CONTENT_MAX,
@@ -67,38 +36,19 @@ export function PageScroll({
   maxWidth?: number;
   bottom?: number;
 }) {
-  // On native the bottom bar floats over the last rows of the screen (see
-  // `bottom-nav.tsx`), so the SCROLL runs to the window's bottom edge and its
-  // CONTENT stops above the bar — content passes behind it as you scroll
-  // instead of ending at a hard line above it. The bar publishes its own
-  // footprint, safe area included, and reads 0 on the screens that don't show
-  // one. Web's page already clears it at the panel (`screen-surface.tsx`),
-  // where the bar is fixed over a scrolling document.
-  const bottomEdgeInset = useBottomEdgeInset();
-  const header = useShellHeader();
-  const topInset = header.overlaysContent ? header.height : 0;
-  if (IS_WEB) {
-    return (
-      <View style={{ paddingTop: topInset, paddingBottom: bottom }}>
-        <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
-      </View>
-    );
-  }
-  // No scroll indicator, here and in every horizontal scroller in the app —
-  // no Oxy app shows one. A bar sliding in over the right edge of a screen
-  // that is already all rounded surfaces reads as damage, and on a phone the
-  // finger is the position indicator.
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const screen = useScreen();
+  const restoration = useScrollRestoration(scrollRef, { enabled: screen.active });
   return (
-    <ScrollView
+    <ScreenScrollView
+      ref={scrollRef}
+      restoration={restoration}
       {...props}
-      showsVerticalScrollIndicator={false}
-      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
-      className="min-h-0 flex-1"
-      contentContainerStyle={{ paddingTop: topInset, paddingBottom: bottom + bottomEdgeInset }}
+      contentContainerStyle={{ paddingBottom: bottom }}
     >
       <ContentWidth maxWidth={maxWidth}>{children}</ContentWidth>
-    </ScrollView>
+    </ScreenScrollView>
   );
 }
 /** One tree, not duplicated phone/tablet screens. DOM/focus/state order stays stable. */

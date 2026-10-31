@@ -1,4 +1,3 @@
-import React from 'react';
 import { View } from 'react-native';
 import { OxySignInButton } from '@oxy.so/services/ui/client';
 import { Label } from '@willo.sh/ui';
@@ -10,8 +9,7 @@ import { SignInIllustration } from './sign-in-illustration';
  * The signed-out prompt itself — illustration + title + subtitle + the Oxy
  * sign-in button. Purely presentational: no auth check, no `ContentPanel`
  * wrapping of its own. `ScreenSurface` decides WHEN to render this (in place
- * of a screen's normal content) and already wraps whatever it renders in the
- * one `ContentPanel` every screen shares — this must not wrap a second one.
+ * of a screen's normal content) while AppShell supplies the shared panel surface.
  */
 export function SignInPrompt() {
   const { t } = useTranslation();

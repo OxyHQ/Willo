@@ -1,31 +1,14 @@
-import React from 'react';
 import { Platform, View } from 'react-native';
 import { TabBar, TabBarButton, type TabBarItem, type TabBarTheme } from '@oxy.so/bloom/tab-bar';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
-import { type ScreenId } from '../data/screens';
-import { asViewStyle } from '../layout/web-style';
+import type { ScreenId } from '../data/screens';
 import { Icon } from '@willo.sh/ui';
 import { tabs, isNavigationActive } from './navigation-items';
 import { useTabPager } from '../state/tab-pager';
 
 const IS_WEB = Platform.OS === 'web';
 const ICON_SIZE = 21;
-
-// POSITIONING: Bloom's bar pins ITSELF with `position: absolute` against this
-// wrapper and publishes its own footprint (its height plus the gesture bar's
-// inset) to the bottom-edge registry, which `screen-surface.tsx` reads back to
-// pad content clear of it. So on NATIVE this wrapper is a zero-height flex
-// item at the end of the shell column: the bar lands on the window's bottom
-// edge and the screen scrolls behind it, all the way past the gesture line.
-// It used to be a real, opaque, inset-padded box instead, which is what made
-// content stop short of the bottom. On WEB the app scrolls the document, where
-// `absolute` would resolve against the tall page and scroll away, so the
-// wrapper pins to the viewport and the bar's own `absolute` resolves against
-// that — the same shape as OxyHQ/Mention's `components/BottomBar.tsx`.
-const webFixedStyle = IS_WEB
-  ? asViewStyle({ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 1000 })
-  : undefined;
 
 export function BottomNav({ screen }: { screen: ScreenId }) {
   const { colors } = useTheme();
@@ -43,7 +26,7 @@ export function BottomNav({ screen }: { screen: ScreenId }) {
   };
 
   return (
-    <View testID="bottom-navigation" style={webFixedStyle}>
+    <View testID="bottom-navigation">
       {/* `activeProgress` is the swipe's own position, written by the pager
         every frame on the UI thread, so the highlight travels with the finger
         instead of jumping once the page lands. Bloom stops moving the capsule

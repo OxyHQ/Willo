@@ -1,10 +1,8 @@
-import React from 'react';
 import { Rail, type RailItem } from '@oxy.so/bloom/rail';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@willo.sh/ui';
 import type { Navigate, ScreenId } from '../data/screens';
-import { useResponsiveLayout } from '../layout/use-responsive-layout';
 import { isNavigationActive, tabs } from './navigation-items';
 
 const ICON_SIZE = 22;
@@ -14,8 +12,15 @@ const ICON_SIZE = 22;
 // native) now lives in Bloom's `Rail` — see `@oxy.so/bloom` docs/rail.mdx.
 // This file is left owning only what is actually Willo's: which tabs exist,
 // which one is active for the current screen, and how each looks.
-export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNavigate: Navigate }) {
-  const { navigationWidth } = useResponsiveLayout();
+export function NavigationRail({
+  screen,
+  onNavigate,
+  width,
+}: {
+  screen: ScreenId;
+  onNavigate: Navigate;
+  width?: number;
+}) {
   const { colors } = useTheme();
   const { t } = useTranslation();
 
@@ -46,7 +51,7 @@ export function NavigationRail({ screen, onNavigate }: { screen: ScreenId; onNav
       items={items}
       activeId={activeTab?.screen}
       onSelect={handleSelect}
-      width={navigationWidth}
+      width={width}
     />
   );
 }
