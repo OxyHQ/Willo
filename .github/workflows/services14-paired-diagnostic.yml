@@ -1,0 +1,135 @@
+name: Willo Services 14 paired exports (diagnostic only)
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: base
+            app: frontend
+            sha: d5a80e2a845cc634519349f514eeb957eda6b220
+          - label: candidate
+            app: frontend
+            sha: b1b11985fb73c0dd65b2aa531d3508fbfe0f8b17
+          - label: base
+            app: frame
+            sha: d5a80e2a845cc634519349f514eeb957eda6b220
+          - label: candidate
+            app: frame
+            sha: b1b11985fb73c0dd65b2aa531d3508fbfe0f8b17
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install the exact locked graph
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ matrix.sha }}'
+          mkdir -p "$RUNNER_TEMP/result"
+          git rev-parse HEAD > "$RUNNER_TEMP/result/commit.txt"
+          sha256sum bun.lock > "$RUNNER_TEMP/result/lock-sha256.txt"
+          bun install --frozen-lockfile
+      - name: Resolve Android and Apple modules
+        working-directory: packages/${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          cli="$(node -p 'require("node:path").join(require("node:path").dirname(require.resolve("expo-modules-autolinking/package.json")),"bin/expo-modules-autolinking.js")')"
+          for platform in android apple; do
+            node "$cli" resolve --platform "$platform" --json > "$RUNNER_TEMP/result/$platform.raw.json"
+            node - "$RUNNER_TEMP/result/$platform.raw.json" "$RUNNER_TEMP/result/$platform.json" <<'JS'
+          const fs = require('node:fs');
+          const [input, output] = process.argv.slice(2);
+          const source = fs.readFileSync(input, 'utf8').replaceAll(process.env.GITHUB_WORKSPACE, '<ROOT>');
+          fs.writeFileSync(output, JSON.stringify(JSON.parse(source)));
+          JS
+          done
+      - name: Export web with deployment inputs
+        working-directory: packages/${{ matrix.app }}
+        env:
+          EXPO_PUBLIC_OXY_API_URL: https://api.oxy.so
+          EXPO_PUBLIC_OXY_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
+          EXPO_PUBLIC_WILLO_API_URL: https://api.willo.sh
+          EXPO_PUBLIC_CLARITY_API_URL: https://api.clarity.surf
+        run: |
+          set -euo pipefail
+          if [ '${{ matrix.app }}' = frame ]; then
+            export EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI=https://frame.willo.sh
+          else
+            export EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI=https://willo.sh
+          fi
+          bunx expo export --platform web --output-dir "$RUNNER_TEMP/web-dist"
+      - name: Measure exported bytes
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const zlib = require('node:zlib');
+          const dist = path.join(process.env.RUNNER_TEMP, 'web-dist');
+          const files = fs.readdirSync(dist, { recursive: true, withFileTypes: true }).filter(entry => entry.isFile()).map(entry => path.join(entry.parentPath, entry.name));
+          const javascript = files.filter(file => file.endsWith('.js'));
+          const size = list => list.reduce((total, file) => total + fs.statSync(file).size, 0);
+          const gzip = list => list.reduce((total, file) => total + zlib.gzipSync(fs.readFileSync(file)).length, 0);
+          const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
+          const scripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)].map(match => new URL(match[1], 'https://local.invalid').pathname).filter(src => src.startsWith('/_expo/static/js/')).map(src => path.join(dist, src.slice(1)));
+          if (!scripts.length || scripts.some(file => !fs.existsSync(file))) throw Error('Missing Expo scripts in index.html');
+          const report = { totalBytes: size(files), javascriptBytes: size(javascript), javascriptGzipSumBytes: gzip(javascript), initialScriptBytes: size(scripts), initialScriptGzipSumBytes: gzip(scripts), javascriptFiles: javascript.length, initialScripts: scripts.length };
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'result', 'report.json'), JSON.stringify(report, null, 2));
+          console.log(JSON.stringify(report));
+          JS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: willo-${{ matrix.label }}-${{ matrix.app }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/result
+          retention-days: 2
+  compare:
+    if: always()
+    needs: export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: willo-*-${{ github.run_id }}
+          path: paired
+      - name: Compare paired exports and module selection
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const run = process.env.GITHUB_RUN_ID;
+          const read = (label, app, file) => JSON.parse(fs.readFileSync(`paired/willo-${label}-${app}-${run}/${file}`, 'utf8'));
+          for (const app of ['frontend', 'frame']) {
+            const base = read('base', app, 'report.json');
+            const candidate = read('candidate', app, 'report.json');
+            console.log(app, 'base', JSON.stringify(base), 'candidate', JSON.stringify(candidate));
+            for (const [key, value] of Object.entries(candidate)) console.log(`${app} ${key}: ${base[key]} -> ${value} (${value - base[key] >= 0 ? '+' : ''}${value - base[key]})`);
+            for (const platform of ['android', 'apple']) {
+              const left = read('base', app, `${platform}.json`);
+              const right = read('candidate', app, `${platform}.json`);
+              const a = left.modules.filter(x => x.packageName === '@oxy.so/services');
+              const b = right.modules.filter(x => x.packageName === '@oxy.so/services');
+              assert.equal(a.length, 1); assert.equal(b.length, 1);
+              assert.equal(a[0].packageVersion, '13.11.0'); assert.equal(b[0].packageVersion, '14.0.0');
+              console.log(app, platform, 'base selected', JSON.stringify(a[0]), 'candidate selected', JSON.stringify(b[0]));
+              a[0].packageVersion = b[0].packageVersion;
+              assert.deepEqual(right, left, `${app} ${platform} differs beyond the Services version`);
+              console.log(app, platform, 'complete resolver output matches after Services version normalization');
+            }
+          }
+          JS
