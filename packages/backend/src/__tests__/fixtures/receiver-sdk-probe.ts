@@ -4,12 +4,12 @@
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import express from 'express';
 import { createOxyAuthMiddleware, getRequiredOxyUserId } from '@oxy.so/core/server';
 let issuer: Server;
 let receiver: Server;
 let receiverOrigin = '';
 let active = true;
+let authorityAvailable = true;
 let validations = 0;
 let admitted = 0;
 let disposeOxy: (() => void) | undefined;
@@ -72,6 +72,10 @@ async function run(): Promise<void> {
         return;
       }
       validations += 1;
+      if (!authorityAvailable) {
+        res.writeHead(503).end();
+        return;
+      }
       res.setHeader('Content-Type', 'application/json');
       res.end(
         JSON.stringify({
@@ -86,11 +90,11 @@ async function run(): Promise<void> {
     process.env.OXY_API_URL = await listen(issuer);
     // Configuration syntax only: this test never opens a product database.
     process.env.DATABASE_URL = 'postgres://unused:unused@127.0.0.1:1/receiver_fixture_unused';
-    const { createOxyClient } = await import('../../app.js');
+    const { createApp, createOxyClient } = await import('../../app.js');
     const oxy = createOxyClient();
     disposeOxy = () => oxy.dispose();
     const middleware = createOxyAuthMiddleware(oxy);
-    const app = express();
+    const app = createApp(oxy);
     app.get('/owned-fixture', middleware, (req, res) => {
       admitted += 1;
       res.json({ userId: getRequiredOxyUserId(req) });
@@ -133,9 +137,27 @@ async function run(): Promise<void> {
       assert.equal(validations, checks + 2);
       assert.equal(admitted, before);
     }
+    // Temporary authority failure neither admits the caller nor poisons recovery.
+    {
+      active = true;
+      authorityAvailable = false;
+      const token = bearer();
+      const before = admitted;
+      const checks = validations;
+      assert.equal((await request(token)).status, 503);
+      assert.equal(admitted, before);
+      assert.ok(validations > checks);
+      const checksAfterOutage = validations;
+      assert.equal((await fetch(`${receiverOrigin}/tunnel/health`)).status, 200);
+      assert.equal(validations, checksAfterOutage);
+      authorityAvailable = true;
+      assert.equal((await request(token)).status, 200);
+      assert.equal(admitted, before + 1);
+      assert.equal(validations, checksAfterOutage + 1);
+    }
     assert.equal(blockedNetwork, 0);
     process.stdout.write(
-      JSON.stringify({ controls: 3, validations, admitted, nonLoopbackRequests: blockedNetwork }) +
+      JSON.stringify({ controls: 4, validations, admitted, nonLoopbackRequests: blockedNetwork }) +
         '\n',
     );
   } finally {

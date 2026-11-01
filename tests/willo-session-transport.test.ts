@@ -185,3 +185,62 @@ for (const cancellation of ['disconnect', 'account switch'] as const) {
     }
   });
 }
+
+test('Willo keeps its Oxy session and reconnects after a temporary 503', async () => {
+  let available = false;
+  const received: string[] = [];
+  const server = createServer((request, response) => {
+    received.push(request.headers.authorization ?? '');
+    if (!available) {
+      response.writeHead(503).end();
+      return;
+    }
+    response.setHeader('content-type', 'application/json');
+    response.end(
+      JSON.stringify({
+        connected: true,
+        paired: true,
+        devices: [],
+        homeName: 'Home',
+        unitSystem: 'metric',
+      }),
+    );
+  });
+  const io = new Server(server);
+  io.of('/homes').on('connection', (socket) => {
+    socket.on('home:join', (_input, callback) => callback({ ok: true }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Missing server address');
+  const baseURL = `http://127.0.0.1:${address.port}`;
+  const oxy = new OxyServices({ baseURL });
+  const bearer = token('A');
+  oxy.session.setAccessToken(bearer);
+  const linked = oxy.createLinkedClient({ baseURL });
+  const provider = createWilloTunnelProvider({
+    apiBaseUrl: baseURL,
+    homeId: 'home-A',
+    fetch: linked.fetch,
+    session: oxy.http,
+    getAccessToken: linked.getAccessToken,
+    onConnectionChange: () => {},
+    onHomeName: () => {},
+    onUnitSystem: () => {},
+    onPaired: () => {},
+  });
+  try {
+    await expect(provider.connect()).rejects.toThrow('Could not reach Willo.');
+    expect(oxy.session.accessToken).toBe(bearer);
+    expect(io.of('/homes').sockets.size).toBe(0);
+    available = true;
+    expect(await provider.connect()).toEqual([]);
+    expect(oxy.session.accessToken).toBe(bearer);
+    expect(received).toEqual([`Bearer ${bearer}`, `Bearer ${bearer}`]);
+  } finally {
+    provider.disconnect();
+    linked.dispose();
+    oxy.dispose();
+    await new Promise<void>((resolve) => io.close(() => resolve()));
+  }
+});

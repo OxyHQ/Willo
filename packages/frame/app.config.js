@@ -25,7 +25,7 @@ module.exports = {
     platforms: ['android', 'web'],
     // The OTA compatibility boundary (withOxyUpdates sets runtimeVersion policy
     // 'appVersion'): bump it whenever the native layer changes.
-    version: '1.0.0',
+    version: '1.0.1',
     // A frame is landscape like the screen it runs on; its picture turns by the
     // frame's own `rotation` setting, the same on Android, the web and a TV
     // that cannot rotate at all, so the system never turns it a second time.
@@ -36,7 +36,7 @@ module.exports = {
     description: 'Frame by Willo: your photos, your home and the news on any screen',
     android: {
       package: 'sh.willo.frame',
-      versionCode: 1,
+      versionCode: 2,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#000000',
