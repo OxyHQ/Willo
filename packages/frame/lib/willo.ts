@@ -9,12 +9,13 @@ import { useOxy } from '@oxy.so/services/ui/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Frame, FrameHeartbeatRequest, RegisterFrameRequest } from '@willo.sh/shared-types';
 import { Platform } from 'react-native';
+import frameVersion from '../version.json';
 import { measureFps } from './fps';
 
 export const WILLO_API_URL = process.env.EXPO_PUBLIC_WILLO_API_URL ?? '';
 
 /** What the frame's version reports in its diagnostics. */
-const APP_VERSION = '1.0.0';
+const APP_VERSION = frameVersion.version;
 
 /** One linked client per Oxy client, for the life of the app. */
 const clients = new WeakMap<OxyServices, LinkedHttpClient>();

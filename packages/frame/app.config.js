@@ -7,6 +7,7 @@
 // sub-app), and the APK's Oxy Updates manifest URL is baked from it at build
 // time. Never a fallback: a binary pointed at another app's id would sign in
 // and update as that app.
+const frameVersion = require('./version.json');
 const OXY_CLIENT_ID = process.env.EXPO_PUBLIC_OXY_CLIENT_ID;
 if (!OXY_CLIENT_ID) {
   throw new Error('EXPO_PUBLIC_OXY_CLIENT_ID is not set: see packages/frame/.env.example.');
@@ -25,7 +26,7 @@ module.exports = {
     platforms: ['android', 'web'],
     // The OTA compatibility boundary (withOxyUpdates sets runtimeVersion policy
     // 'appVersion'): bump it whenever the native layer changes.
-    version: '1.0.1',
+    version: frameVersion.version,
     // A frame is landscape like the screen it runs on; its picture turns by the
     // frame's own `rotation` setting, the same on Android, the web and a TV
     // that cannot rotate at all, so the system never turns it a second time.
@@ -36,7 +37,7 @@ module.exports = {
     description: 'Frame by Willo: your photos, your home and the news on any screen',
     android: {
       package: 'sh.willo.frame',
-      versionCode: 2,
+      versionCode: frameVersion.androidVersionCode,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#000000',
