@@ -14,7 +14,7 @@
     "test": "bun test src"
   },
   "dependencies": {
-    "@oxy.so/core": "7.9.0",
+    "@oxy.so/core": "7.10.5",
     "@oxy.so/db": "^1.0.0",
     "drizzle-orm": "0.45.2",
     "express": "^5.2.1",
@@ -28,6 +28,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.5.1",
     "drizzle-kit": "0.31.10",
+    "socket.io-client": "^4.8.3",
     "typescript": "~6.0.3"
   }
 }

@@ -11,7 +11,7 @@
     "lint": "expo lint ."
   },
   "dependencies": {
-    "@alia.onl/sdk": "22.1.1",
+    "@alia.onl/sdk": "22.10.1",
     "@emotion/native": "^11.11.0",
     "@emotion/react": "^11.14.0",
     "@expo/app-integrity": "~58.0.2",
@@ -19,8 +19,8 @@
     "@expo/vector-icons": "^15.1.1",
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@oxy.so/bloom": "15.70.0",
-    "@oxy.so/core": "7.9.0",
-    "@oxy.so/services": "^13.11.0",
+    "@oxy.so/core": "7.10.5",
+    "@oxy.so/services": "^14.0.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-community/slider": "5.2.1",
