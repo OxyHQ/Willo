@@ -14,8 +14,8 @@
     "test": "bun test src"
   },
   "dependencies": {
-    "@oxy.so/core": "7.13.0",
-    "@oxy.so/db": "^1.0.0",
+    "@oxy.so/core": "7.16.0",
+    "@oxy.so/db": "^1.4.0",
     "drizzle-orm": "0.45.2",
     "express": "^5.2.1",
     "postgres": "3.4.9",
