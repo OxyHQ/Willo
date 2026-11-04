@@ -13,6 +13,7 @@ import tunnelRouter from './routes/tunnel.routes';
 import framesRouter from './routes/frames.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { ecosystemActivityMiddleware } from './ecosystemActivity';
+import { WILLO_APP_ORIGINS } from './origins';
 
 /** Willo's Oxy application (`b043569d14d358371cb545b5` in Oxy's application registry). */
 const WILLO_APPLICATION_ID = 'b043569d14d358371cb545b5';
@@ -46,7 +47,7 @@ export function createApp(oxy: OxyServer): Express {
   // uses the configured temporary AWS identity, including local SSO), so
   // there is nothing to plumb through `createApp` when it does.
   app.use(ecosystemActivityMiddleware);
-  app.use(createOxyCors({ appOrigins: config.corsOrigins }));
+  app.use(createOxyCors({ appOrigins: [...WILLO_APP_ORIGINS] }));
   // Per Oxy user when signed in, per (hashed) client address otherwise.
   // In-memory store: Willo runs exactly one task (`desired_count = 1` in
   // oxy-infra's app-willo.tf), the same one-process assumption the tunnel and

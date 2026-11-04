@@ -7,6 +7,7 @@ import { createApp, createOxyClient } from './app';
 import { createHomesNamespace } from './realtime/homesNamespace';
 import { createTunnelNamespace } from './realtime/tunnelNamespace';
 import { startEcosystemActivity, stopEcosystemActivity } from './ecosystemActivity';
+import { WILLO_APP_ORIGINS } from './origins';
 
 async function main(): Promise<void> {
   await connectPostgres();
@@ -27,7 +28,10 @@ async function main(): Promise<void> {
   // on polling AND on the WebSocket handshake (which CORS alone never checks).
   // A client with no Origin (the Home Assistant integration, a native frame)
   // is admitted, as it is over HTTP.
-  const io = new SocketIOServer(server, createOxySocketCors({ appOrigins: config.corsOrigins }));
+  const io = new SocketIOServer(
+    server,
+    createOxySocketCors({ appOrigins: [...WILLO_APP_ORIGINS] }),
+  );
   createHomesNamespace(io, oxy);
   createTunnelNamespace(io);
 

@@ -16,10 +16,6 @@ const envSchema = z.object({
   // createOxyAuthMiddleware and the socket middleware (@oxy.so/core/server) validate every
   // bearer token by calling this API directly — no local signing secret.
   OXY_API_URL: z.string().url().default('https://api.oxy.so'),
-  // Comma-separated browser origins allowed to call this API with
-  // credentials, in addition to the built-in *.oxy.so family createOxyCors
-  // always allows.
-  CORS_ORIGINS: z.string().optional(),
   // Encrypts `device_claims.pending_secret` at rest (AES-256-GCM) — the one
   // column in this database that ever holds a tunnel secret in plaintext,
   // for the brief window between an owner completing a device claim and the
@@ -46,10 +42,5 @@ export const config = {
   port: env.PORT,
   databaseUrl: env.DATABASE_URL,
   oxyApiUrl: env.OXY_API_URL,
-  corsOrigins: env.CORS_ORIGINS
-    ? env.CORS_ORIGINS.split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean)
-    : [],
   tunnelClaimEncryptionKey: env.TUNNEL_CLAIM_ENCRYPTION_KEY,
 };
