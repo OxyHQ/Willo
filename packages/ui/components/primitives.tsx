@@ -99,8 +99,8 @@ export function IconButton({
   const { colors: themeColors } = useTheme();
   // Every icon button is a real control — the thermostat's steppers most of
   // all, where a held finger repeats the press — so each one answers with the
-  // same tick a tile does. Through Bloom's hook, so one `haptics` prop on
-  // `BloomProvider` turns every haptic in the app off together, and so Android
+  // same tick a tile does. Through Bloom's hook, so the viewer's haptics
+  // preference turns every haptic in the app off together, and so Android
   // keeps its clamp to the light impact.
   const haptic = useHaptics();
   return (

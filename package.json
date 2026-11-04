@@ -34,7 +34,7 @@
     "@oxy.so/contracts": "6.5.0",
     "@oxy.so/protocol": "1.6.1",
     "@oxy.so/services": "14.3.4",
-    "@oxy.so/bloom": "17.0.0"
+    "@oxy.so/bloom": "17.4.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
