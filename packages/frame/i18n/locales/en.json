@@ -8,9 +8,15 @@
     "none": "Your account has no Willo home yet. Create one in the Willo app, then come back.",
     "unnamed": "Unnamed home"
   },
-  "registering": "Setting up this frame…",
-  "noPhotos": "Choose photos for this frame in the Willo app.",
-  "offline": "Offline",
+  "setup": {
+    "registering": "Setting up this frame…",
+    "loadFailed": "This frame could not reach Willo. It keeps trying.",
+    "defaultName": "Frame"
+  },
+  "scene": {
+    "noPhotos": "Choose photos for this frame in the Willo app.",
+    "offline": "Offline"
+  },
   "cards": {
     "openDoor": "Open",
     "stuffyAir": "Stuffy air",
@@ -38,7 +44,5 @@
   },
   "readings": {
     "co2": "CO₂"
-  },
-  "defaultName": "Frame",
-  "loadFailed": "This frame could not reach Willo. It keeps trying."
+  }
 }

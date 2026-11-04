@@ -155,7 +155,7 @@ export function FrameScene({
                 className="font-display"
                 style={{ fontSize: 3 * vh, opacity: 0.6, textAlign: 'center' }}
               >
-                {t('noPhotos')}
+                {t('scene.noPhotos')}
               </Text>
             </View>
           ) : null}
@@ -213,7 +213,7 @@ export function FrameScene({
 
           {isOffline ? (
             <View
-              accessibilityLabel={t('offline')}
+              accessibilityLabel={t('scene.offline')}
               style={{ position: 'absolute', right: 3 * vh, bottom: 1.5 * vh, opacity: 0.5 }}
             >
               <FrameIcon name="offline" size={2.4 * vh} color="#ffffff" />
