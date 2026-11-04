@@ -20,7 +20,7 @@
 # — which the service cannot boot without, see src/config/index.ts, which
 # refuses to load without it — from SSM `/oxy/willo/*`. Ecosystem-activity
 # telemetry needs no variable: on ECS it attests the task role (oxy ADR 0026;
-# see src/ecosystemActivity.ts). Non-secret config (PORT, OXY_API_URL, CORS_ORIGINS)
+# see src/ecosystemActivity.ts). Non-secret config (PORT, OXY_API_URL)
 # is set as plain task-definition env. SSM is the only copy of each secret;
 # nothing in .github/workflows writes one (oxy-infra runbook 46).
 #
