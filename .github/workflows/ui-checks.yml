@@ -38,6 +38,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Biome (format + lint)
         run: bunx biome ci .
+      # ADR 0055: nested namespace keys, no stray keys in a translation.
+      - name: Translation keys (oxy-doctor-i18n)
+        run: bun run i18n:check
       - name: ESLint (Expo rules Biome lacks)
         run: bun run --cwd packages/frontend lint && bun run --cwd packages/frame lint
       - run: bun test ./tests

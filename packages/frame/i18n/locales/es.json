@@ -8,9 +8,15 @@
     "none": "Tu cuenta aún no tiene ninguna casa de Willo. Crea una en la app de Willo y vuelve.",
     "unnamed": "Casa sin nombre"
   },
-  "registering": "Configurando este marco…",
-  "noPhotos": "Elige las fotos de este marco en la app de Willo.",
-  "offline": "Sin conexión",
+  "setup": {
+    "registering": "Configurando este marco…",
+    "loadFailed": "Este marco no ha podido conectar con Willo. Sigue intentándolo.",
+    "defaultName": "Marco"
+  },
+  "scene": {
+    "noPhotos": "Elige las fotos de este marco en la app de Willo.",
+    "offline": "Sin conexión"
+  },
   "cards": {
     "openDoor": "Abierta",
     "stuffyAir": "Aire cargado",
@@ -38,7 +44,5 @@
   },
   "readings": {
     "co2": "CO₂"
-  },
-  "defaultName": "Marco",
-  "loadFailed": "Este marco no ha podido conectar con Willo. Sigue intentándolo."
+  }
 }

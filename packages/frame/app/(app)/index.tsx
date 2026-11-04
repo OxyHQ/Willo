@@ -39,7 +39,7 @@ function Notice({ text }: { text: string }) {
 /** Several Homes: the person picks the one this frame is in, with a remote or a finger. */
 function ChooseHome({ homes }: { homes: HomeChoice[] }) {
   const { t } = useTranslation();
-  const choose = useChooseHome(t('defaultName'));
+  const choose = useChooseHome(t('setup.defaultName'));
   if (homes.length === 0) return <Notice text={t('chooseHome.none')} />;
   return (
     <View
@@ -115,9 +115,9 @@ function ShowingFrame({ frame }: { frame: Frame }) {
 
 export default function FrameScreen() {
   const { t } = useTranslation();
-  const session = useFrameSession(t('defaultName'));
-  if (session.isPending) return <Notice text={t('registering')} />;
-  if (session.isError) return <Notice text={t('loadFailed')} />;
+  const session = useFrameSession(t('setup.defaultName'));
+  if (session.isPending) return <Notice text={t('setup.registering')} />;
+  if (session.isError) return <Notice text={t('setup.loadFailed')} />;
   if (session.data.kind === 'choose-home') return <ChooseHome homes={session.data.homes} />;
   return <ShowingFrame frame={session.data.frame} />;
 }
