@@ -8,3 +8,5 @@ export class BadRequestError extends Error {}
 export class ForbiddenError extends Error {}
 export class NotFoundError extends Error {}
 export class ConflictError extends Error {}
+/** A dependency (Oxy) could not answer. Never a "no": the caller should retry. */
+export class ServiceUnavailableError extends Error {}

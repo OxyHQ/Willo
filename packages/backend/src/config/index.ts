@@ -13,7 +13,7 @@ const envSchema = z.object({
   // REQUIRED. No default: a missing DATABASE_URL must fail startup loudly
   // rather than silently pick a database nobody chose.
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  // requireOxyAuth/getRequiredOxyUserId (@oxy.so/core/server) validate every
+  // createOxyAuthMiddleware and the socket middleware (@oxy.so/core/server) validate every
   // bearer token by calling this API directly — no local signing secret.
   OXY_API_URL: z.string().url().default('https://api.oxy.so'),
   // Comma-separated browser origins allowed to call this API with

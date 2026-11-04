@@ -11,6 +11,7 @@ import { closePostgres, connectPostgres, getDb } from '../../db/postgres';
 import { frames, homes } from '../../db/schema';
 import { NotFoundError } from '../../errors';
 import { setHomesNamespace } from '../../realtime/socketRegistry';
+import { EVERY_ACCOUNT_EXISTS } from '../../__tests__/fixtures/oxyAccounts';
 import { createHome } from '../homes.service';
 import { acceptInvite, inviteMember, removeMember } from '../homeMembers.service';
 import {
@@ -33,6 +34,8 @@ const recorder = {
       return true;
     },
   }),
+  // Membership changes take sockets out of rooms; nothing to record here.
+  in: () => ({ socketsLeave: () => undefined }),
 };
 
 before(async () => {
@@ -116,7 +119,7 @@ test('a session that never registered, or belongs to someone else, finds no fram
     // Someone else in the SAME Home: membership alone must not make another
     // person's frame theirs.
     const member = newUserId('member');
-    const invite = await inviteMember(homeId, owner, member);
+    const invite = await inviteMember(homeId, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(homeId, invite.id, member);
     const session = newSessionId();
     await registerFrame(homeId, owner, session, FRAME);
@@ -129,7 +132,7 @@ test('a session that never registered, or belongs to someone else, finds no fram
 test('a frame set up by someone who left the Home no longer finds itself', async () => {
   await withHome(async (homeId, owner) => {
     const member = newUserId('member');
-    const invite = await inviteMember(homeId, owner, member);
+    const invite = await inviteMember(homeId, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(homeId, invite.id, member);
     const session = newSessionId();
     await registerFrame(homeId, member, session, FRAME);

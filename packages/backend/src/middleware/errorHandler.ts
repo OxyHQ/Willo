@@ -1,5 +1,16 @@
 import type { NextFunction, Request, Response } from 'express';
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../errors';
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ServiceUnavailableError,
+} from '../errors';
+
+/** The Oxy API error envelope (`~/Oxy/docs/api-conventions.md`): `{ error: { code, message } }`. */
+export function sendError(res: Response, status: number, code: string, message: string): void {
+  res.status(status).json({ error: { code, message } });
+}
 
 /**
  * The one place a thrown domain error becomes an HTTP response. Mounted last,
@@ -13,28 +24,32 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (error instanceof BadRequestError) {
-    res.status(400).json({ error: 'BadRequest', message: error.message });
+    sendError(res, 400, 'bad_request', error.message);
     return;
   }
   if (error instanceof ForbiddenError) {
-    res.status(403).json({ error: 'Forbidden', message: error.message });
+    sendError(res, 403, 'forbidden', error.message);
     return;
   }
   if (error instanceof NotFoundError) {
-    res.status(404).json({ error: 'NotFound', message: error.message });
+    sendError(res, 404, 'not_found', error.message);
     return;
   }
   if (error instanceof ConflictError) {
-    res.status(409).json({ error: 'Conflict', message: error.message });
+    sendError(res, 409, 'conflict', error.message);
+    return;
+  }
+  if (error instanceof ServiceUnavailableError) {
+    sendError(res, 503, 'service_unavailable', error.message);
     return;
   }
   // Malformed request bodies (bad JSON) are a user-input boundary, not an
   // internal failure: express.json() throws a SyntaxError carrying its own
   // `status`/`statusCode` before any route handler ever runs.
   if (error instanceof SyntaxError && 'status' in error && error.status === 400) {
-    res.status(400).json({ error: 'BadRequest', message: 'Malformed request body.' });
+    sendError(res, 400, 'bad_request', 'Malformed request body.');
     return;
   }
   console.error('Unhandled error in Willo backend:', error);
-  res.status(500).json({ error: 'InternalServerError', message: 'Something went wrong.' });
+  sendError(res, 500, 'internal_error', 'Something went wrong.');
 }

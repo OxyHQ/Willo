@@ -134,7 +134,10 @@ async function run(): Promise<void> {
       const before = admitted;
       active = false;
       assert.equal((await request(token)).status, 401);
-      assert.equal(validations, checks + 2);
+      // Asked twice: the app-wide rate limiter resolves the session first
+      // (optional, so a refusal there reads as anonymous), and the required
+      // mount asks again before answering 401. A valid session is asked once.
+      assert.equal(validations, checks + 3);
       assert.equal(admitted, before);
     }
     // Temporary authority failure neither admits the caller nor poisons recovery.
