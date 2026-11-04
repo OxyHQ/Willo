@@ -8,14 +8,12 @@
 
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
-import { getRequiredOxyUserId, requireOxyAuth } from '@oxy.so/core/server';
+import { getRequiredOxyUserId } from '@oxy.so/core/server';
 import { validateBody } from '../middleware/validate';
 import { requiredOxySessionId } from '../middleware/oxySession';
 import * as framesService from '../services/frames.service';
 
 const router = Router();
-
-router.use(requireOxyAuth);
 
 const heartbeatSchema = z
   .object({

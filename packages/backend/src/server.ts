@@ -1,5 +1,6 @@
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { createOxySocketCors } from '@oxy.so/core/server';
 import { config } from './config';
 import { connectPostgres } from './db/postgres';
 import { createApp, createOxyClient } from './app';
@@ -22,9 +23,11 @@ async function main(): Promise<void> {
   const app = createApp(oxy);
   const server = http.createServer(app);
 
-  const io = new SocketIOServer(server, {
-    cors: { origin: config.corsOrigins, credentials: true },
-  });
+  // The same origin rule as `createOxyCors` in `createApp`, from the same list,
+  // on polling AND on the WebSocket handshake (which CORS alone never checks).
+  // A client with no Origin (the Home Assistant integration, a native frame)
+  // is admitted, as it is over HTTP.
+  const io = new SocketIOServer(server, createOxySocketCors({ appOrigins: config.corsOrigins }));
   createHomesNamespace(io, oxy);
   createTunnelNamespace(io);
 

@@ -1,8 +1,14 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb } from '../db/postgres';
 import { homeMembers, homes } from '../db/schema';
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../errors';
-import { emitToHome } from '../realtime/socketRegistry';
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ServiceUnavailableError,
+} from '../errors';
+import { closeHomeRoom, emitToHome, removeUserFromHomeRoom } from '../realtime/socketRegistry';
 import {
   assertActiveMember,
   assertActiveOwner,
@@ -16,15 +22,33 @@ function emitMembershipChanged(homeId: string): void {
   emitToHome(homeId, 'home:membership-changed', { homeId });
 }
 
+/**
+ * The one thing an invite asks Oxy: whether an account id names an account.
+ * `oxy.users` answers it (`lookupMany`), which keeps "Oxy said no such
+ * account" (`missing`) apart from "Oxy could not be asked" (`failed`).
+ */
+export interface OxyAccountLookup {
+  lookupMany(ids: string[]): Promise<{ missing: string[]; failed: string[] }>;
+}
+
 /** Invite a member by Oxy user id (owner only). Reactivates a previously-removed row rather than erroring on the unique (homeId, memberUserId) pair. */
 export async function inviteMember(
   homeId: string,
   inviterUserId: string,
   targetUserId: string,
+  accounts: OxyAccountLookup,
 ): Promise<HomeMemberRow> {
   await assertActiveOwner(homeId, inviterUserId);
   if (targetUserId === inviterUserId) {
     throw new BadRequestError('You are already a member of this Home.');
+  }
+
+  const lookup = await accounts.lookupMany([targetUserId]);
+  if (lookup.failed.length > 0) {
+    throw new ServiceUnavailableError('Oxy could not confirm this account. Try again.');
+  }
+  if (lookup.missing.length > 0) {
+    throw new NotFoundError('No Oxy account has this id.');
   }
 
   const db = getDb();
@@ -133,6 +157,7 @@ export async function removeMember(
     .returning();
   if (!updated) throw new NotFoundError('Member not found on this Home.');
   emitMembershipChanged(homeId);
+  removeUserFromHomeRoom(homeId, updated.memberUserId);
   return updated;
 }
 
@@ -169,6 +194,7 @@ export async function leaveHome(homeId: string, userId: string): Promise<{ disso
       // every dependent row.
       await getDb().delete(homes).where(eq(homes.id, homeId));
       emitMembershipChanged(homeId);
+      closeHomeRoom(homeId);
       return { dissolved: true };
     }
   }
@@ -178,5 +204,6 @@ export async function leaveHome(homeId: string, userId: string): Promise<{ disso
     .set({ status: 'removed' })
     .where(eq(homeMembers.id, membership.id));
   emitMembershipChanged(homeId);
+  removeUserFromHomeRoom(homeId, userId);
   return { dissolved: false };
 }

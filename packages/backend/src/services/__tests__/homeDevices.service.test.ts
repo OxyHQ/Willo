@@ -82,6 +82,9 @@ test('upsertDeviceMetadata announces the row as metadata, never as a live device
         return true;
       },
     }),
+    // Stays installed for the test files after this one, whose membership
+    // changes take sockets out of rooms.
+    in: () => ({ socketsLeave: () => undefined }),
   };
   setHomesNamespace(recorder as unknown as Namespace);
   const owner = newUserId('owner');

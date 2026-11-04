@@ -13,10 +13,10 @@
  *
  * Room membership is NOT inferred from the client's handshake: a socket must
  * explicitly ask to join a specific Home (`home:join`), and that ask is
- * checked against `home_members` (active status) on every attempt — a stale
- * or revoked membership cannot keep a socket in a room it should no longer
- * see, because nothing lets a socket join a room without this check running
- * first.
+ * checked against `home_members` (active status) on every attempt. Ending a
+ * membership takes the person's sockets out of the room at once
+ * (`removeUserFromHomeRoom`, through the `user:<id>` room every socket joins
+ * on connect), so a revoked membership cannot keep receiving the Home's events.
  */
 
 import type { Server as SocketIOServer, Socket } from 'socket.io';
@@ -24,7 +24,7 @@ import { and, eq } from 'drizzle-orm';
 import type { OxyServer } from '@oxy.so/core/server';
 import { getDb } from '../db/postgres';
 import { homeMembers } from '../db/schema';
-import { setHomesNamespace } from './socketRegistry';
+import { homeRoom, setHomesNamespace, userRoom } from './socketRegistry';
 import { observeEcosystemSocket } from '../ecosystemActivity';
 
 const HOMES_NAMESPACE = '/homes';
@@ -46,6 +46,25 @@ async function isActiveMember(homeId: string, userId: string): Promise<boolean> 
   return Boolean(row);
 }
 
+/**
+ * Join `homeId`'s room if `userId` is an active member of it. The membership is
+ * read again AFTER joining: a removal that commits between the first read and
+ * the join has already evicted the user's sockets, before this one was in the
+ * room, so only the second read sees it. A removal that commits after the
+ * second read evicts this socket itself.
+ */
+async function joinIfActiveMember(
+  socket: Socket,
+  homeId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!(await isActiveMember(homeId, userId))) return false;
+  socket.join(homeRoom(homeId));
+  if (await isActiveMember(homeId, userId)) return true;
+  socket.leave(homeRoom(homeId));
+  return false;
+}
+
 export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
   const namespace = io.of(HOMES_NAMESPACE);
   namespace.use(oxy.middleware.socket());
@@ -62,23 +81,18 @@ export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
       return;
     }
 
+    socket.join(userRoom(userId));
+
     socket.on(
       'home:join',
-      (payload: { homeId?: string }, ack?: (result: { ok: boolean }) => void) => {
+      (payload: { homeId?: unknown }, ack?: (result: { ok: boolean }) => void) => {
         const homeId = payload?.homeId;
-        if (!homeId) {
+        if (typeof homeId !== 'string' || !homeId) {
           ack?.({ ok: false });
           return;
         }
-        isActiveMember(homeId, userId)
-          .then((allowed) => {
-            if (!allowed) {
-              ack?.({ ok: false });
-              return;
-            }
-            socket.join(`home:${homeId}`);
-            ack?.({ ok: true });
-          })
+        joinIfActiveMember(socket, homeId, userId)
+          .then((joined) => ack?.({ ok: joined }))
           .catch((error: unknown) => {
             console.error('Failed to check Home membership for socket join:', error);
             ack?.({ ok: false });
@@ -86,8 +100,8 @@ export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
       },
     );
 
-    socket.on('home:leave', (payload: { homeId?: string }) => {
-      if (payload?.homeId) socket.leave(`home:${payload.homeId}`);
+    socket.on('home:leave', (payload: { homeId?: unknown }) => {
+      if (typeof payload?.homeId === 'string') socket.leave(homeRoom(payload.homeId));
     });
   });
 

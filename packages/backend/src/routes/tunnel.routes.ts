@@ -7,11 +7,15 @@
  * token the same way, and `/health` is the ALB probe for the dedicated
  * tunnel load balancer (see the infra plan — the shared `/health` route
  * lives behind a different ALB with a different idle timeout).
+ *
+ * `app.ts` puts a tight per-address rate limit in front of `POST /pair` and
+ * `POST /claim`, the two routes a stranger can call with nothing at all.
  */
 
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { validateBody } from '../middleware/validate';
+import { sendError } from '../middleware/errorHandler';
 import {
   completePairing,
   getDeviceClaimStatus,
@@ -53,13 +57,13 @@ router.post('/claim', async (_req: Request, res: Response) => {
  * the claim token itself is the credential, parsed from `Authorization`
  * the same way a bearer scheme normally is — this backend has no other
  * precedent for that header, since every other route authenticates through
- * `requireOxyAuth` instead.
+ * Oxy (`createOxyAuthMiddleware`) instead.
  */
 router.get('/claim/status', async (req: Request, res: Response) => {
   const header = req.headers.authorization;
   const match = typeof header === 'string' ? /^Bearer (.+)$/.exec(header) : null;
   if (!match) {
-    res.status(401).json({ error: 'Unauthorized', message: 'A Bearer claim token is required.' });
+    sendError(res, 401, 'unauthorized', 'A Bearer claim token is required.');
     return;
   }
   const result = await getDeviceClaimStatus(match[1]);

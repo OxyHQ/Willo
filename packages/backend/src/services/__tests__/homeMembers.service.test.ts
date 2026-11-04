@@ -16,7 +16,8 @@ import {
   leaveHome,
   removeMember,
 } from '../homeMembers.service';
-import { ForbiddenError, NotFoundError } from '../../errors';
+import { ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../errors';
+import { EVERY_ACCOUNT_EXISTS } from '../../__tests__/fixtures/oxyAccounts';
 
 before(async () => {
   await connectPostgres();
@@ -39,7 +40,7 @@ test('invite -> accept makes the invitee an active member', async () => {
   const invitee = newUserId('invitee');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, invitee);
+    const invite = await inviteMember(home.id, owner, invitee, EVERY_ACCOUNT_EXISTS);
     assert.equal(invite.status, 'invited');
     assert.equal(invite.role, 'member');
     assert.equal(invite.invitedByUserId, owner);
@@ -57,11 +58,11 @@ test('invite -> decline leaves the invitee out, and re-inviting reactivates the 
   const invitee = newUserId('invitee');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, invitee);
+    const invite = await inviteMember(home.id, owner, invitee, EVERY_ACCOUNT_EXISTS);
     const declined = await declineInvite(home.id, invite.id, invitee);
     assert.equal(declined.status, 'removed');
 
-    const reinvited = await inviteMember(home.id, owner, invitee);
+    const reinvited = await inviteMember(home.id, owner, invitee, EVERY_ACCOUNT_EXISTS);
     assert.equal(
       reinvited.id,
       invite.id,
@@ -79,10 +80,13 @@ test('only an active owner may invite', async () => {
   const outsider = newUserId('outsider');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, member);
+    const invite = await inviteMember(home.id, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(home.id, invite.id, member);
 
-    await assert.rejects(() => inviteMember(home.id, member, outsider), ForbiddenError);
+    await assert.rejects(
+      () => inviteMember(home.id, member, outsider, EVERY_ACCOUNT_EXISTS),
+      ForbiddenError,
+    );
   } finally {
     await deleteHomeIfExists(home.id);
   }
@@ -93,7 +97,7 @@ test('an owner may remove a member, but never via removeMember on themselves', a
   const member = newUserId('member');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, member);
+    const invite = await inviteMember(home.id, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(home.id, invite.id, member);
 
     const ownerMembership = await getMembership(home.id, owner);
@@ -112,7 +116,7 @@ test('a member may leave freely', async () => {
   const member = newUserId('member');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, member);
+    const invite = await inviteMember(home.id, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(home.id, invite.id, member);
 
     const result = await leaveHome(home.id, member);
@@ -151,7 +155,7 @@ test('the sole owner may not leave while other active members remain', async () 
   const member = newUserId('member');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, member);
+    const invite = await inviteMember(home.id, owner, member, EVERY_ACCOUNT_EXISTS);
     await acceptInvite(home.id, invite.id, member);
 
     await assert.rejects(() => leaveHome(home.id, owner), ForbiddenError);
@@ -177,9 +181,45 @@ test('acceptInvite/declineInvite reject a caller who is not the invitee', async 
   const impostor = newUserId('impostor');
   const { home } = await createHome(owner);
   try {
-    const invite = await inviteMember(home.id, owner, invitee);
+    const invite = await inviteMember(home.id, owner, invitee, EVERY_ACCOUNT_EXISTS);
     await assert.rejects(() => acceptInvite(home.id, invite.id, impostor), NotFoundError);
     await assert.rejects(() => declineInvite(home.id, invite.id, impostor), NotFoundError);
+  } finally {
+    await deleteHomeIfExists(home.id);
+  }
+});
+
+test('an invite naming no Oxy account is refused, and no invite row is written', async () => {
+  const owner = newUserId('owner');
+  const nobody = newUserId('nobody');
+  const { home } = await createHome(owner);
+  try {
+    const oxySaysNoSuchAccount = {
+      lookupMany: async (ids: string[]) => ({ missing: ids, failed: [] }),
+    };
+    await assert.rejects(
+      () => inviteMember(home.id, owner, nobody, oxySaysNoSuchAccount),
+      NotFoundError,
+    );
+    assert.equal(await getMembership(home.id, nobody), null);
+  } finally {
+    await deleteHomeIfExists(home.id);
+  }
+});
+
+test('an invite Oxy cannot confirm is a 503, never a "no such account"', async () => {
+  const owner = newUserId('owner');
+  const invitee = newUserId('invitee');
+  const { home } = await createHome(owner);
+  try {
+    const oxyUnreachable = {
+      lookupMany: async (ids: string[]) => ({ missing: [], failed: ids }),
+    };
+    await assert.rejects(
+      () => inviteMember(home.id, owner, invitee, oxyUnreachable),
+      ServiceUnavailableError,
+    );
+    assert.equal(await getMembership(home.id, invitee), null);
   } finally {
     await deleteHomeIfExists(home.id);
   }
