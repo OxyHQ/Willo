@@ -60,11 +60,15 @@ jobs:
       - run: bun install --frozen-lockfile --minimum-release-age=0
 
       # The update's message is the commit's subject: Oxy Updates caps it at 500
-      # characters, which a squash-merged commit's full body exceeds.
+      # UTF-16 units, which a squash-merged commit's full body exceeds. 200
+      # characters (counted as characters under C.UTF-8) stay under the cap
+      # whatever they are.
       - name: Update message
+        env:
+          LC_ALL: C.UTF-8
         run: |
           subject="$(git log -1 --format=%s)"
-          echo "SHIP_MESSAGE=${subject:0:500}" >> "$GITHUB_ENV"
+          echo "SHIP_MESSAGE=${subject:0:200}" >> "$GITHUB_ENV"
 
       - name: Publish Willo (channel production)
         working-directory: packages/frontend
