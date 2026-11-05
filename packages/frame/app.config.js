@@ -18,9 +18,17 @@ if (!OXY_CLIENT_ID) {
 // nor Willo's reach a frame; `oxy-ship publish --channel` writes to it.
 const OXY_UPDATES_CHANNEL = process.env.EXPO_PUBLIC_OXY_UPDATES_CHANNEL ?? 'frame-production';
 
+// App variant: a development build sits next to the production app on the same
+// device with its own applicationId and name. Build it with
+// `APP_VARIANT=development`; production is the default. Commons' and
+// @oxy.so/services' caller allow-lists hold both ids.
+const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development';
+const APP_ID = IS_DEV_VARIANT ? 'sh.willo.frame.dev' : 'sh.willo.frame';
+const APP_NAME = IS_DEV_VARIANT ? 'Frame by Willo (Dev)' : 'Frame by Willo';
+
 module.exports = {
   expo: {
-    name: 'Frame by Willo',
+    name: APP_NAME,
     slug: 'willo-frame',
     scheme: 'willoframe',
     platforms: ['android', 'web'],
@@ -38,7 +46,7 @@ module.exports = {
     backgroundColor: '#000000',
     description: 'Frame by Willo: your photos, your home and the news on any screen',
     android: {
-      package: 'sh.willo.frame',
+      package: APP_ID,
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#000000',
