@@ -1,0 +1,31 @@
+# Signed Android releases of Willo and of Frame by Willo, built by oxy's
+# reusable workflow on Oxy's build machine. A run builds only when the app's
+# `version` has no GitHub release yet (`android-v<version>`,
+# `frame-android-v<version>`); otherwise the change ships as an OTA update
+# (publish-update.yml). oxy docs/engineering/build-and-deploy.md#native-android-releases.
+
+name: Android release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  willo:
+    permissions:
+      contents: write
+    uses: OxyHQ/oxy/.github/workflows/android-release.yml@main
+    with:
+      app-dir: packages/frontend
+
+  frame:
+    permissions:
+      contents: write
+    uses: OxyHQ/oxy/.github/workflows/android-release.yml@main
+    with:
+      app-dir: packages/frame
+      tag-prefix: frame-android

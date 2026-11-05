@@ -19,8 +19,8 @@
     "@expo/vector-icons": "^15.1.1",
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@oxy.so/bloom": "17.5.0",
-    "@oxy.so/core": "7.17.0",
-    "@oxy.so/services": "14.3.4",
+    "@oxy.so/core": "7.23.0",
+    "@oxy.so/services": "14.3.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@react-native-community/slider": "5.2.1",
@@ -50,6 +50,7 @@
     "expo-router": "~58.0.26",
     "expo-secure-store": "~58.0.2",
     "expo-splash-screen": "~58.0.11",
+    "expo-updates": "~58.0.19",
     "expo-web-browser": "~58.0.6",
     "i18next": "^26.3.6",
     "lottie-react-native": "~7.5.0",
@@ -77,7 +78,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@oxy.so/app-preset": "^5.3.0",
+    "@oxy.so/app-preset": "6.0.0",
+    "@oxy.so/ship": "2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/color": "^4.2.1",
     "@types/react": "~19.3.0",
