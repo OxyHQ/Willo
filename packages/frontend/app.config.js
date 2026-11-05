@@ -11,9 +11,17 @@ if (!OXY_CLIENT_ID) {
   throw new Error('EXPO_PUBLIC_OXY_CLIENT_ID is not set: see packages/frontend/.env.example.');
 }
 
+// App variant: a development build sits next to the production app on the same
+// device with its own applicationId/bundleId and name. Build it with
+// `APP_VARIANT=development`; production is the default. Commons' and
+// @oxy.so/services' caller allow-lists hold both ids.
+const IS_DEV_VARIANT = process.env.APP_VARIANT === 'development';
+const APP_ID = IS_DEV_VARIANT ? 'sh.willo.app.dev' : 'sh.willo.app';
+const APP_NAME = IS_DEV_VARIANT ? 'Willo (Dev)' : 'Willo';
+
 module.exports = {
   expo: {
-    name: 'Willo',
+    name: APP_NAME,
     slug: 'willo',
     scheme: 'willo',
     platforms: ['ios', 'android', 'web'],
@@ -21,12 +29,13 @@ module.exports = {
     // 'appVersion') and the source of the store build number (the preset
     // derives versionCode/buildNumber from it): bump it whenever the native
     // layer changes, and the next push to main releases a new binary.
-    version: '1.0.0',
+    version: '1.1.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
+      bundleIdentifier: APP_ID,
     },
     description: 'Willo — smart home control by Oxy',
     plugins: [
@@ -67,7 +76,7 @@ module.exports = {
       ],
     ],
     android: {
-      package: 'sh.willo.app',
+      package: APP_ID,
       adaptiveIcon: {
         foregroundImage: './assets/icon.png',
         backgroundColor: '#ffffff',
