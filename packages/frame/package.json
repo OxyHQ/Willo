@@ -61,7 +61,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@oxy.so/app-preset": "6.0.0",
+    "@oxy.so/app-preset": "6.1.0",
     "@oxy.so/ship": "2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "~19.3.0",
