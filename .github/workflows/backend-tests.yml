@@ -55,6 +55,14 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      # Here rather than in ui-checks.yml because this is the required check
+      # that reports on every pull request. It fails on a required native peer
+      # of the installed @oxy.so/services an app (frontend, frame) does not
+      # declare (expo-crypto is its CSPRNG: without it sign-in breaks on a
+      # native build) and on two copies of a package bun.lock could serve with
+      # one.
+      - name: Oxy dependency health (oxy-doctor)
+        run: bun run doctor:oxy
       - name: Apply the migrations
         working-directory: packages/backend
         run: bun run db:migrate
