@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "@oxy.so/doctor": "1.6.0",
+    "@oxy.so/doctor": "1.7.0",
     "react-test-renderer": "19.3.0"
   }
 }
