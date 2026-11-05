@@ -78,12 +78,14 @@ module.exports = {
     android: {
       package: APP_ID,
       adaptiveIcon: {
-        foregroundImage: './assets/icon.png',
-        backgroundColor: '#ffffff',
+        foregroundImage: './assets/icon-foreground.png',
+        backgroundImage: './assets/icon-background.png',
+        monochromeImage: './assets/icon-monochrome.png',
       },
     },
     web: {
       output: 'single',
+      favicon: './assets/favicon.png',
     },
   },
 };
