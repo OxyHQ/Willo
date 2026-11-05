@@ -1,0 +1,12 @@
+{
+  "build": {
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_OXY_API_URL": "https://api.oxy.so",
+        "EXPO_PUBLIC_OXY_CLIENT_ID": "oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b",
+        "EXPO_PUBLIC_OXY_AUTH_REDIRECT_URI": "https://willo.sh",
+        "EXPO_PUBLIC_WILLO_API_URL": "https://api.willo.sh"
+      }
+    }
+  }
+}
