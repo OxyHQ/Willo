@@ -45,7 +45,6 @@ jobs:
       EXPO_NO_TELEMETRY: '1'
       OXY_SHIP_CLIENT_ID: oxy_dk_fb8d8c425643f2bd3983386674e9704d81746295d0a3345b
       OXY_API_URL: https://api.oxy.so
-      SHIP_MESSAGE: ${{ github.event.head_commit.message }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
@@ -59,6 +58,13 @@ jobs:
           node-version: '24'
           package-manager-cache: false
       - run: bun install --frozen-lockfile --minimum-release-age=0
+
+      # The update's message is the commit's subject: Oxy Updates caps it at 500
+      # characters, which a squash-merged commit's full body exceeds.
+      - name: Update message
+        run: |
+          subject="$(git log -1 --format=%s)"
+          echo "SHIP_MESSAGE=${subject:0:500}" >> "$GITHUB_ENV"
 
       - name: Publish Willo (channel production)
         working-directory: packages/frontend
