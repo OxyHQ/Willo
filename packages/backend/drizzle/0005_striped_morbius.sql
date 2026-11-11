@@ -1,2 +1,3 @@
+-- oxy:deploy-phase=pre
 ALTER TABLE "homes" ADD COLUMN "unit_system" text DEFAULT 'metric' NOT NULL;--> statement-breakpoint
 ALTER TABLE "homes" ADD CONSTRAINT "homes_unit_system_check" CHECK ("homes"."unit_system" in ('metric', 'imperial'));

@@ -65,7 +65,7 @@ jobs:
         run: bun run doctor:oxy
       - name: Apply the migrations
         working-directory: packages/backend
-        run: bun run db:migrate
+        run: bun run db:migrate --target-database=willo_test
       - name: Run the backend tests
         working-directory: packages/backend
         run: |

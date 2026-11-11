@@ -7,13 +7,12 @@
 # gracefully until the service exists, so the first push can run before the
 # service is created (the image still lands in ECR).
 #
-# Two adaptations from Peable, both because this is the FIRST production
-# deploy pipeline this backend has ever had:
-#   - No packages/shared-types (Willo has none) in the trigger paths or the
-#     image.
-#   - One migration step, not a pre/post pair — see
-#     .github/scripts/run-migration-task.sh for why: this backend's own
-#     migrator has no phase concept to drive one.
+# One adaptation from Peable: no packages/shared-types (Willo has none) in the
+# trigger paths or the image.
+#
+# Migrations run through @oxy.so/db/migrate as a pre/post pair: `pre`
+# (additive) before the rollout, `post` (drops, renames) after it. Each
+# migration declares its phase on its first line.
 name: Deploy to AWS
 
 on:
@@ -177,10 +176,12 @@ jobs:
           # turning a loud configuration error into a silent one plus a
           # crash-loop with no migration applied.
 
-      - name: Migrate — one-shot ECS task before the rollout
+      - name: Migrate (pre) — one-shot ECS task before the rollout
         if: steps.ecs.outputs.status == 'ACTIVE'
         run: .github/scripts/run-migration-task.sh
         env:
+          PHASE: pre
+          TARGET_DATABASE: willo
           TASK_DEFINITION: ${{ steps.ecs.outputs.task_definition }}
           CONTAINER_NAME: ${{ steps.ecs.outputs.container }}
           NETWORK_CONFIGURATION: ${{ steps.ecs.outputs.network }}
@@ -238,3 +239,13 @@ jobs:
 
           echo "::error::ECS rollout for $APP did not reach COMPLETED within ${MAX_WAIT_SECS}s (genuine timeout)"
           exit 1
+
+      - name: Migrate (post) — one-shot ECS task after the rollout
+        if: steps.ecs.outputs.status == 'ACTIVE'
+        run: .github/scripts/run-migration-task.sh
+        env:
+          PHASE: post
+          TARGET_DATABASE: willo
+          TASK_DEFINITION: ${{ steps.ecs.outputs.task_definition }}
+          CONTAINER_NAME: ${{ steps.ecs.outputs.container }}
+          NETWORK_CONFIGURATION: ${{ steps.ecs.outputs.network }}
