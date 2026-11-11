@@ -6,11 +6,10 @@ import { DATABASE_CASING } from '@oxy.so/db';
  *
  * `bun run db:generate` diffs `src/db/schema.ts` against `drizzle/` and writes
  * a new SQL migration. It never opens a database. Migrations are APPLIED by
- * `bun run db:migrate` (`src/db/migrate.ts`), which uses drizzle-orm's own
- * migrator over the files in `drizzle/` — this small a service has no
- * production deploy pipeline yet, so unlike OxyHQ/Mention's `migrate.ts`
- * there is no deferred-ledger/dry-run/target-database machinery here to keep
- * in sync with it.
+ * `bun run db:migrate --target-database=<name>` (`src/db/migrate.ts`, through
+ * `@oxy.so/db/migrate`). A generated file has no deploy-phase marker: add
+ * `-- oxy:deploy-phase=pre` (additive) or `post` (drops, renames) as its first
+ * line, or the migrator refuses to apply it.
  *
  * `casing` decides what the DDL CREATES; `createDatabase()` in
  * `src/db/postgres.ts` reads the same `DATABASE_CASING` and decides what

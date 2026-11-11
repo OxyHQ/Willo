@@ -1,3 +1,4 @@
+-- oxy:deploy-phase=pre
 CREATE TABLE "home_connections" (
 	"id" text PRIMARY KEY NOT NULL,
 	"home_id" text NOT NULL,

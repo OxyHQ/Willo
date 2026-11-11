@@ -1,3 +1,4 @@
+-- oxy:deploy-phase=pre
 CREATE TABLE "frames" (
 	"id" text PRIMARY KEY NOT NULL,
 	"home_id" text NOT NULL,

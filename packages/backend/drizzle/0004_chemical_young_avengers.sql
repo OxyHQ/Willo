@@ -1,3 +1,4 @@
+-- oxy:deploy-phase=pre
 CREATE TABLE "device_claims" (
 	"id" text PRIMARY KEY NOT NULL,
 	"claim_code" text NOT NULL,

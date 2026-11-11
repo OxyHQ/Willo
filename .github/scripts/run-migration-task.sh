@@ -3,23 +3,12 @@
 # Run Willo's Postgres migration as a one-shot ECS task and fail if it did
 # not succeed.
 #
-# ── Why there is no pre/post phase split here, unlike Peable/Mention/Nilo ──
-#
-# Those services' migrators accept `--phase=pre|post` (and `--target-database`)
-# so a destructive change can wait until the OLD image has stopped serving.
-# `packages/backend/src/db/migrate.ts` has no such concept — its own header
-# says so directly: this is a small service with "no production deploy
-# pipeline yet, and nothing to defer... there is no ledger-safety, dry-run, or
-# target-database guard here." Building that pipeline is what THIS workflow
-# does for the first time, so there is deliberately only ONE migration run,
-# always BEFORE the rollout (safe today: the one existing migration is
-# additive, and drizzle's migrator skips migrations already applied). If a
-# future migration ever needs a pre/post split — an old image that must keep
-# working against a new schema mid-rollout — `migrate.ts` needs that
-# capability added FIRST; this script cannot invent a safety property the
-# migrator does not have.
-#
-# ── Everything below this point mirrors Peable's own run-migration-task.sh ──
+# Runs `packages/backend/src/db/migrate.ts` (`@oxy.so/db/migrate`) as a
+# one-shot ECS task for ONE deploy phase: `pre` (additive migrations, before the
+# rollout, while the old image still serves) or `post` (migrations that take
+# something away, after the new image is live). Each migration declares its
+# phase on its first line (`-- oxy:deploy-phase=pre|post`). `--target-database`
+# makes the migrator refuse to run against any database but Willo's.
 #
 # The ECS CLI returns 0 as soon as a task is ACCEPTED, so a workflow that
 # only checked `run-task`'s exit code would report a green deploy for a
@@ -38,6 +27,8 @@
 #   TASK_DEFINITION               the revision this deploy registered for its image
 #   CONTAINER_NAME                the container to override within it
 #   NETWORK_CONFIGURATION         the service's awsvpc config, as compact JSON
+#   PHASE                         pre | post
+#   TARGET_DATABASE               the database the migrator must be connected to
 set -euo pipefail
 
 : "${CLUSTER:?CLUSTER is required}"
@@ -45,22 +36,15 @@ set -euo pipefail
 : "${TASK_DEFINITION:?TASK_DEFINITION is required}"
 : "${CONTAINER_NAME:?CONTAINER_NAME is required}"
 : "${NETWORK_CONFIGURATION:?NETWORK_CONFIGURATION is required}"
+: "${PHASE:?PHASE is required (pre or post)}"
+: "${TARGET_DATABASE:?TARGET_DATABASE is required}"
 
-# `bun` on the TypeScript SOURCE, not `node` on a compiled entrypoint — this
-# image has no compiled JS at all (see packages/backend/Dockerfile); its CMD
-# is `bun packages/backend/src/server.ts`, with `bun run typecheck` used only
-# as a build-time gate whose output is discarded.
-#
-# `migrate.ts` resolves its migrations folder as the RELATIVE path
-# `./drizzle` (matching how it is always run locally: `bun run db:migrate`
-# from inside packages/backend), which resolves against the process's
-# working directory, not the script's own location. The image's WORKDIR is
-# the repo root, so the command below `cd`s into packages/backend first —
-# skipping that would have `./drizzle` resolve to a directory that does not
-# exist in the image and fail with "Can't find meta/_journal.json file".
+# `bun` on the TypeScript SOURCE, not `node` on a compiled entrypoint: this
+# image has no compiled JS (see packages/backend/Dockerfile).
 OVERRIDES=$(jq -nc \
   --arg name "$CONTAINER_NAME" \
-  '{containerOverrides: [{name: $name, command: ["sh", "-c", "cd packages/backend && bun src/db/migrate.ts"]}]}')
+  --arg cmd "cd packages/backend && bun src/db/migrate.ts --target-database=$TARGET_DATABASE --phase=$PHASE" \
+  '{containerOverrides: [{name: $name, command: ["sh", "-c", $cmd]}]}')
 
 # The migration runs where the service runs: on its capacity provider
 # strategy when it has one (oxy-cluster's EC2 capacity, whose revisions are
@@ -74,7 +58,7 @@ else
   PLACEMENT=(--launch-type "$(jq -r '.launchType // "FARGATE"' <<<"$SERVICE_JSON")")
 fi
 
-echo "running migration task on $CLUSTER using $TASK_DEFINITION"
+echo "running the $PHASE migration task on $CLUSTER using $TASK_DEFINITION"
 TASK_ARN=$(aws ecs run-task \
   --cluster "$CLUSTER" \
   --task-definition "$TASK_DEFINITION" \
@@ -82,7 +66,7 @@ TASK_ARN=$(aws ecs run-task \
   --count 1 \
   --network-configuration "$NETWORK_CONFIGURATION" \
   --overrides "$OVERRIDES" \
-  --started-by "deploy-migration" \
+  --started-by "deploy-migration-$PHASE" \
   --query 'tasks[0].taskArn' --output text)
 
 if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
