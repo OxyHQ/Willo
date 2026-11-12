@@ -18,7 +18,7 @@
     "@expo/metro-runtime": "~58.0.15",
     "@expo/vector-icons": "^15.1.1",
     "@lottiefiles/dotlottie-react": "^0.13.5",
-    "@oxy.so/bloom": "19.5.1",
+    "@oxy.so/bloom": "19.9.1",
     "@oxy.so/core": "7.48.0",
     "@oxy.so/services": "14.19.1",
     "@react-native-async-storage/async-storage": "2.2.0",
