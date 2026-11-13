@@ -10,8 +10,8 @@ import { Avatar, IconButton, Label } from '@willo.sh/ui';
 import { useTheme } from '@oxy.so/bloom/theme';
 import { useTranslation } from 'react-i18next';
 import { useAuth, useOxy } from '@oxy.so/services/ui/client';
-import { AliaChatSheet, type AliaChatSheetRef } from '@alia.onl/sdk';
-import { AliaAvatarIcon } from '@alia.onl/sdk/avatar';
+import { GemieChatSheet, type GemieChatSheetRef } from '@gemies/sdk';
+import { GemieAvatarIcon } from '@gemies/sdk/avatar';
 export function useAccountMenu(onNavigate: Navigate) {
   const { homeName } = useHome();
   const { setSheet } = useHomeActions();
@@ -64,7 +64,7 @@ export function AppHeader({
   const ask = t('header.ask', { home: homeName });
   const { isAuthenticated } = useAuth();
   const { openAccountDialog } = useOxy();
-  const aliaChatRef = useRef<AliaChatSheetRef>(null);
+  const aliaChatRef = useRef<GemieChatSheetRef>(null);
   const aliaWelcomeSuggestions = useMemo(
     () => [
       { id: 'devices', text: t('header.aliaSuggestion.devices') },
@@ -127,7 +127,7 @@ export function AppHeader({
           <View className="hidden flex-1 shell:flex" />
           {actions}
           <IconButton
-            icon={AliaAvatarIcon}
+            icon={GemieAvatarIcon}
             label={t('header.askAlia')}
             onPress={handleAskAlia}
             className="bg-card"
@@ -142,7 +142,7 @@ export function AppHeader({
         </View>
       </ContentWidth>
       {isAuthenticated && (
-        <AliaChatSheet
+        <GemieChatSheet
           ref={aliaChatRef}
           clientContext={t('header.aliaClientContext', {
             home: homeName,

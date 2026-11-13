@@ -11,12 +11,12 @@
     "lint": "expo lint ."
   },
   "dependencies": {
-    "@alia.onl/sdk": "22.10.1",
     "@emotion/native": "^11.11.0",
     "@emotion/react": "^11.14.0",
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.15",
     "@expo/vector-icons": "^15.1.1",
+    "@gemies/sdk": "1.0.0",
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@oxy.so/bloom": "19.9.1",
     "@oxy.so/core": "7.48.0",
