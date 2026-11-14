@@ -44,7 +44,9 @@ jobs:
 
       - name: Build the web export
         working-directory: packages/frontend
-        run: bunx expo export --platform web
+        # `build` is expo export then oxy-web-pwa (@oxy.so/app-preset): it validates
+        # public/manifest.json, links it from the page and ships the service worker.
+        run: bun run build
         env:
           EXPO_PUBLIC_OXY_API_URL: https://api.oxy.so
           # Public client id (ApplicationCredential publicKey, type 'public') —
