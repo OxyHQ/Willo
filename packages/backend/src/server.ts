@@ -1,27 +1,31 @@
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { createOxySocketCors } from '@oxy.so/core/server';
+import { createOxySocketCors, startEcosystemTraffic } from '@oxy.so/core/server';
+import { createAwsWorkloadCredentialProvider } from '@oxy.so/core/server/aws';
 import { config } from './config';
 import { connectPostgres } from './db/postgres';
 import { createApp, createOxyClient } from './app';
 import { createHomesNamespace } from './realtime/homesNamespace';
 import { createTunnelNamespace } from './realtime/tunnelNamespace';
-import { startEcosystemActivity, stopEcosystemActivity } from './ecosystemActivity';
 import { WILLO_APP_ORIGINS } from './origins';
 
 async function main(): Promise<void> {
   await connectPostgres();
 
-  // Started before `createApp` so the readiness flag exists ahead of time;
-  // `ecosystemActivityMiddleware` (mounted inside createApp) reads the
-  // module-level publisher lazily on each request, so the ORDER of these two
-  // calls has no effect on correctness either way. Publishes only on ECS
-  // (see ecosystemActivity.ts); the heartbeat reports `online` once listening.
+  // Started at bootstrap, never while constructing an app in a test. Publishes where
+  // an AWS region is configured (ECS sets one), or as `OXY_ECOSYSTEM_ACTIVITY_ENABLED`
+  // says; a misconfiguration throws and fails the start. The heartbeat reports
+  // `online` once listening.
   let isReady = false;
-  startEcosystemActivity(() => isReady);
+  const traffic = startEcosystemTraffic({
+    service: 'willo',
+    baseURL: config.oxyApiUrl,
+    workloadCredentials: createAwsWorkloadCredentialProvider(),
+    ready: () => isReady,
+  });
 
   const oxy = createOxyClient();
-  const app = createApp(oxy);
+  const app = createApp(oxy, traffic);
   const server = http.createServer(app);
 
   // The same origin rule as `createOxyCors` in `createApp`, from the same list,
@@ -32,8 +36,8 @@ async function main(): Promise<void> {
     server,
     createOxySocketCors({ appOrigins: [...WILLO_APP_ORIGINS] }),
   );
-  createHomesNamespace(io, oxy);
-  createTunnelNamespace(io);
+  createHomesNamespace(io, oxy, traffic);
+  createTunnelNamespace(io, traffic);
 
   server.listen(config.port, () => {
     isReady = true;
@@ -58,7 +62,8 @@ async function main(): Promise<void> {
 
     server.close(() => {
       io.close(() => {
-        stopEcosystemActivity()
+        traffic
+          .stop()
           .then(() => {
             clearTimeout(forceExit);
             console.log('Graceful shutdown complete');

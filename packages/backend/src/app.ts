@@ -1,6 +1,7 @@
 import { createAwsWorkloadCredentialProvider } from '@oxy.so/core/server/aws';
 import express, { type Express } from 'express';
 import {
+  type EcosystemTraffic,
   OxyServer,
   createOxyAuthMiddleware,
   createOxyCors,
@@ -12,7 +13,6 @@ import { createHomesRouter } from './routes/homes.routes';
 import tunnelRouter from './routes/tunnel.routes';
 import framesRouter from './routes/frames.routes';
 import { errorHandler } from './middleware/errorHandler';
-import { ecosystemActivityMiddleware } from './ecosystemActivity';
 import { WILLO_APP_ORIGINS } from './origins';
 
 /** Willo's Oxy application (`b043569d14d358371cb545b5` in Oxy's application registry). */
@@ -33,7 +33,7 @@ const TUNNEL_ENROLLMENT_WINDOW_MS = 15 * 60 * 1000;
  * it internally) so tests can pass one pointed at a mock Oxy API instead of
  * the real one.
  */
-export function createApp(oxy: OxyServer): Express {
+export function createApp(oxy: OxyServer, traffic: EcosystemTraffic): Express {
   const app = express();
 
   // Before any middleware: `req.ip` is the real client behind the ALB, and behind
@@ -42,11 +42,9 @@ export function createApp(oxy: OxyServer): Express {
   // forged X-Forwarded-For is never believed either way.
   app.set('trust proxy', oxyTrustProxy);
 
-  // First, unconditionally: observes every inbound request whether or not
-  // ecosystem-activity has actually started (see ecosystemActivity.ts — it
-  // uses the configured temporary AWS identity, including local SSO), so
-  // there is nothing to plumb through `createApp` when it does.
-  app.use(ecosystemActivityMiddleware);
+  // First, unconditionally: observes every inbound request. The handle is inert
+  // where the process does not publish (`startEcosystemTraffic` in server.ts).
+  app.use(traffic.observeHttp);
   app.use(createOxyCors({ appOrigins: [...WILLO_APP_ORIGINS] }));
   // Per Oxy user when signed in, per (hashed) client address otherwise.
   // In-memory store: Willo runs exactly one task (`desired_count = 1` in

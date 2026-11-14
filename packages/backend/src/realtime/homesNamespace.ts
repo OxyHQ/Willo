@@ -21,11 +21,10 @@
 
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import { and, eq } from 'drizzle-orm';
-import type { OxyServer } from '@oxy.so/core/server';
+import type { EcosystemTraffic, OxyServer } from '@oxy.so/core/server';
 import { getDb } from '../db/postgres';
 import { homeMembers } from '../db/schema';
 import { homeRoom, setHomesNamespace, userRoom } from './socketRegistry';
-import { observeEcosystemSocket } from '../ecosystemActivity';
 
 const HOMES_NAMESPACE = '/homes';
 
@@ -65,12 +64,16 @@ async function joinIfActiveMember(
   return false;
 }
 
-export function createHomesNamespace(io: SocketIOServer, oxy: OxyServer): void {
+export function createHomesNamespace(
+  io: SocketIOServer,
+  oxy: OxyServer,
+  traffic: EcosystemTraffic,
+): void {
   const namespace = io.of(HOMES_NAMESPACE);
   namespace.use(oxy.middleware.socket());
 
   namespace.on('connection', (socket: HomeSocket) => {
-    observeEcosystemSocket(socket);
+    traffic.observeSocket(socket);
 
     const userId = socket.data.userId;
     if (!userId) {
