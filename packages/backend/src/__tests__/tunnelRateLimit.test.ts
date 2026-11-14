@@ -9,6 +9,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createServer, type Server as HttpServer } from 'node:http';
 import { OxyServer } from '@oxy.so/core/server';
 import { createApp } from '../app';
+import { inertTraffic } from './fixtures/inertTraffic';
 
 let server: HttpServer;
 let oxy: OxyServer;
@@ -17,7 +18,7 @@ let origin = '';
 beforeAll(async () => {
   // Never reached: no request below carries an Oxy bearer.
   oxy = new OxyServer({ baseURL: 'http://127.0.0.1:1' });
-  server = createServer(createApp(oxy));
+  server = createServer(createApp(oxy, inertTraffic));
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Missing server address');

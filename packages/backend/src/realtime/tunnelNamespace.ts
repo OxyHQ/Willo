@@ -13,6 +13,7 @@
  * which kind of caller it's looking at.
  */
 
+import type { EcosystemTraffic } from '@oxy.so/core/server';
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import {
   applyDeviceUpdate,
@@ -25,7 +26,6 @@ import {
   recordBinarySensorEvent,
   type BinarySensorTransition,
 } from '../services/homeEvents.service';
-import { observeEcosystemSocket } from '../ecosystemActivity';
 import { emitToHome } from './socketRegistry';
 import {
   registerTunnelSocket,
@@ -70,7 +70,7 @@ function extractBinarySensorTransition(
   };
 }
 
-export function createTunnelNamespace(io: SocketIOServer): void {
+export function createTunnelNamespace(io: SocketIOServer, traffic: EcosystemTraffic): void {
   const namespace = io.of(TUNNEL_NAMESPACE);
 
   namespace.use((socket: TunnelSocket, next) => {
@@ -93,7 +93,7 @@ export function createTunnelNamespace(io: SocketIOServer): void {
   });
 
   namespace.on('connection', (socket: TunnelSocket) => {
-    observeEcosystemSocket(socket);
+    traffic.observeSocket(socket);
 
     const homeId = socket.data.homeId;
     if (!homeId) {

@@ -24,6 +24,7 @@ import {
 } from '../services/homeMembers.service';
 import { createHome } from '../services/homes.service';
 import { EVERY_ACCOUNT_EXISTS } from './fixtures/oxyAccounts';
+import { inertTraffic } from './fixtures/inertTraffic';
 
 const SESSION_PREFIX = 'session-of-';
 const TIMEOUT_MS = 5000;
@@ -66,7 +67,7 @@ beforeAll(async () => {
   oxy = new OxyServer({ baseURL: await listen(authority) });
   server = createServer();
   io = new Server(server);
-  createHomesNamespace(io, oxy);
+  createHomesNamespace(io, oxy, inertTraffic);
   origin = await listen(server);
 });
 

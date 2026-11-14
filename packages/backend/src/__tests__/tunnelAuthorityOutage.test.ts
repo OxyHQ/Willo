@@ -11,6 +11,7 @@ import { closePostgres, connectPostgres } from '../db/postgres';
 import { homeConnections, homes } from '../db/schema';
 import { createTunnelNamespace } from '../realtime/tunnelNamespace';
 import { sendCommand } from '../realtime/tunnelRegistry';
+import { inertTraffic } from './fixtures/inertTraffic';
 
 async function listen(server: HttpServer): Promise<string> {
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -34,10 +35,10 @@ it('keeps the integration tunnel usable during an Oxy authority outage', async (
   });
   const authorityUrl = await listen(authority);
   const oxy = new OxyServer({ baseURL: authorityUrl });
-  const app = createApp(oxy);
+  const app = createApp(oxy, inertTraffic);
   const server = createServer(app);
   const io = new Server(server);
-  createTunnelNamespace(io);
+  createTunnelNamespace(io, inertTraffic);
   const origin = await listen(server);
   const secret = 'local-test-tunnel-secret';
   let socket: Socket | undefined;
