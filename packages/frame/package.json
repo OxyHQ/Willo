@@ -16,7 +16,7 @@
     "@expo/app-integrity": "~58.0.2",
     "@expo/metro-runtime": "~58.0.15",
     "@expo/vector-icons": "^15.1.1",
-    "@oxy.so/bloom": "21.0.0",
+    "@oxy.so/bloom": "21.5.0",
     "@oxy.so/core": "7.51.0",
     "@oxy.so/services": "14.21.0",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -61,7 +61,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@oxy.so/app-preset": "6.6.0",
+    "@oxy.so/app-preset": "6.7.2",
     "@oxy.so/ship": "2.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "~19.3.0",
