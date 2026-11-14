@@ -30,7 +30,8 @@ bun run doctor:oxy               # Oxy dependency health
 - Keep Home Assistant auth and Oxy sign-in separate; the app must work without an Oxy account (see `packages/frontend/AGENTS.md`).
 - `packages/ui` never imports from `packages/frontend` and uses relative imports only (see `packages/ui/AGENTS.md`).
 - Backend `DATABASE_URL`, Oxy API URL and the tunnel claim key come from environment variables; add new ones to `.env.example` without values.
-- Own-product Oxy calls use the shared workload/session transport: no customer API key, app scope or consent screen.
+- Own-product Oxy calls use the shared workload transport, never a customer API key.
+- First-party never asks people for permissions: this app acts for a person with `actingFor` on what oxy's first-party registry declares (oxy ADR 0066); permissions, scopes and consent are only for third parties.
 - General Oxy code, TypeScript, React and error-handling rules: [Oxy engineering standards](https://github.com/OxyHQ/engineering/blob/main/AGENTS.md). Biome and the Expo ESLint config enforce the formatting subset.
 
 ## Boundaries
