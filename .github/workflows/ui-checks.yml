@@ -47,7 +47,9 @@ jobs:
       - run: bun run typecheck
       - name: Export the real Expo web app
         working-directory: packages/frontend
-        run: bunx expo export --platform web
+        # `build` is expo export then oxy-web-pwa (@oxy.so/app-preset): it validates
+        # public/manifest.json, links it from the page and ships the service worker.
+        run: bun run build
         env:
           # The app's config refuses to build without Willo's public client id
           # (no fallback identity); the same values deploy-frontend.yml builds with.
