@@ -9,6 +9,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { createServer, type Server as HttpServer } from 'node:http';
 import { OxyServer } from '@oxy.so/core/server';
+import { inertTraffic } from './fixtures/inertTraffic';
 
 // The variable this list replaced. A deploy that still sets it must not widen
 // what the code admits; set before the app is imported so a regression that
@@ -23,7 +24,7 @@ beforeAll(async () => {
   const { createApp } = await import('../app');
   // Never reached: a preflight carries no Oxy bearer.
   oxy = new OxyServer({ baseURL: 'http://127.0.0.1:1' });
-  server = createServer(createApp(oxy));
+  server = createServer(createApp(oxy, inertTraffic));
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Missing server address');

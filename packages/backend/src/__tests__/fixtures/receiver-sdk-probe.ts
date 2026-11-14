@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createOxyAuthMiddleware, getRequiredOxyUserId } from '@oxy.so/core/server';
+import { inertTraffic } from './inertTraffic';
 let issuer: Server;
 let receiver: Server;
 let receiverOrigin = '';
@@ -94,7 +95,7 @@ async function run(): Promise<void> {
     const oxy = createOxyClient();
     disposeOxy = () => oxy.dispose();
     const middleware = createOxyAuthMiddleware(oxy);
-    const app = createApp(oxy);
+    const app = createApp(oxy, inertTraffic);
     app.get('/owned-fixture', middleware, (req, res) => {
       admitted += 1;
       res.json({ userId: getRequiredOxyUserId(req) });
